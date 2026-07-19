@@ -209,6 +209,7 @@ The test file living at the root (not `test/`) is a historical quirk; it must be
 ## 13. Rules provenance workflow
 
 All rules content comes from the official DBU website.
+
 ---
 
 ## 14. Policy summary
