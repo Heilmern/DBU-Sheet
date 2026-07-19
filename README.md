@@ -126,7 +126,7 @@ flutter test character_calculator_test.dart --plain-name "Awakening Limit table"
 
 ## Rules provenance
 
-All rules data is transcribed from the official DBU website, with the original community Google Sheet used as a cross-reference. Where the two disagree, the live site wins. Effect and trait wording is copied verbatim; every mechanically-resolvable effect is wired into the calculator so the on-screen numbers stay consistent with the rules, and genuinely situational or GM-adjudicated effects are surfaced as labelled reference text.
+All rules data is transcribed from the official DBU website as of 10/07/2026. Effect and trait wording is copied verbatim; every mechanically-resolvable effect is wired into the calculator so the on-screen numbers stay consistent with the rules, and situational or GM-adjudicated effects are surfaced as labelled reference text.
 
 The `character_calculator_test.dart` suite pins the confirmed formulas and catalogue counts, and doubles as executable documentation of the rules engine.
 
