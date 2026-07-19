@@ -14,18 +14,18 @@ A full character builder and live rules engine. You enter only the choices a pla
 
 The character editor is organised into eight tabs:
 
-- **Character** — identity, race, size, Power Level → live Tier of Power; the seven Attributes, Skills, Status pools (Life / Ki / Capacity), Aptitudes, Saving Throws, Combat Rolls, Z-Soul, and freeform Custom Buffs.
+- **Character** — identity, race, size, Power Level, Tier of Power; the seven Attributes, Skills, Status pools (Life / Ki / Capacity), Aptitudes, Saving Throws, Combat Rolls, Z-Soul, and freeform Custom Buffs.
 - **Information** — Racial Traits, Factors, and Talents, with their numeric effects applied automatically — including Traits adopted from other Races (table-approved cross-Race picks that apply exactly like native ones).
 - **Progression** — the Progression grant track (Attribute increases, Skill Improvements, and what each level unlocks).
 - **Transformations** — Awakenings (Lesser / Greater / Super), Enhancements, and Forms (Alternate Forms, Evolved Stages, Legendary Forms), including Aspects, Stacks, and Grand Awakenings.
 - **Inventory** — Apparel and Weapons (with Craftsmanship Grades and Qualities), plus Accessories, Basic Items, and freeform Gear.
 - **Signatures** — the Signature Techniques builder (Foundations, Profiles, Advantages/Disadvantages) with live TP and KP cost math.
-- **Unique Abilities** — the Unique Abilities catalogue with Advancements, Restrictions, and cost math.
-- **References** — a scratchpad attack-roll calculator that assembles Strike / Wound / Dodge / Duel roll strings, dice expressions, Ki costs, and damage categories from the character's current state.
+- **Unique Abilities** — the Unique Abilities catalogue with Advancements, Restrictions.
+- **References** — a attack-roll calculator that assembles Strike / Wound / Dodge / Duel roll , dice expressions, Ki costs, and damage categories from the character's current state.
 
 Beyond the editor:
 
-- **Combat tracker** — a "Start Combat" button opens a live combat companion that walks the phase cycle (Start of Combat → Start of Round → Start of Turn → End of Turn → repeat), resets Actions and clears the Diminishing trackers on the round boundary, counts attacks (auto-applying Diminishing Offense after the third), hosts a damage calculator and Battlefield pickers (Weather / Environment / Light), and **pops up reminders scanned from everything the character possesses** — any owned Trait, Talent, Transformation, Condition, State, gear Quality, or ability whose rules text names the current timing ("at the start of your turn", "end of each Combat Round", …) surfaces its verbatim sentence on the right phase. The full Maneuver catalogue rides along as live-annotated reference, and the Information / Transformations / Inventory / Signatures / Unique Abilities tabs are available in-combat so transforming mid-fight is one tap.
+- **Combat tracker** — a "Start Combat" button opens a live combat companion that walks the phase cycle (Start of Combat → Start of Round → Start of Turn → End of Turn → repeat), resets Actions and clears the Diminishing trackers on the round boundary, counts attacks (auto-applying Diminishing Offense after the third), hosts a damage calculator and Battlefield pickers (Weather / Environment / Light), and **pops up reminders scanned from everything the character possesses** — any owned Trait, Talent, Transformation, Condition, State, Gear Quality, or ability whose rules text names the current timing ("at the start of your turn", "end of each Combat Round", …) surfaces its verbatim sentence on the right phase. The full Maneuver catalogue rides along as live-annotated reference, and the Information / Transformations / Inventory / Signatures / Unique Abilities tabs are available in-combat so transforming mid-fight is one tap.
 - **Homebrew library** — player-authored Races, Conditions, States, Transformations, Factors, gear Qualities, Accessories, Basic Items, Signature modifiers, and Unique Abilities, authored with the same automation vocabulary the official catalogues use, so they plug into the exact same rules engine (the official catalogue wins any name clash).
 - **Import / Export** — characters share as compact codes that bundle every homebrew definition they reference, so a character arrives at another table fully working.
 

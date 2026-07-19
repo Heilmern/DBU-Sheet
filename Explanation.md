@@ -50,7 +50,7 @@ Blending these (a formula in a widget, a catalogue constant in the model) is the
 
 Where an old representation must be upgraded (for example, the early freeform Custom Species attribute spread becoming structured choice slots), the model performs a *best-effort* migration at load and falls back to "player re-picks" when the old data doesn't fit the new shape — wrong-but-silent values are never fabricated.
 
-A related policy applies throughout: **selections are stored by name**, not by index or object reference (`"Kaioken"`, `"Saiyan::Warrior's Pride"`, a Condition called `"Poisoned"`). Name-keyed references survive catalogue reordering and let stale references fail soft: an unresolvable name simply contributes nothing (and, where it matters, is surfaced as a visible warning rather than an error).
+A related policy applies throughout: **selections are stored by name**, not by index or object reference (`"Kaioken"`, `"Saiyan:Warrior's Pride"`, a Condition called `"Poisoned"`). Name-keyed references survive catalogue reordering and let stale references fail soft: an unresolvable name simply contributes nothing (and, where it matters, is surfaced as a visible warning rather than an error).
 
 ---
 
@@ -71,9 +71,9 @@ Derived state reaches the UI as a `DerivedCharacterStats` snapshot produced by `
 The hardest part of the rules is that *content* modifies *stats*: a Racial Trait adds to Soak, a Transformation multiplies Ki, a worn Quality excludes a penalty. The engine handles this with one shared vocabulary instead of per-feature code paths:
 
 - **`RaceTraitAutomation`** (defined in `race_traits.dart`, used everywhere) describes a numeric effect: which `AffectedStat` channels it feeds, its magnitude kind (flat, per-Tier, per-stack, per-Power-Level, fraction-of-pool, …), and an optional computable condition gate (while a named State is active, while below a Health Threshold, …).
-- **`AffectedStat`** is the closed set of atomic stat channels (Strike, Dodge, the three Wounds, Saves, pools, speeds, Soak, Damage Reduction, Surgency, skill channels, Ki-cost channels, dice channels, …). Every buff source — Racial Traits, Talents, Transformation Traits, Aspects, Conditions, States, gear, homebrew, and the player's freeform Custom Buffs — resolves into per-channel integer totals that are summed in one place.
+- **`AffectedStat`** is the closed set of stat channels (Strike, Dodge, the three Wounds, Saves, pools, speeds, Soak, Damage Reduction, Surgency, skill channels, Ki-cost channels, dice channels, …). Every buff source — Racial Traits, Talents, Transformation Traits, Aspects, Conditions, States, gear, homebrew, and the player's freeform Custom Buffs — resolves into per-channel integer totals that are summed in one place.
 - **Gating is centralized.** One authority function per content type decides what is "in effect" (for Transformations: Awakenings always-on gated by Stacks, Enhancements/Forms while active, Mastery Traits by mastery level, and so on). Because activation logic lives in exactly one place, the stat pipeline, the UI display, and the combat reminders can never disagree about whether a Trait applies.
-- **Choose-one effects are data, not prose.** When a Trait says "select one of the following," it is modelled as an option group; the UI renders a dropdown (or multi-select chips), the choice is stored under a `"<TraitName>::<GroupLabel>"` key, and the chosen option's automation flows through the same pipeline — including nested choices inside choices.
+- **Choose-one effects are data, not prose.** When a Trait says "select one of the following," it is modelled as an option group; the UI renders a dropdown (or multi-select chips), the choice is stored under a `"<TraitName>:<GroupLabel>"` key, and the chosen option's automation flows through the same pipeline — including nested choices inside choices.
 
 The design goal is that adding new content is *authoring*, not *programming*: a new catalogue entry with automation attached participates in every derived number, every warning, and every combat reminder without a single engine change.
 
@@ -109,8 +109,6 @@ Decisions worth noting:
 DBU rolls are built from a base d10 plus a growing set of "Extra Dice": Tier-of-Power dice, Greater Dice, Critical Dice, Energy-Charge dice, and flat bonus dice, with a "Dice Category" progression (d4 → d6 → d8 → d10 → d10+d4 → …) that effects can raise.
 
 The engine models a roll as a **`DicePool`** — a `{sides: count}` multiset — assembled per roll scope by `combatDicePool`. Category math is table-driven (`DiceRules.categoryDice`), so "increase the Dice Category by 1" is an index bump, and wrapping past d10 falls out of the table rather than being special-cased. The pool renders canonically (largest die first, e.g. `2d10+1d6`), which is what makes the one-tap **copyable roll expressions** possible: the string the player copies *is* the pool plus the flat bonus and Critical Target, with a second variant that appends the Critical Dice for critical results.
-
-Energy Charges illustrate the provenance discipline: each Charge adds `1d6(T)` to the Wound — `1d8(T)` for a Signature Technique — where a `1dX(T)` bonus multiplies the *dice count* by the Tier (three d6 per Charge at Tier 3). An earlier implementation added one Tier-of-Power dice set per Charge; when re-verification against the Attacking rules showed the discrepancy, the fix was a few lines in `combatDicePool` plus updated test pins — exactly the cheap correction the isolation policy is designed to enable.
 
 ---
 
@@ -210,10 +208,7 @@ The test file living at the root (not `test/`) is a historical quirk; it must be
 
 ## 13. Rules provenance workflow
 
-All rules content comes from the official DBU website, cross-referenced against the original community sheet (the live site wins disagreements). For exact, untruncated text, transcription works from a complete offline archive of the site (`References/dbu-rpg.com_f4481821.zim`, a standard ZIM snapshot) served locally — for example with `kiwix-serve --port=8989 <archive>` and fetched per page at `http://127.0.0.1:8989/content/<book>/dbu-rpg.com/<page-slug>/`. Table markup is read from the raw HTML cells rather than flattened text, because collapsing table rows garbles multi-column rules tables.
-
-Content added after the archive snapshot is transcribed from the live site and marked as such in the catalogue comments (`Added post-ZIM`), keeping the provenance trail unbroken.
-
+All rules content comes from the official DBU website.
 ---
 
 ## 14. Policy summary
