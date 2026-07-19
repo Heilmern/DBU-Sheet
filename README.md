@@ -18,7 +18,7 @@ The character editor is organised into eight tabs:
 - **Information** — Racial Traits, Factors, and Talents, with their numeric effects applied automatically — including Traits adopted from other Races (table-approved cross-Race picks that apply exactly like native ones).
 - **Progression** — the Progression grant track (Attribute increases, Skill Improvements, and what each level unlocks).
 - **Transformations** — Awakenings (Lesser / Greater / Super), Enhancements, and Forms (Alternate Forms, Evolved Stages, Legendary Forms), including Aspects, Stacks, and Grand Awakenings.
-- **Inventory** — Apparel and Weapons (fully modelled, with Craftsmanship Grades and Qualities), plus Accessories, Basic Items, and freeform Gear.
+- **Inventory** — Apparel and Weapons (with Craftsmanship Grades and Qualities), plus Accessories, Basic Items, and freeform Gear.
 - **Signatures** — the Signature Techniques builder (Foundations, Profiles, Advantages/Disadvantages) with live TP and KP cost math.
 - **Unique Abilities** — the Unique Abilities catalogue with Advancements, Restrictions, and cost math.
 - **References** — a scratchpad attack-roll calculator that assembles Strike / Wound / Dodge / Duel roll strings, dice expressions, Ki costs, and damage categories from the character's current state.
