@@ -1606,6 +1606,8 @@ class InformationTab extends StatelessWidget {
               initialLines: 2,
               onChanged: (v) => _update(() => entry.notes = v),
             ),
+            if (talent != null && talent.skillRankChoices > 0)
+              _talentSkillRanksEditor(context, entry, talent.skillRankChoices),
             if (automatedText != null) ...[
               const SizedBox(height: 6),
               Text(
@@ -1640,6 +1642,172 @@ class InformationTab extends StatelessWidget {
       entry.prerequisites = chosen.prerequisitesText;
       entry.description = chosen.description;
     });
+  }
+
+  /// Skill chooser for a Talent that grants "gain a Skill Rank in N different
+  /// Skills of your choice" (see `TalentDef.skillRankChoices` — e.g.
+  /// Practiced). Each chosen Skill gains exactly 1 Rank; the picks are stored
+  /// on `TalentEntry.skillRanks` and folded into
+  /// `CharacterCalculator.totalSkillRanks`, so they flow through to the
+  /// Character tab's Skill Ranks like any other source.
+  Widget _talentSkillRanksEditor(
+    BuildContext context,
+    TalentEntry entry,
+    int choices,
+  ) {
+    final theme = Theme.of(context);
+    final chosen = entry.skillRanks.keys.toList();
+
+    // First Skill (or Skill + Specialty) not already picked by this Talent.
+    String? firstUnusedSkillKey() {
+      for (final s in kDbuSkills) {
+        if (s.isEncompassing) {
+          for (final spec in s.specialties) {
+            final key = '${s.name}::$spec';
+            if (!entry.skillRanks.containsKey(key)) return key;
+          }
+        } else {
+          final key = '${s.name}::${SkillProgress.normalKey}';
+          if (!entry.skillRanks.containsKey(key)) return key;
+        }
+      }
+      return null;
+    }
+
+    final canAdd = chosen.length < choices && firstUnusedSkillKey() != null;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Skill Ranks from this Talent: ${chosen.length} / $choices  '
+            '(each a different Skill, +1 Rank)',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: chosen.length > choices ? theme.colorScheme.error : null,
+            ),
+          ),
+          for (final key in chosen) _talentSkillRankRow(context, entry, key),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Add Skill'),
+              onPressed: canAdd
+                  ? () => _update(() {
+                        final key = firstUnusedSkillKey();
+                        if (key != null) entry.skillRanks[key] = 1;
+                      })
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One chosen-Skill row within [_talentSkillRanksEditor]: a Skill dropdown
+  /// (plus a Specialty dropdown for an Encompassing Skill) and a remove
+  /// button. Both dropdowns exclude Skills/Specialties already taken by
+  /// another row, so a switch can never collapse two rows onto one key.
+  Widget _talentSkillRankRow(
+    BuildContext context,
+    TalentEntry entry,
+    String skillKey,
+  ) {
+    final usedKeys = entry.skillRanks.keys.toSet();
+    final parts = skillKey.split('::');
+    final skillName = parts.isNotEmpty ? parts[0] : '';
+    final specialtyKey = parts.length > 1 ? parts[1] : SkillProgress.normalKey;
+    final skill = kDbuSkills.firstWhere(
+      (s) => s.name == skillName,
+      orElse: () => kDbuSkills.first,
+    );
+
+    String? freeSpecialty(SkillDef s) {
+      if (s.isEncompassing) {
+        for (final spec in s.specialties) {
+          if (!usedKeys.contains('${s.name}::$spec')) return spec;
+        }
+        return null;
+      }
+      final key = '${s.name}::${SkillProgress.normalKey}';
+      return usedKeys.contains(key) ? null : SkillProgress.normalKey;
+    }
+
+    void rename(String newKey) => _update(() {
+          if (newKey == skillKey || entry.skillRanks.containsKey(newKey)) {
+            return;
+          }
+          entry.skillRanks.remove(skillKey);
+          entry.skillRanks[newKey] = 1;
+        });
+
+    return Padding(
+      key: ValueKey(skillKey),
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: DropdownButtonFormField<SkillDef>(
+              initialValue: skill,
+              isDense: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                for (final s in kDbuSkills)
+                  if (s == skill || freeSpecialty(s) != null)
+                    DropdownMenuItem(value: s, child: Text(s.name)),
+              ],
+              onChanged: (newSkill) {
+                if (newSkill == null || newSkill == skill) return;
+                final spec = freeSpecialty(newSkill) ??
+                    (newSkill.isEncompassing
+                        ? newSkill.specialties.first
+                        : SkillProgress.normalKey);
+                rename('${newSkill.name}::$spec');
+              },
+            ),
+          ),
+          if (skill.isEncompassing) ...[
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<String>(
+                initialValue: skill.specialties.contains(specialtyKey)
+                    ? specialtyKey
+                    : skill.specialties.first,
+                isDense: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  for (final spec in skill.specialties)
+                    if (spec == specialtyKey ||
+                        !usedKeys.contains('$skillName::$spec'))
+                      DropdownMenuItem(value: spec, child: Text(spec)),
+                ],
+                onChanged: (newSpec) {
+                  if (newSpec == null || newSpec == specialtyKey) return;
+                  rename('$skillName::$newSpec');
+                },
+              ),
+            ),
+          ],
+          IconButton(
+            tooltip: 'Remove',
+            icon: const Icon(Icons.close),
+            onPressed: () => _update(() => entry.skillRanks.remove(skillKey)),
+          ),
+        ],
+      ),
+    );
   }
 
   /// A simple Name + Notes freeform row, shared by Factor Traits and Custom

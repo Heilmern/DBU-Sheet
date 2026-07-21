@@ -52,21 +52,61 @@ class SignaturesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final warnings = CharacterCalculator.signatureUltimateWarnings(_c);
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          children: [
-            // Budget first — it's the number the player checks constantly.
-            TpBudgetCard(character: _c, onUpdate: onUpdate),
-            _buildIntro(context, warnings),
-            for (final tech in _c.signatureTechniques)
-              _buildTechniqueCard(context, tech),
-            const SizedBox(height: 24),
-          ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // On a wide screen, flow the technique cards into two columns; the
+        // budget card and intro stay full-width across the top.
+        final twoColumn = constraints.maxWidth >= 1000;
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: twoColumn ? 1400 : 900),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                // Budget first — it's the number the player checks constantly.
+                TpBudgetCard(character: _c, onUpdate: onUpdate),
+                _buildIntro(context, warnings),
+                if (twoColumn)
+                  _buildTechniqueColumns(context)
+                else
+                  for (final tech in _c.signatureTechniques)
+                    _buildTechniqueCard(context, tech),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Splits the technique cards across two side-by-side columns (even indices
+  /// left, odd indices right). Cards vary in height, so this balances them
+  /// better than a fixed-aspect grid without pulling in a masonry package.
+  Widget _buildTechniqueColumns(BuildContext context) {
+    final left = <Widget>[];
+    final right = <Widget>[];
+    for (var i = 0; i < _c.signatureTechniques.length; i++) {
+      final card = _buildTechniqueCard(context, _c.signatureTechniques[i]);
+      (i.isEven ? left : right).add(card);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: left,
+          ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: right,
+          ),
+        ),
+      ],
     );
   }
 

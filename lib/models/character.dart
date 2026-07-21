@@ -147,7 +147,7 @@ class CustomBuff {
     this.group = '',
     this.name = '',
     this.active = true,
-    this.target = CustomBuffTarget.strikeAll,
+    this.target = CustomBuffTarget.combatRolls,
     this.flat = 0,
     this.perBaseTier = 0,
     this.perTier = 0,
@@ -185,7 +185,7 @@ class CustomBuff {
         // Accept the new `target` key, else map a legacy `affectedStat`.
         target: customBuffTargetByName(
                 (json['target'] ?? json['affectedStat']) as String?) ??
-            CustomBuffTarget.strikeAll,
+            CustomBuffTarget.combatRolls,
         flat: (json['flat'] as num?)?.toInt() ?? 0,
         perBaseTier: (json['perBaseTier'] as num?)?.toInt() ?? 0,
         perTier: (json['perTier'] as num?)?.toInt() ?? 0,
@@ -366,6 +366,7 @@ class ApparelPiece {
     this.worn = false,
     this.layer = WornLayer.top,
     this.breakValue = kDefaultApparelBreakValue,
+    this.isNaturalArmor = false,
     List<ApparelQualitySelection>? qualities,
     this.notes = '',
   }) : qualities = qualities ?? [];
@@ -374,7 +375,9 @@ class ApparelPiece {
 
   /// Craftsmanship Grade 1–5 — determines the Craft DC, the Apparel Grade
   /// (Low/Standard/High → Apparel Bonus) and the number of Quality Slots (see
-  /// `craftsmanshipInfo`).
+  /// `craftsmanshipInfo`). IGNORED for Natural Armor, whose Craftsmanship Grade
+  /// is derived from the wearer's base Tier of Power (see [isNaturalArmor] and
+  /// `CharacterCalculator.effectiveCraftGrade`).
   int craftsmanshipGrade;
 
   ApparelCategory category;
@@ -398,6 +401,16 @@ class ApparelPiece {
   /// The Apparel Qualities on this piece — see [ApparelQualitySelection].
   final List<ApparelQualitySelection> qualities;
 
+  /// Whether this piece is Natural Armor — a special form of Integrated Armor
+  /// granted by certain Racial/Factor/Custom-Species Traits (e.g. the Arcosian
+  /// "Plating"). When set, the piece behaves per the site's Natural Armor rules
+  /// (see `CharacterCalculator`): its Category is always Armor, its
+  /// Craftsmanship Grade is derived from the wearer's base Tier of Power
+  /// (max. 5), it is Integrated (Bottom Layer, always active/auto-repaired),
+  /// grants its Armor Damage Reduction regardless of layer, and does not count
+  /// as equipped Apparel (never contributes to the Apparel Penalty).
+  bool isNaturalArmor;
+
   String notes;
 
   Map<String, dynamic> toJson() => {
@@ -408,6 +421,7 @@ class ApparelPiece {
         'worn': worn,
         'layer': layer.name,
         'breakValue': breakValue,
+        'isNaturalArmor': isNaturalArmor,
         'qualities': qualities.map((q) => q.toJson()).toList(),
         'notes': notes,
       };
@@ -431,6 +445,7 @@ class ApparelPiece {
         ),
         breakValue:
             (json['breakValue'] as num?)?.toInt() ?? kDefaultApparelBreakValue,
+        isNaturalArmor: json['isNaturalArmor'] as bool? ?? false,
         qualities: ((json['qualities'] as List?) ?? const [])
             .whereType<Map<String, dynamic>>()
             .map(ApparelQualitySelection.fromJson)
@@ -825,26 +840,42 @@ class TalentEntry {
     this.prerequisites = '',
     this.description = '',
     this.notes = '',
-  });
+    Map<String, int>? skillRanks,
+  }) : skillRanks = skillRanks ?? {};
 
   String name;
   String prerequisites;
   String description;
   String notes;
 
+  /// Skill Ranks this Talent grants the player by choice — Skill key
+  /// (`'SkillName::specialtyKey'`, `specialtyKey` = `SkillProgress.normalKey`
+  /// for a non-Encompassing Skill) → Ranks. Only used by Talents that let the
+  /// player choose Skills to gain a Rank in (e.g. Practiced — see
+  /// `TalentDef.skillRankChoices`); folded into
+  /// `CharacterCalculator.totalSkillRanks`.
+  final Map<String, int> skillRanks;
+
   Map<String, dynamic> toJson() => {
         'name': name,
         'prerequisites': prerequisites,
         'description': description,
         'notes': notes,
+        'skillRanks': skillRanks,
       };
 
-  factory TalentEntry.fromJson(Map<String, dynamic> json) => TalentEntry(
-        name: json['name'] as String? ?? '',
-        prerequisites: json['prerequisites'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        notes: json['notes'] as String? ?? '',
-      );
+  factory TalentEntry.fromJson(Map<String, dynamic> json) {
+    final rawRanks = (json['skillRanks'] as Map?) ?? const {};
+    return TalentEntry(
+      name: json['name'] as String? ?? '',
+      prerequisites: json['prerequisites'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      notes: json['notes'] as String? ?? '',
+      skillRanks: rawRanks.map(
+        (k, v) => MapEntry(k as String, (v as num?)?.toInt() ?? 0),
+      ),
+    );
+  }
 }
 
 /// What the player redeemed one Progression grant slot as — see

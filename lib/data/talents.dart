@@ -86,6 +86,7 @@ class TalentDef {
     this.automation = const [],
     this.optionGroups = const [],
     this.raceRestriction,
+    this.skillRankChoices = 0,
   });
 
   final String name;
@@ -108,6 +109,13 @@ class TalentDef {
   /// `RaceTraitDef.race` naming). Reference only, same as Factors'
   /// `raceRestriction` — not programmatically enforced beyond display.
   final String? raceRestriction;
+
+  /// How many different Skills the player may choose to gain a Skill Rank in
+  /// from possessing this Talent (0 for the vast majority). Drives the Skill
+  /// chooser on the Information tab's Talent row, whose picks are stored on
+  /// `TalentEntry.skillRanks` and folded into
+  /// `CharacterCalculator.totalSkillRanks`. Currently only Practiced (2).
+  final int skillRankChoices;
 
   bool get isAutomated => automation.isNotEmpty;
   bool get hasOptions => optionGroups.isNotEmpty;
@@ -2639,6 +2647,7 @@ const List<TalentDef> kDbuTalents = [
         'below 4, increase it to a 4.\n'
         '(2)-[Passive]: Gain a Skill Rank in 2 different Skills of your '
         'choice.',
+    skillRankChoices: 2,
   ),
   TalentDef(
     name: 'Show Stopping Performance',

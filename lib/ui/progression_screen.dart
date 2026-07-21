@@ -85,8 +85,8 @@ class _ProgressionTabState extends State<ProgressionTab> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
-            _buildMainProgression(context),
             _buildProgressionPreview(context),
+            _buildMainProgression(context),
             _buildBonusPerks(context),
             const SizedBox(height: 24),
           ],
@@ -577,35 +577,45 @@ class _ProgressionTabState extends State<ProgressionTab> {
     );
   }
 
+  /// Talent picker for a Progression slot. Typing is deliberately disallowed:
+  /// the field is read-only and the Talent can only be set by choosing one
+  /// from the catalogue (tap the field or the list button). Free typing here
+  /// used to stream each partial keystroke straight onto the Information tab's
+  /// Talents list (via `ensureProgressionTalentsInTalentList`), spamming it
+  /// with half-typed rows — so the only way to set a Talent is a real pick.
   Widget _talentEditor({
     required String fieldKey,
     required String name,
     required ValueChanged<String> onChanged,
   }) {
+    Future<void> pick() async {
+      final chosen = await showDialog<Object>(
+        context: context,
+        builder: (dialogContext) => const TalentCataloguePickerDialog(),
+      );
+      if (chosen is TalentDef) onChanged(chosen.name);
+    }
+
     return Row(
       children: [
         Expanded(
           child: TextFormField(
             key: ValueKey('talent-$fieldKey-$name'),
             initialValue: name,
-            decoration: const InputDecoration(
+            readOnly: true,
+            onTap: pick,
+            decoration: InputDecoration(
               labelText: 'Talent',
-              border: OutlineInputBorder(),
+              hintText: name.isEmpty ? 'Pick from catalogue' : null,
+              border: const OutlineInputBorder(),
               isDense: true,
             ),
-            onChanged: onChanged,
           ),
         ),
         IconButton(
           tooltip: 'Pick from Talents catalogue',
           icon: const Icon(Icons.list_alt_outlined),
-          onPressed: () async {
-            final chosen = await showDialog<Object>(
-              context: context,
-              builder: (dialogContext) => const TalentCataloguePickerDialog(),
-            );
-            if (chosen is TalentDef) onChanged(chosen.name);
-          },
+          onPressed: pick,
         ),
       ],
     );

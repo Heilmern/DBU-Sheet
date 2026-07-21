@@ -281,6 +281,10 @@ class _CombatScreenState extends State<CombatScreen>
         _reducedMomentumPending = false;
         _attacksThisRound = 0;
         _bonusMomentumUsed = false;
+        if (_c.capacitySpent > 0) {
+          messages.add('Capacity reset to Max.');
+        }
+        _c.capacitySpent = 0;
         if (_c.diminishingOffenseStacks > 0 ||
             _c.diminishingDefenseStacks > 0) {
           messages.add('Diminishing Offense/Defense stacks cleared.');

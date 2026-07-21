@@ -89,20 +89,64 @@ class _ReferencesTabState extends State<ReferencesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          children: [
-            if (widget.leadingCard != null) widget.leadingCard!,
-            _buildAttackReference(context),
-            _buildAdvantageReference(context),
-            _buildStateAndResources(context),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+    final leading = widget.leadingCard;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final calculatorCards = <Widget>[
+          _buildAttackReference(context),
+          _buildAdvantageReference(context),
+          _buildStateAndResources(context),
+        ];
+        // On the Combat page's Attacking Maneuver tab (which passes a
+        // leading reminders card), a wide window puts the reminders in
+        // their own column beside the calculator instead of above it. The
+        // edit screen's scratchpad has no leading card and stays single-
+        // column.
+        final twoColumn = leading != null && constraints.maxWidth >= 1000;
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: twoColumn ? 1400 : 900),
+            child: twoColumn
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ...calculatorCards,
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              leading,
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      ?leading,
+                      ...calculatorCards,
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+          ),
+        );
+      },
     );
   }
 

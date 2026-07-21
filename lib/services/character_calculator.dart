@@ -1594,14 +1594,25 @@ abstract final class CharacterCalculator {
   // Apparel (Inventory page — structured, automated; see data/apparel.dart)
   // ==========================================================================
 
-  /// The Apparel Grade (Low/Standard/High) of a piece, from its Craftsmanship
-  /// Grade (see `craftsmanshipInfo`).
-  static ApparelGrade apparelGrade(ApparelPiece piece) =>
-      craftsmanshipInfo(piece.craftsmanshipGrade).apparelGrade;
+  /// The effective Craftsmanship Grade of a piece. Natural Armor derives it
+  /// from the wearer's base Tier of Power (max. 5) — CONFIRMED (verbatim:
+  /// "The Craftsmanship Grade is equal to the base Tier of Power of that
+  /// character (max. 5)."); every other piece uses its stored Grade.
+  static int effectiveCraftGrade(Character c, ApparelPiece piece) =>
+      piece.isNaturalArmor
+          ? baseTierOfPower(c).clamp(1, kCraftsmanshipGrades.length)
+          : piece.craftsmanshipGrade;
 
-  /// How many Quality Slots a piece has (from its Craftsmanship Grade).
-  static int apparelQualitySlots(ApparelPiece piece) =>
-      craftsmanshipInfo(piece.craftsmanshipGrade).qualitySlots;
+  /// The Apparel Grade (Low/Standard/High) of a piece, from its (effective)
+  /// Craftsmanship Grade (see `craftsmanshipInfo` / [effectiveCraftGrade]).
+  static ApparelGrade apparelGrade(Character c, ApparelPiece piece) =>
+      craftsmanshipInfo(effectiveCraftGrade(c, piece)).apparelGrade;
+
+  /// How many Quality Slots a piece has (from its effective Craftsmanship
+  /// Grade). CONFIRMED: Natural Armor "naturally possesses no Qualities, but
+  /// can gain them through effects" — its Slots come from the derived Grade.
+  static int apparelQualitySlots(Character c, ApparelPiece piece) =>
+      craftsmanshipInfo(effectiveCraftGrade(c, piece)).qualitySlots;
 
   /// How many Quality Slots the piece's chosen Qualities currently occupy.
   static int apparelQualitySlotsUsed(ApparelPiece piece) => piece.qualities
@@ -1621,11 +1632,29 @@ abstract final class CharacterCalculator {
   /// raises the Apparel Bonus, e.g. Dense Armor / Divine Apparel +1(bT)),
   /// × Base Tier of Power. CONFIRMED (verbatim Apparel Grade table).
   static int apparelBonus(Character c, ApparelPiece piece) {
-    var perBaseTier = apparelGrade(piece).bonusPerBaseTier;
+    var perBaseTier = apparelGrade(c, piece).bonusPerBaseTier;
     for (final q in apparelQualityDefs(piece)) {
       perBaseTier += q.def.automation?.apparelBonusPerBaseTier ?? 0;
     }
+    if (piece.isNaturalArmor) {
+      perBaseTier += naturalArmorBonusPerBaseTier(c);
+    }
     return perBaseTier * baseTierOfPower(c);
+  }
+
+  /// Extra Apparel Bonus (in multiples of base Tier of Power) that active
+  /// effects add to the wearer's Natural Armor. Currently the "Natural Apparel"
+  /// Awakening Trait (on the "Adjusted Armor" Lesser Awakening), effect (2):
+  /// "Increase the Apparel Bonus of your Natural Armor by 1(bT)." Awakenings
+  /// are always in effect (see `transformationTraitsInEffect`), so owning the
+  /// Awakening applies the bonus; multiple sources sum. Applied only to Natural
+  /// Armor pieces (see `apparelBonus`).
+  static int naturalArmorBonusPerBaseTier(Character c) {
+    var perBaseTier = 0;
+    for (final e in transformationTraitsInEffect(c)) {
+      if (e.trait.name == 'Natural Apparel') perBaseTier += 1;
+    }
+    return perBaseTier;
   }
 
   /// The piece's maximum Break Value: default 3, +3 per Durable-style Quality.
@@ -1646,14 +1675,19 @@ abstract final class CharacterCalculator {
   /// Whether a piece is currently granting its benefits — it must be worn and
   /// not broken (Break Value > 0). CONFIRMED (verbatim: a broken piece "no
   /// longer fully functions"; the sheet marks unworn/broken Apparel
-  /// "(inactive)").
+  /// "(inactive)"). Natural Armor is Integrated (always on the body) and fully
+  /// repaired at the end of each Combat Encounter, so it never needs to be
+  /// "worn" — it is Active whenever it is not currently broken.
   static bool apparelIsActive(ApparelPiece piece) =>
-      piece.worn && piece.breakValue > 0;
+      piece.breakValue > 0 && (piece.isNaturalArmor || piece.worn);
 
   /// Whether a worn piece counts toward the Apparel Penalty — Standard
   /// Clothing never does, nor does a piece with Lightweight / Sleek Design.
-  /// CONFIRMED (verbatim).
+  /// Natural Armor "does not count as equipped Apparel for any of your effects"
+  /// (verbatim), so it never contributes to (nor consumes the free first slot
+  /// of) the Apparel Penalty. CONFIRMED (verbatim).
   static bool _apparelCountsTowardPenalty(ApparelPiece piece) {
+    if (piece.isNaturalArmor) return false;
     if (piece.category == ApparelCategory.standardClothing) return false;
     for (final q in apparelQualityDefs(piece)) {
       if (q.def.automation?.excludedFromApparelPenalty ?? false) return false;
@@ -1685,11 +1719,13 @@ abstract final class CharacterCalculator {
   static int apparelDamageReduction(Character c) {
     var total = 0;
     for (final piece in c.apparel) {
-      if (!apparelIsActive(piece) ||
-          piece.category != ApparelCategory.armor ||
-          piece.layer != WornLayer.top) {
+      if (!apparelIsActive(piece) || piece.category != ApparelCategory.armor) {
         continue;
       }
+      // Worn Armor only grants its Damage Reduction as the Top Layer; Natural
+      // Armor is Integrated (Bottom Layer) yet still grants it (its whole
+      // purpose), so it is exempt from the Top-Layer requirement.
+      if (!piece.isNaturalArmor && piece.layer != WornLayer.top) continue;
       var dr = apparelBonus(c, piece);
       final halves = apparelQualityDefs(piece)
           .any((q) => q.def.automation?.halvesArmorDamageReduction ?? false);
@@ -3004,6 +3040,35 @@ abstract final class CharacterCalculator {
     return result;
   }
 
+  /// Matches a Trait effect that grants the wearer Natural Armor, e.g. "Your
+  /// Plating is Natural Armor." / "Your Dragon Scales are Natural Armor." /
+  /// "Your Metal Exoskeleton is Natural Armor.".
+  static final RegExp _naturalArmorGrant =
+      RegExp(r'\b(?:is|are) Natural Armor', caseSensitive: false);
+
+  /// Whether any of the character's currently-active Racial/Factor/Custom-
+  /// Species Traits grants them Natural Armor (scanning each Trait's text and
+  /// its selectable Options). Used to surface a "this character should have
+  /// Natural Armor" hint in the Inventory, since the piece itself is authored
+  /// by the player (Natural Armor can gain Qualities through effects, which the
+  /// engine cannot pick for them). See [ApparelPiece.isNaturalArmor].
+  static bool grantsNaturalArmor(Character c) {
+    bool has(String s) => _naturalArmorGrant.hasMatch(s);
+    for (final trait in activeRaceTraits(c)) {
+      if (has(trait.description) || has(trait.trailingText)) return true;
+      for (final group in trait.optionGroups) {
+        for (final opt in group.options) {
+          if (has(opt.description)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// Whether the character already has a Natural Armor piece in their Apparel.
+  static bool hasNaturalArmorPiece(Character c) =>
+      c.apparel.any((p) => p.isNaturalArmor);
+
   /// Resolves a [FactorSelection] to its actual [FactorTraitDef], or `null`
   /// if the Factor/Factor Trait name no longer exists in the catalogue
   /// (e.g. stale save data).
@@ -3705,24 +3770,42 @@ abstract final class CharacterCalculator {
     return totals;
   }
 
+  /// Summed Skill Ranks (keyed `'SkillName::specialtyKey'`) granted by the
+  /// character's Talents that let the player choose Skills to gain a Rank in
+  /// (see `TalentDef.skillRankChoices` — currently just Practiced). The picks
+  /// live on `TalentEntry.skillRanks`; this simply totals them across every
+  /// Talent the character possesses.
+  static Map<String, int> talentSkillRanks(Character c) {
+    final totals = <String, int>{};
+    for (final entry in c.talents) {
+      entry.skillRanks.forEach((key, ranks) {
+        if (ranks != 0) totals[key] = (totals[key] ?? 0) + ranks;
+      });
+    }
+    return totals;
+  }
+
   /// Final Skill Ranks = Character-Creation BASE allocation
   /// (`Character.skills`, still directly editable) + every resolved
   /// Progression Skill Improvement through the character's current Power
-  /// Level. This is the value `skillBonus` uses — Skill Ranks are no longer
-  /// just the base allocation on its own.
+  /// Level + Skill Ranks chosen for a Talent (e.g. Practiced). This is the
+  /// value `skillBonus` uses — Skill Ranks are no longer just the base
+  /// allocation on its own.
   static int totalSkillRanks(
     Character c,
     SkillDef skill, {
     String? specialty,
   }) {
     final specialtyKey = specialty ?? SkillProgress.normalKey;
+    final key = '${skill.name}::$specialtyKey';
     final base = c.skills[skill.name]?.ranksFor(specialtyKey) ?? 0;
     final fromProgression = progressionSkillRanksThroughLevel(
           c,
           c.powerLevel,
-        )['${skill.name}::$specialtyKey'] ??
+        )[key] ??
         0;
-    return base + fromProgression;
+    final fromTalents = talentSkillRanks(c)[key] ?? 0;
+    return base + fromProgression + fromTalents;
   }
 
   /// Computes the full derived-stats bundle for a character.

@@ -175,11 +175,11 @@ const List<SkillDef> kDbuSkills = [
 
 /// Z-Soul alignment options (Z-Souls & Karma Points page).
 const List<String> kZSoulAlignments = [
-  'Heroic',
+  'Pure Good',
   'Good',
   'Neutral',
   'Evil',
-  'Villainous',
+  'Pure Evil',
 ];
 
 /// A Race entry: name, Racial Life Modifier, Attribute Score Increase (display

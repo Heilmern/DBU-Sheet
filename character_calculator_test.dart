@@ -2696,13 +2696,14 @@ void main() {
     });
 
     test('Quality Slots used vs available', () {
+      final c = Character.blank('ap-slots');
       final piece = ApparelPiece(
           craftsmanshipGrade: 3,
           category: ApparelCategory.standardClothing); // 2 slots
       piece.qualities.add(ApparelQualitySelection(name: 'Jacket')); // 1
       piece.qualities.add(ApparelQualitySelection(
           name: 'Environmental Protection', slots: 2)); // 2
-      expect(CharacterCalculator.apparelQualitySlots(piece), 2);
+      expect(CharacterCalculator.apparelQualitySlots(c, piece), 2);
       expect(CharacterCalculator.apparelQualitySlotsUsed(piece), 3); // over
     });
 
@@ -2767,6 +2768,110 @@ void main() {
       expect(r.breakValue, 2);
       expect(r.qualities.single.name, 'Combat Ready');
       expect(r.qualities.single.notes, 'x');
+    });
+
+    test('Natural Armor derives its Grade from base Tier of Power (max. 5)', () {
+      final c = Character.blank('na1')..powerLevel = _plForTop(3); // baseTop 3
+      final piece = ApparelPiece(isNaturalArmor: true);
+      // Grade 3 → Standard = 2(bT) → 6; the stored craftsmanshipGrade (1) is
+      // ignored.
+      expect(CharacterCalculator.effectiveCraftGrade(c, piece), 3);
+      expect(CharacterCalculator.apparelGrade(c, piece), ApparelGrade.standard);
+      expect(CharacterCalculator.apparelBonus(c, piece), 6);
+      expect(CharacterCalculator.apparelQualitySlots(c, piece), 2);
+      // At Tier of Power 7 the Grade clamps to 5 (High = 3(bT), 4 Slots).
+      c.powerLevel = _plForTop(7);
+      expect(CharacterCalculator.effectiveCraftGrade(c, piece), 5);
+      expect(CharacterCalculator.apparelBonus(c, piece), 21);
+      expect(CharacterCalculator.apparelQualitySlots(c, piece), 4);
+    });
+
+    test('Natural Armor grants Damage Reduction while Integrated (Bottom Layer, '
+        'never "worn")', () {
+      final c = Character.blank('na2')..powerLevel = _plForTop(3);
+      final piece = ApparelPiece(
+        isNaturalArmor: true,
+        category: ApparelCategory.armor,
+        layer: WornLayer.bottom,
+        worn: false, // Integrated: still Active without being "worn".
+      );
+      c.apparel.add(piece);
+      expect(CharacterCalculator.apparelIsActive(piece), isTrue);
+      expect(CharacterCalculator.apparelDamageReduction(c), 6);
+      // Broken (Break Value 0) → inactive, no DR.
+      piece.breakValue = 0;
+      expect(CharacterCalculator.apparelIsActive(piece), isFalse);
+      expect(CharacterCalculator.apparelDamageReduction(c), 0);
+    });
+
+    test('Natural Armor never counts toward the Apparel Penalty (nor consumes '
+        'the free first slot)', () {
+      final c = Character.blank('na3')..powerLevel = _plForTop(3); // ceil(3/2)=2
+      c.apparel.add(ApparelPiece(
+        isNaturalArmor: true,
+        category: ApparelCategory.armor,
+        layer: WornLayer.bottom,
+      ));
+      // Natural Armor alone: no penalty and it doesn't consume the free slot.
+      expect(CharacterCalculator.apparelPenalty(c), 0);
+      c.apparel.add(ApparelPiece(
+          craftsmanshipGrade: 1,
+          category: ApparelCategory.combatClothing,
+          worn: true));
+      // The one real worn piece is the "first" → still no penalty.
+      expect(CharacterCalculator.apparelPenalty(c), 0);
+      c.apparel.add(ApparelPiece(
+          craftsmanshipGrade: 1,
+          category: ApparelCategory.combatClothing,
+          worn: true,
+          layer: WornLayer.middle));
+      // Two real pieces → one over the first → -2.
+      expect(CharacterCalculator.apparelPenalty(c), 2);
+    });
+
+    test('Natural Apparel Awakening (Adjusted Armor) adds +1(bT) to Natural '
+        'Armor Apparel Bonus (and its DR), but not to ordinary Apparel', () {
+      final c = Character.blank('na-app')..powerLevel = _plForTop(3); // baseTop 3
+      final nat = ApparelPiece(
+        isNaturalArmor: true,
+        category: ApparelCategory.armor,
+        layer: WornLayer.bottom,
+      );
+      final ordinary = ApparelPiece(
+        craftsmanshipGrade: 3,
+        category: ApparelCategory.armor,
+        worn: true,
+        layer: WornLayer.top,
+      );
+      c.apparel.addAll([nat, ordinary]);
+      // Before the Awakening: Grade 3 (Standard) = 2(bT) = 6 for both.
+      expect(CharacterCalculator.apparelBonus(c, nat), 6);
+      expect(CharacterCalculator.apparelBonus(c, ordinary), 6);
+
+      c.transformations.add(TransformationSelection(name: 'Adjusted Armor'));
+      // Natural Armor gains +1(bT) = +3 → 9; DR follows. Ordinary Armor is
+      // untouched.
+      expect(CharacterCalculator.naturalArmorBonusPerBaseTier(c), 1);
+      expect(CharacterCalculator.apparelBonus(c, nat), 9);
+      expect(CharacterCalculator.apparelBonus(c, ordinary), 6);
+      expect(CharacterCalculator.apparelDamageReduction(c), 9 + 6);
+    });
+
+    test('Natural Armor round-trips and is detected on granting Traits', () {
+      final c = Character.blank('na4');
+      c.apparel.add(ApparelPiece(name: 'Plating', isNaturalArmor: true));
+      final r = Character.fromJson(c.toJson()).apparel.single;
+      expect(r.isNaturalArmor, isTrue);
+      expect(r.name, 'Plating');
+
+      // The Arcosian "Survivor" Trait grants Natural Armor ("Your Plating is
+      // Natural Armor.").
+      final arco = Character.blank('na5')..race = 'Arcosian';
+      expect(CharacterCalculator.grantsNaturalArmor(arco), isTrue);
+      expect(CharacterCalculator.hasNaturalArmorPiece(arco), isFalse);
+      // A race with no such Trait is not flagged.
+      final human = Character.blank('na6')..race = 'Earthling';
+      expect(CharacterCalculator.grantsNaturalArmor(human), isFalse);
     });
 
     test('every catalogue Quality is valid: category set non-empty, slot range '

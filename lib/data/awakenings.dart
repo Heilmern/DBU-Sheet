@@ -151,6 +151,11 @@ const List<TransformationDef> kDbuLesserAwakenings = [
             coefficient: 1,
             kind: TraitMagnitudeKind.perPowerLevel,
           ),
+          // (2) +1(bT) to the Apparel Bonus of the wearer's Natural Armor is
+          // applied by `CharacterCalculator.naturalArmorBonusPerBaseTier`
+          // (it matches this Trait by name), since it targets the Natural
+          // Armor piece rather than a global stat. (3)/(4) stay text-only
+          // (the chosen Apparel Quality is added to the piece by the player).
         ],
       ),
     ],

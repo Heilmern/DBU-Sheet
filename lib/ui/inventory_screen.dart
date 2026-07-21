@@ -109,16 +109,29 @@ class InventoryTab extends StatelessWidget {
   // APPAREL  (structured / automated)
   // ==========================================================================
   Widget _buildApparelSection(BuildContext context) {
+    final needsNaturalArmor = CharacterCalculator.grantsNaturalArmor(_c) &&
+        !CharacterCalculator.hasNaturalArmorPiece(_c);
     return SectionCard(
       title: 'Apparel',
       icon: Icons.checkroom_outlined,
-      trailing: IconButton(
-        tooltip: 'Add Apparel',
-        icon: const Icon(Icons.add_circle_outline),
-        onPressed: () => onUpdate(() => _c.apparel.add(ApparelPiece())),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Add Natural Armor',
+            icon: const Icon(Icons.shield_moon_outlined),
+            onPressed: () => onUpdate(() => _c.apparel.add(_newNaturalArmor())),
+          ),
+          IconButton(
+            tooltip: 'Add Apparel',
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: () => onUpdate(() => _c.apparel.add(ApparelPiece())),
+          ),
+        ],
       ),
       child: Column(
         children: [
+          if (needsNaturalArmor) _buildNaturalArmorHint(context),
           if (_c.apparel.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -149,9 +162,87 @@ class InventoryTab extends StatelessWidget {
     );
   }
 
+  /// Toggles a piece to/from Natural Armor, keeping its other fields in a
+  /// legal state (Natural Armor is always Integrated Armor on the Bottom
+  /// Layer, and drops any Quality that isn't valid for the Armor Category).
+  void _setNaturalArmor(ApparelPiece piece, bool on) {
+    piece.isNaturalArmor = on;
+    if (!on) return;
+    piece.category = ApparelCategory.armor;
+    piece.layer = WornLayer.bottom;
+    piece.worn = true;
+    if (piece.name.trim().isEmpty) piece.name = 'Natural Armor';
+    piece.qualities.removeWhere((q) {
+      final def = HomebrewRegistry.resolveApparelQuality(q.name);
+      return def != null && !def.categories.contains(ApparelCategory.armor);
+    });
+  }
+
+  /// A read-only, bordered field mirroring the look of the editable dropdowns —
+  /// used for values Natural Armor derives and doesn't let the player change.
+  Widget _readOnlyField(BuildContext context,
+      {required String label, required String value}) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+        enabled: false,
+      ),
+      child: Text(value, overflow: TextOverflow.ellipsis),
+    );
+  }
+
+  /// A fresh Natural Armor piece — Integrated Armor whose Grade derives from
+  /// the wearer's base Tier of Power (see `CharacterCalculator`).
+  ApparelPiece _newNaturalArmor() => ApparelPiece(
+        name: 'Natural Armor',
+        isNaturalArmor: true,
+        category: ApparelCategory.armor,
+        layer: WornLayer.bottom,
+        worn: true,
+        // Break Value starts full; it is fully repaired each Combat Encounter.
+        breakValue: kDefaultApparelBreakValue,
+      );
+
+  /// Shown when a Racial/Factor/Custom-Species Trait grants Natural Armor but
+  /// the player hasn't created the piece yet — one tap adds it.
+  Widget _buildNaturalArmorHint(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.shield_moon_outlined,
+              size: 20, color: theme.colorScheme.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'One of your Traits grants Natural Armor. Add it to apply its '
+              'Damage Reduction (it scales with your Tier of Power).',
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonal(
+            onPressed: () => onUpdate(() => _c.apparel.add(_newNaturalArmor())),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildApparelPiece(BuildContext context, ApparelPiece piece) {
     final theme = Theme.of(context);
-    final info = craftsmanshipInfo(piece.craftsmanshipGrade);
+    final nat = piece.isNaturalArmor;
+    final info = craftsmanshipInfo(
+        CharacterCalculator.effectiveCraftGrade(_c, piece));
     final bonus = CharacterCalculator.apparelBonus(_c, piece);
     final maxBv = CharacterCalculator.apparelMaxBreakValue(piece);
     final slotsUsed = CharacterCalculator.apparelQualitySlotsUsed(piece);
@@ -204,56 +295,97 @@ class InventoryTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // Grade / Category / Size selectors.
+          // Natural Armor toggle — flips the piece to Integrated Armor whose
+          // Grade tracks the wearer's Tier of Power (see CharacterCalculator).
+          Row(
+            children: [
+              FilterChip(
+                avatar: Icon(
+                  Icons.shield_moon_outlined,
+                  size: 18,
+                  color: nat ? theme.colorScheme.onSecondaryContainer : null,
+                ),
+                label: const Text('Natural Armor'),
+                selected: nat,
+                onSelected: (v) => onUpdate(() => _setNaturalArmor(piece, v)),
+              ),
+              if (nat) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Integrated Armor · Grade from Tier of Power · always active',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Grade / Category / Size selectors. Natural Armor derives its Grade
+          // and is always Armor, so those two are read-only for it.
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<int>(
-                  initialValue: piece.craftsmanshipGrade.clamp(1, 5),
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Craftsmanship',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    for (final g in kCraftsmanshipGrades)
-                      DropdownMenuItem(
-                        value: g.grade,
-                        child: Text('${g.grade} · ${g.craftDc}'),
+                child: nat
+                    ? _readOnlyField(
+                        context,
+                        label: 'Craftsmanship',
+                        value: '${info.grade} · ${info.craftDc}',
+                      )
+                    : DropdownButtonFormField<int>(
+                        initialValue: piece.craftsmanshipGrade.clamp(1, 5),
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Craftsmanship',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: [
+                          for (final g in kCraftsmanshipGrades)
+                            DropdownMenuItem(
+                              value: g.grade,
+                              child: Text('${g.grade} · ${g.craftDc}'),
+                            ),
+                        ],
+                        onChanged: (v) => onUpdate(() =>
+                            piece.craftsmanshipGrade =
+                                v ?? piece.craftsmanshipGrade),
                       ),
-                  ],
-                  onChanged: (v) => onUpdate(
-                      () => piece.craftsmanshipGrade = v ?? piece.craftsmanshipGrade),
-                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: DropdownButtonFormField<ApparelCategory>(
-                  initialValue: piece.category,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    for (final cat in ApparelCategory.values)
-                      DropdownMenuItem(
-                          value: cat, child: Text(cat.displayName)),
-                  ],
-                  // Changing Category may invalidate chosen Qualities — drop
-                  // any that no longer apply to the new Category.
-                  onChanged: (v) => onUpdate(() {
-                    if (v == null) return;
-                    piece.category = v;
-                    piece.qualities.removeWhere((q) {
-                      final def =
-                          HomebrewRegistry.resolveApparelQuality(q.name);
-                      return def != null && !def.categories.contains(v);
-                    });
-                  }),
-                ),
+                child: nat
+                    ? _readOnlyField(
+                        context,
+                        label: 'Category',
+                        value: ApparelCategory.armor.displayName,
+                      )
+                    : DropdownButtonFormField<ApparelCategory>(
+                        initialValue: piece.category,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: [
+                          for (final cat in ApparelCategory.values)
+                            DropdownMenuItem(
+                                value: cat, child: Text(cat.displayName)),
+                        ],
+                        // Changing Category may invalidate chosen Qualities —
+                        // drop any that no longer apply to the new Category.
+                        onChanged: (v) => onUpdate(() {
+                          if (v == null) return;
+                          piece.category = v;
+                          piece.qualities.removeWhere((q) {
+                            final def =
+                                HomebrewRegistry.resolveApparelQuality(q.name);
+                            return def != null && !def.categories.contains(v);
+                          });
+                        }),
+                      ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -275,35 +407,47 @@ class InventoryTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          // Worn + Layer + Break Value.
+          // Worn + Layer + Break Value. Natural Armor is Integrated (always the
+          // Bottom Layer and always active), so it hides Worn/Layer and keeps
+          // only the Break Value (which auto-repairs each Combat Encounter).
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              FilterChip(
-                label: const Text('Worn'),
-                selected: piece.worn,
-                onSelected: (v) => onUpdate(() => piece.worn = v),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<WornLayer>(
-                  initialValue: piece.layer,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Layer',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    for (final l in WornLayer.values)
-                      DropdownMenuItem(value: l, child: Text(l.displayName)),
-                  ],
-                  onChanged: piece.worn
-                      ? (v) => onUpdate(() => piece.layer = v ?? piece.layer)
-                      : null,
+              if (!nat) ...[
+                FilterChip(
+                  label: const Text('Worn'),
+                  selected: piece.worn,
+                  onSelected: (v) => onUpdate(() => piece.worn = v),
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<WornLayer>(
+                    initialValue: piece.layer,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Layer',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final l in WornLayer.values)
+                        DropdownMenuItem(value: l, child: Text(l.displayName)),
+                    ],
+                    onChanged: piece.worn
+                        ? (v) => onUpdate(() => piece.layer = v ?? piece.layer)
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ] else
+                Expanded(
+                  child: _readOnlyField(
+                    context,
+                    label: 'Layer',
+                    value: 'Bottom (Integrated)',
+                  ),
+                ),
+              if (nat) const SizedBox(width: 8),
               SizedBox(
                 width: 110,
                 child: TextFormField(
@@ -312,7 +456,9 @@ class InventoryTab extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: 'Break Value',
-                    helperText: unbreakable ? 'Unbreakable' : 'max $maxBv',
+                    helperText: unbreakable
+                        ? 'Unbreakable'
+                        : (nat ? 'max $maxBv · auto-repairs' : 'max $maxBv'),
                     border: const OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -364,7 +510,9 @@ class InventoryTab extends StatelessWidget {
   String _categoryEffect(ApparelPiece piece, int bonus) {
     switch (piece.category) {
       case ApparelCategory.armor:
-        return 'Damage Reduction +$bonus (Top Layer)';
+        return piece.isNaturalArmor
+            ? 'Damage Reduction +$bonus (Integrated)'
+            : 'Damage Reduction +$bonus (Top Layer)';
       case ApparelCategory.weights:
         return '${_fmt(-bonus)} all Combat Rolls';
       case ApparelCategory.combatClothing:

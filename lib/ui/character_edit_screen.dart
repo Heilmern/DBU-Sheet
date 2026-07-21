@@ -54,6 +54,9 @@ import 'progression_screen.dart' show ProgressionTab;
 import 'transformations_screen.dart' show TransformationsTab;
 import 'widgets/sheet_widgets.dart';
 
+/// The player's choice in the "leave without saving?" prompt.
+enum _LeaveAction { cancel, discard, save }
+
 class CharacterEditScreen extends StatefulWidget {
   const CharacterEditScreen({
     super.key,
@@ -150,11 +153,17 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     controller.clear();
   }
 
+  /// True once the working copy has been edited since it was last saved (or,
+  /// for a new character, since the editor opened) — gates the "leave without
+  /// saving?" prompt on back-out.
+  bool _dirty = false;
+
   /// Applies a mutation to the working copy and refreshes derived stats.
   void _update(VoidCallback mutate) {
     setState(() {
       mutate();
       _recompute();
+      _dirty = true;
     });
   }
 
@@ -165,18 +174,27 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
+    var ok = false;
     try {
       await widget.onSave(_c);
+      ok = true;
+    } catch (_) {
+      ok = false;
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          if (ok) _dirty = false; // clean only when the save actually landed
+        });
+      }
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('Character saved.'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(ok ? 'Character saved.' : "Couldn't save — try again."),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -192,9 +210,61 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     if (mounted) _update(() {});
   }
 
+  /// Prompts before leaving with unsaved changes. Returns the player's choice.
+  Future<_LeaveAction> _confirmLeave() async {
+    final action = await showDialog<_LeaveAction>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Leave without saving?'),
+        content: Text(widget.isNew
+            ? "This character hasn't been saved yet. If you leave now, it "
+                "won't be created."
+            : 'You have unsaved changes. If you leave now, they will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _LeaveAction.cancel),
+            child: const Text('Keep editing'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, _LeaveAction.discard),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, _LeaveAction.save),
+            child: const Text('Save & leave'),
+          ),
+        ],
+      ),
+    );
+    return action ?? _LeaveAction.cancel;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope<void>(
+      // When there's nothing unsaved, back-out is immediate; otherwise the pop
+      // is intercepted and we ask first (system back, Android back, Esc and the
+      // AppBar back button all route through here).
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        // Capture the Navigator before any await so we don't touch `context`
+        // across the async gap (it survives even if this State rebuilds).
+        final navigator = Navigator.of(context);
+        final action = await _confirmLeave();
+        if (!mounted) return;
+        switch (action) {
+          case _LeaveAction.cancel:
+            return;
+          case _LeaveAction.discard:
+            navigator.pop();
+          case _LeaveAction.save:
+            await _save();
+            // Only leave if the save actually landed (it clears `_dirty`).
+            if (mounted && !_dirty) navigator.pop();
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(widget.isNew ? 'New Character' : 'Edit Character'),
         bottom: TabBar(
@@ -241,6 +311,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
           UniqueAbilitiesTab(character: _c, stats: _stats, onUpdate: _update),
           ReferencesTab(character: _c, stats: _stats),
         ],
+      ),
       ),
     );
   }
@@ -1735,10 +1806,13 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
               ),
             ],
           ),
+          // The Affected Stat dropdown gets its own full-width row, with the
+          // resolved Total beside it — this frees the whole width below for the
+          // three number fields so their labels and typed values stay legible.
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                flex: 3,
                 child: DropdownButtonFormField<CustomBuffTarget>(
                   initialValue: buff.target,
                   isExpanded: true,
@@ -1771,6 +1845,15 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
                 ),
               ),
               const SizedBox(width: 8),
+              DerivedStat(label: 'Total', value: _fmt(total)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Flat + tier-scaled columns, each on the full width so the stepper's
+          // text field is wide enough to read. Total = Flat + (bT)×base Tier of
+          // Power + (T)×Tier of Power (see CharacterCalculator.customBuffTotal).
+          Row(
+            children: [
               Expanded(
                 child: _numberField(
                   label: 'Flat',
@@ -1800,10 +1883,9 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
                   onChanged: (v) => _update(() => buff.perTier = v),
                 ),
               ),
-              const SizedBox(width: 8),
-              DerivedStat(label: 'Total', value: _fmt(total)),
             ],
           ),
+          const SizedBox(height: 4),
         ],
       ),
     );

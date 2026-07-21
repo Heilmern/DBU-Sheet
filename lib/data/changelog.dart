@@ -61,6 +61,34 @@ String get currentVersion => kChangelog.first.version;
 
 /// Every release, NEWEST FIRST. Prepend new entries here.
 const List<ChangelogEntry> kChangelog = [
+    ChangelogEntry(
+    version: '0.1.1',
+    date: '21 Jul 2026',
+    headline: 'First public testing build of Universal Scouter — the '
+        'unofficial Dragon Ball Universe character sheet and rules engine.',
+    changes: [
+      ChangelogChange(ChangeKind.added,
+          'Added natural armor to the Racial Traits of all Races that have it.'),
+      ChangelogChange(ChangeKind.fixed,
+          'Fixed Z-soul names.'),
+      ChangelogChange(ChangeKind.fixed,
+          'practiced now allows you to select the two extra skills you get from it.'),
+      ChangelogChange(ChangeKind.fixed,
+          'Fixed a bug with Custom buffs not showing correctly on the character sheet.'),
+      ChangelogChange(ChangeKind.added,
+          'A confirmation before leaving a character edit screen with unsaved changes.'),
+      ChangelogChange(ChangeKind.fixed,
+          'Fixed a bug with the combat tracker not resetting correctly on round boundary.'),
+      ChangelogChange(ChangeKind.changed,
+          'Changed where the progression preview is shown, it is now on top of the progression tab.'),
+      ChangelogChange(ChangeKind.fixed,
+          'Fixed the very awkaward bug where typing a talent name would add fake talents in the information tabs.'),
+      ChangelogChange(ChangeKind.changed,
+          'In the combat tracker, the attack reminders in the attack tab are now on their own column.'),
+      ChangelogChange(ChangeKind.changed,
+          'Techniques are now on two columns.'),
+    ],
+  ),
   ChangelogEntry(
     version: '0.1.0',
     date: '21 Jul 2026',
