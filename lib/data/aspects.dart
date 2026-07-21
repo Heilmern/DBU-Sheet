@@ -83,6 +83,15 @@ class AspectDef {
   /// in the same brackets instead — see [hasLevels].
   final String? parameterLabel;
 
+  /// True if this Aspect carries no mechanical effect and exists purely to
+  /// classify a Transformation (the site prints "N/A. This Aspect exists
+  /// entirely for classification." as its Effect). The UI renders these as a
+  /// clean muted note rather than the raw "N/A." sentence.
+  bool get isClassificationOnly => effect
+      .trim()
+      .toLowerCase()
+      .startsWith('n/a. this aspect exists entirely for classification');
+
   /// The bracketed suffix the site prints after the name, if any
   /// (`[LV~3]`, `[Solo, LV~2]`, `[LV]`).
   String get marker {
@@ -275,12 +284,20 @@ const List<AspectDef> kDbuAspects = [
         'cannot increase the Minimum Ki Point Cost for an Attacking Maneuver.',
   ),
   AspectDef(
+    // Re-verified live 20 Jul 2026: now levelled ("Pinnacle [Solo, LV~2]")
+    // with the 2nd-level opt-out rule appended.
     name: 'Pinnacle',
     polarity: AspectPolarity.positive,
     summary: 'This Transformation can continue to evolve.',
     effect: 'This Evolved Stage can be stacked atop another Evolved Stage '
         'with the same Original Transformation (for more information, see - '
-        'Evolved Stages).',
+        'Evolved Stages).\n'
+        'If a Transformation has the 2nd level of the Pinnacle Aspect, you '
+        'can choose whether to apply the Pinnacle Aspect or not when using '
+        'the Transformation Maneuver to enter it.',
+    hasLevels: true,
+    maxLevels: 2,
+    solo: true,
   ),
   AspectDef(
     name: 'Prelude',

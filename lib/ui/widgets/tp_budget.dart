@@ -52,10 +52,7 @@ class TpBudgetCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'One shared pool across Signatures and Unique Abilities. Maximum is '
-            'computed from Skill Improvements, Gifted Student and Traits; flag '
-            'costs "free" (granted by a Trait/effect) to keep them off the '
-            'budget.',
+            'One shared pool across Signatures and Unique Abilities. ',
             style:
                 theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
           ),

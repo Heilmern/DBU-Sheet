@@ -2,8 +2,10 @@
 cmake_minimum_required(VERSION 3.14)
 project(dbu_sheet LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
-# the on-disk name of your application.
+# The CMake TARGET name for the application. This must be a valid CMake
+# identifier (no spaces), so it stays "dbu_sheet"; the on-disk executable is
+# renamed separately via the target's OUTPUT_NAME in runner/CMakeLists.txt
+# (which produces "Universal Scouter.exe").
 set(BINARY_NAME "dbu_sheet")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent

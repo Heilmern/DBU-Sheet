@@ -20,6 +20,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../data/homebrew_registry.dart';
 import '../../data/talents.dart';
 
 /// A titled card that groups one section of the sheet (e.g. "Attributes").
@@ -285,8 +286,16 @@ class _TalentCataloguePickerDialogState
     final theme = Theme.of(context);
     final query = _query.trim().toLowerCase();
 
+    // Official catalogue plus homebrew Talents (the official catalogue wins
+    // a name clash — `resolveTalentDef` order — so clashes are skipped here).
+    final homebrewNames = <String>{};
+    final allTalents = [
+      ...kDbuTalents,
+      for (final t in HomebrewRegistry.talentDefs())
+        if (talentByName(t.name) == null && homebrewNames.add(t.name)) t,
+    ];
     final byCategory = <TalentCategory, List<TalentDef>>{};
-    for (final talent in kDbuTalents) {
+    for (final talent in allTalents) {
       final matches = query.isEmpty ||
           talent.name.toLowerCase().contains(query) ||
           talent.category.displayName.toLowerCase().contains(query) ||
@@ -342,7 +351,9 @@ class _TalentCataloguePickerDialogState
                           for (final talent in byCategory[category]!)
                             ListTile(
                               dense: true,
-                              title: Text(talent.name),
+                              title: Text(homebrewNames.contains(talent.name)
+                                  ? '${talent.name}  (Homebrew)'
+                                  : talent.name),
                               subtitle: Text(
                                 talent.raceRestriction != null
                                     ? '(${talent.raceRestriction}) '

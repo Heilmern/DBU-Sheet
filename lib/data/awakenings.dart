@@ -334,6 +334,77 @@ const List<TransformationDef> kDbuLesserAwakenings = [
     ],
   ),
   TransformationDef(
+    name: 'Black Sparks',
+    type: TransformationType.awakening,
+    awakeningType: AwakeningType.lesser,
+    origin: TransformationOrigin.mind,
+    racialRequirement: 'Any Race',
+    tierOfPowerRequirement: 1,
+    maxStacks: 1,
+    amb: {
+      DbuAttribute.force: TransformationAmb(coefficient: 1),
+      DbuAttribute.insight: TransformationAmb(coefficient: 1),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1),
+    },
+    traits: [
+      TransformationTrait(
+        name: 'Black Flash!',
+        description: 'One of the lucky few, blessed to successfully land '
+            'one, enhancing your attacks further with a flash of black.\n'
+            "(1)-[Ruling]: A 'True Critical' is a Natural Result of 10 "
+            'before rerolling or applying any increases to Natural Result. '
+            'Additionally, if you roll that die twice and take the higher '
+            'result, the 10 must be scored on the first roll to be '
+            'considered a True Critical.\n'
+            '(2)-[Triggered, Ruling]: If you score a True Critical on the '
+            'Strike Roll of a Physical Attack, that attack becomes a '
+            "'Black Flash'.\n"
+            '(3)-[Passive]: Apply your Damage Attribute an additional time '
+            'to Black Flashes.\n'
+            '(4)-[Triggered, 1/Round]: If you score a True Critical on the '
+            'Strike Roll of a Physical Attack, increase the Damage Category '
+            'of that Attacking Maneuver by 1 Category.\n'
+            '(4)-[Automatic, 1/Encounter]: If you use a Black Flash, enter '
+            'the 120% Special State for the remainder of the Combat '
+            'Encounter.',
+      ),
+      TransformationTrait(
+        name: '120% (Special State)',
+        description: '(1)-[Passive]: Increase your Combat Rolls by 1(T).\n'
+            '(2)-[Passive]: Increase your Max Capacity by 1/5.\n'
+            '(3)-[Passive]: Reduce the Critical Target of the Strike Rolls '
+            'of your Physical Attacks by 1.\n'
+            '(4)-[Triggered]: If you score a Critical Result on the Strike '
+            'Roll of a Physical Attack, that attack becomes a Black Flash.',
+        automation: [
+          // (1) +1(T) Combat Rolls while the 120% Special State is active
+          // (track a "120%" State row to toggle it).
+          RaceTraitAutomation(
+            affectedStats: [
+              AffectedStat.strike,
+              AffectedStat.dodge,
+              AffectedStat.woundPhysical,
+              AffectedStat.woundEnergy,
+              AffectedStat.woundMagic,
+            ],
+            coefficient: 1,
+            tierScaling: TierScaling.current,
+            condition: TraitCondition.whileNamedStateActive,
+            conditionStateName: '120%',
+          ),
+          // (3) -1 Critical Target on Physical Strike Rolls while 120% is
+          // active. ((2) +1/5 Max Capacity has no additive channel — text.)
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.strikePhysicalCriticalTarget],
+            coefficient: -1,
+            condition: TraitCondition.whileNamedStateActive,
+            conditionStateName: '120%',
+          ),
+        ],
+      ),
+    ],
+  ),
+  TransformationDef(
     name: 'Blessed by Fate',
     type: TransformationType.awakening,
     awakeningType: AwakeningType.lesser,
@@ -5231,22 +5302,24 @@ const List<TransformationDef> kDbuLesserAwakenings = [
         name: 'Oozaru Focus',
         description: 'You place a heavy emphasis on using your Great Ape '
             'form in combat.\n'
-            '(1)-[Automatic]: If your Saiyan Heritage Option becomes '
-            'Tailless, lose this Awakening; then you may gain a stack of '
-            'Zenkai.\n'
+            '(1)-[Automatic]: If your Option effect for the Saiyan Heritage '
+            'Racial Trait becomes Tailless, lose access to this Awakening. '
+            'Then, you may gain a stack of the Zenkai Awakening.\n'
             '(2)-[Passive]: Increase your Wound Rolls and Soak Value by 1(T) '
-            'while in a Transformation with the Blutz Wave Aspect.\n'
+            'while in a Transformation that possesses the Blutz Wave '
+            'Aspect.\n'
             '(3)-[Passive]: Increase your Damage Reduction by 2(bT) against '
-            'Called Shots targeting your Tail.\n'
-            '(4)-[Passive]: If your Tier of Power is 2+: Oozaru\'s ToP '
-            'Requirement becomes 2+; Oozaru gains Scaling (LV2) (except in '
-            'Golden Oozaru Evolved Stage); Golden Oozaru gains Scaling '
-            '(LV2).\n'
-            '(5)-[Triggered]: If you enter the Golden Oozaru Evolved Stage, '
-            'apply the Pinnacle Aspect to it until you leave.\n'
-            '(6)-[Triggered, 1/Encounter]: If hit by an attack while in a '
-            'Blutz Wave Transformation, increase your Soak Value by 1/2 of '
-            'your Force Modifier for that attack.',
+            'Called Shots that target your Tail.\n'
+            '(4)-[Passive]: If your Tier of Power is 2+:\n'
+            'Increase the Tier of Power Requirement of Oozaru to 2+.\n'
+            'While in Oozaru, it gains the Scaling (LV2) Aspect. This does '
+            'not apply if you are in the Golden Oozaru Evolved Stage.\n'
+            '(5)-[Passive]: Golden Oozaru gains the Scaling (LV2) and '
+            'Pinnacle (LV2) Aspects.\n'
+            '(6)-[Triggered, 1/Encounter]: If you are hit by an Attacking '
+            'Maneuver while in a Transformation that possesses the Blutz '
+            'Wave Aspect, you may increase your Soak Value by 1/2 of your '
+            'Force Modifier for the duration of that Attacking Maneuver.',
         automation: [
           // (2) While in a Transformation with the Blutz Wave Aspect: +1(T)
           // Wound Rolls and Soak Value.

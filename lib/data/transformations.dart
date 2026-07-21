@@ -392,6 +392,24 @@ class TransformationDef {
       type == TransformationType.form &&
       prerequisiteText.startsWith('Evolved Stage');
 
+  /// For a UNIQUE Evolved Stage, the name of the specific Original Form it
+  /// evolves — parsed from the `Evolved Stage: Unique (<Original Form>)`
+  /// prefix of [prerequisiteText]. Null for a Generic Evolved Stage (which
+  /// applies broadly, not to one named Form) or a non-Evolved Form.
+  String? get evolvedStageOriginalForm {
+    if (!isEvolvedStage) return null;
+    final m = RegExp(r'Evolved Stage:\s*Unique\s*\(([^)]+)\)')
+        .firstMatch(prerequisiteText);
+    return m?.group(1)?.trim();
+  }
+
+  /// True if this is a GENERIC Evolved Stage — one that can be applied to a
+  /// range of Original Forms (its eligibility is gated by prerequisites too
+  /// varied to enumerate here), as opposed to a Unique Evolved Stage tied to
+  /// one named Form.
+  bool get isGenericEvolvedStage =>
+      isEvolvedStage && evolvedStageOriginalForm == null;
+
   /// A Null Stage (Stage 0) counts as the Character's Normal State, NOT a
   /// Form: it does NOT grant the Ki Multiplier and (if Legendary) has no
   /// Legendary Trait. Only its Traits and Attribute Modifier Bonus apply.

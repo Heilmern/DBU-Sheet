@@ -35,10 +35,22 @@ class ReferencesTab extends StatefulWidget {
     super.key,
     required this.character,
     required this.stats,
+    this.leadingCard,
+    this.onAttackMade,
   });
 
   final Character character;
   final DerivedCharacterStats stats;
+
+  /// Optional card rendered above the calculator (the Combat page's Attacking
+  /// Maneuver tab passes its "triggers on an attack" reminders here).
+  final Widget? leadingCard;
+
+  /// Combat mode: when non-null, the calculator shows Ki/Capacity/Wager
+  /// warnings and an "Attack made" button that reports the total Ki spent
+  /// (Ki Cost + Ki Wager) so the caller can deduct it and count the attack.
+  /// Null on the edit screen (a pure scratchpad — no button, no warnings).
+  final void Function(int kiSpent)? onAttackMade;
 
   @override
   State<ReferencesTab> createState() => _ReferencesTabState();
@@ -83,6 +95,7 @@ class _ReferencesTabState extends State<ReferencesTab> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
+            if (widget.leadingCard != null) widget.leadingCard!,
             _buildAttackReference(context),
             _buildAdvantageReference(context),
             _buildStateAndResources(context),
@@ -366,8 +379,84 @@ class _ReferencesTabState extends State<ReferencesTab> {
                     ?.copyWith(fontStyle: FontStyle.italic),
               ),
             ),
+          // Combat mode: cost warnings + the deducting "Attack made" button.
+          if (widget.onAttackMade != null) _attackMadeControls(context, ref),
         ],
       ),
+    );
+  }
+
+  /// Combat-only footer for the Attack Reference: warns when the Ki this
+  /// attack spends (Ki Cost + Ki Wager) exceeds the current Ki pool or
+  /// current Capacity, or the Wager exceeds its maximum, then the "Attack
+  /// made" button that spends that Ki + Capacity and counts the attack.
+  Widget _attackMadeControls(BuildContext context, AttackReference ref) {
+    final theme = Theme.of(context);
+    final kiSpent = ref.kiCost + _wager;
+    final overKi = kiSpent > _stats.currentKi;
+    final overCapacity = kiSpent > _stats.currentCapacity;
+    final overWager = _wager > ref.maxWager;
+
+    final warnings = <String>[
+      if (overKi)
+        'Ki spent ($kiSpent) exceeds your current Ki '
+            '(${_stats.currentKi} / ${_stats.maxKi}).',
+      if (overCapacity)
+        'Ki spent ($kiSpent) exceeds your current Capacity '
+            '(${_stats.currentCapacity} / ${_stats.maxCapacity}).',
+      if (overWager)
+        'Ki Wager ($_wager) exceeds your Max Ki Wager (${ref.maxWager} = '
+            '½ Max Capacity).',
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Divider(height: 24),
+        Text('Cost of this attack', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(
+          'Ki Cost ${ref.kiCost}${_wager > 0 ? ' + Wager $_wager' : ''} = '
+          '$kiSpent Ki & Capacity spent.',
+          style: theme.textTheme.bodySmall,
+        ),
+        if (warnings.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    size: 18, color: theme.colorScheme.onErrorContainer),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final w in warnings)
+                        Text(w,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onErrorContainer)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          icon: const Icon(Icons.check_circle_outline),
+          label: Text(kiSpent > 0
+              ? 'Attack made (spend $kiSpent Ki & Capacity)'
+              : 'Attack made'),
+          onPressed: () => widget.onAttackMade!(kiSpent),
+        ),
+      ],
     );
   }
 

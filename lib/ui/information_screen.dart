@@ -207,9 +207,15 @@ class InformationTab extends StatelessWidget {
   // 2. RACIAL TRAITS (fixed Races only — Custom Species uses freeform below)
   // ==========================================================================
   Widget _buildRacialTraits(BuildContext context) {
-    final traits = raceTraitsFor(_c.race);
+    // While a Janemba Form is active, the Janemba! Janemba! Trait replaces your
+    // normal Racial Traits with the five Reality Warping Traits — so show those
+    // (read-only, no Factor-swap) instead of the Race's own catalogue, matching
+    // what the calculator actually applies (see `activeRaceTraits`).
+    final janemba = CharacterCalculator.janembaFormActive(_c);
+    final traits =
+        janemba ? CharacterCalculator.activeRaceTraits(_c) : raceTraitsFor(_c.race);
     return SectionCard(
-      title: 'Racial Traits',
+      title: janemba ? 'Racial Traits — Reality Warping' : 'Racial Traits',
       icon: Icons.auto_awesome_outlined,
       trailing: Text(
         '${traits.where((t) => t.isAutomated).length} automated / '
@@ -217,7 +223,22 @@ class InformationTab extends StatelessWidget {
         style: Theme.of(context).textTheme.labelSmall,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (janemba)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                'A Janemba Form is active: your Race becomes “Janemba” and your '
+                'normal Racial Traits are replaced by the Reality Warping Traits '
+                'below (Janemba! Janemba! effects 4–5). Leave the Form to '
+                'restore your Race’s own Traits.',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(fontStyle: FontStyle.italic),
+              ),
+            ),
           if (traits.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
@@ -225,6 +246,11 @@ class InformationTab extends StatelessWidget {
                 'No Racial Trait catalogue on file for this Race yet.',
               ),
             )
+          else if (janemba)
+            // Reality Warping Traits aren't Factor-swappable — render them
+            // through the shared card without the swap/undo trailing action.
+            for (final trait in traits)
+              _traitCard(context, trait, trailingAction: const SizedBox.shrink())
           else
             for (final trait in traits) _traitTile(context, trait),
         ],
@@ -1292,15 +1318,13 @@ class InformationTab extends StatelessWidget {
     // Structured categories are excluded from this generic possession picker:
     // each is chosen via its own system (Race dropdown, Conditions/States
     // trackers, Transformations tab, "Swap for Factor", Inventory pickers,
-    // Signatures tab, Unique Abilities tab) — adding them here too would
-    // double-apply their effects. Only Talents, Racial Traits and Other stay
-    // generic (possession here IS how they apply). Old saves that already
-    // reference a structured one keep working; only NEW picks are steered.
+    // Signatures tab, Unique Abilities tab, and homebrew Talents via the
+    // Talents section's catalogue picker) — adding them here too would
+    // double-apply their effects. Only Racial Traits and Other stay generic
+    // (possession here IS how they apply). Old saves that already reference
+    // a structured one keep working; only NEW picks are steered.
     bool structurallyIntegrated(HomebrewEntry e) => switch (e.category) {
-          HomebrewCategory.talent ||
-          HomebrewCategory.racialTrait ||
-          HomebrewCategory.other =>
-            false,
+          HomebrewCategory.racialTrait || HomebrewCategory.other => false,
           _ => true,
         };
     final available = [

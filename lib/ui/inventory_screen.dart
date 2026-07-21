@@ -92,11 +92,11 @@ class InventoryTab extends StatelessWidget {
       title: 'Inventory',
       icon: Icons.backpack_outlined,
       child: Text(
-        'Apparel, Weapons and Accessories are fully modelled — their Grade, '
+        'Apparel, Weapons and Accessories'
         'Category, Qualities, Break/Life values, per-Attack modifiers and '
-        '"while equipped" effects feed your derived stats automatically. Basic '
-        'Items are a reference catalogue (Action-triggered, so nothing feeds '
-        'your stats). Gear is a freeform tracker for anything else.',
+        '"while equipped" effects feed your stats automatically. Basic '
+        'Items are a reference catalogue, '
+        'Gear is a freeform tracker for anything else.',
         style: Theme.of(context)
             .textTheme
             .bodySmall
@@ -1203,7 +1203,7 @@ class InventoryTab extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               'Consumables and gadgets. These are Action-triggered — read the '
-              "effect and apply it yourself (nothing here feeds your stats). "
+              "effect and apply it yourself "
               'Tags: [Tech] Technology · [Med] Medicine · [Food] cooked.',
               style: theme.textTheme.bodySmall
                   ?.copyWith(fontStyle: FontStyle.italic),

@@ -16,6 +16,11 @@ add_executable(${BINARY_NAME} WIN32
   "runner.exe.manifest"
 )
 
+# Rename the produced executable on disk (the CMake target name must stay a
+# valid identifier without spaces — see BINARY_NAME in the top-level
+# CMakeLists.txt — so the display name is applied here as the OUTPUT_NAME).
+set_target_properties(${BINARY_NAME} PROPERTIES OUTPUT_NAME "Universal Scouter")
+
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})

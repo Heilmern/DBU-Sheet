@@ -403,6 +403,29 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
     ],
   ),
   UniqueAbilityDef(
+    // New on the Unique Abilities page (fetched live 20 Jul 2026).
+    name: 'Bluff Attack',
+    description: 'You rear back, charge up a powerful attack, and wait for '
+        'your opponent to brace for impact- then laugh at them for falling '
+        'for your ruse!',
+    types: {UniqueAbilityType.technical, UniqueAbilityType.magical},
+    prerequisites: '2+ Skill Ranks in Bluff Skill',
+    baseTpCost: 15,
+    kpCostText: '2(bT)',
+    kpPerTier: 2,
+    kpUsesBaseTier: true,
+    maneuverType: 'Standard',
+    actionCost: '1 Action',
+    minions: 'N/A',
+    passiveBonus: 'Increase the Skill Bonus of your Bluff Skill by 1.',
+    effect: 'Target an Opponent within your Melee Range and make a Clash '
+        '(Bluff vs Bluff/Intuition) against that Opponent. If you win, that '
+        'Opponent gains the Staggered Combat Condition until the end of the '
+        'turn and gains the Shaken Combat Condition until the end of their '
+        'next turn.\n\nIf you lose the Clash for the effects of Bluff Attack, '
+        'you trigger your targeted Opponent’s Exploit Maneuver.',
+  ),
+  UniqueAbilityDef(
     name: 'Body Change',
     description: 'With the cry of "Change Now!" you can swap bodies with your '
         'enemy, making their strengths your own.',
@@ -1083,6 +1106,109 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
     ],
   ),
   UniqueAbilityDef(
+    // New on the Unique Abilities page (fetched live 20 Jul 2026).
+    name: 'False Courage',
+    description: 'Putting on a facade of bravado that you absolutely do not '
+        'feel, you prepare for danger.',
+    types: {UniqueAbilityType.technical},
+    prerequisites: 'Personality Score of 4+',
+    baseTpCost: 8,
+    kpCostText: '4(bT)',
+    kpPerTier: 4,
+    kpUsesBaseTier: true,
+    maneuverType: 'Standard',
+    actionCost: '1 Action',
+    minions: 'Free',
+    passiveBonus: 'N/A',
+    effect: 'Reduce your Combat Rolls by 1(T), but increase your Soak Value '
+        'by 2(T) until the start of your next turn.',
+    advancements: [
+      UaAdvancementDef(
+        name: 'Bring it On!',
+        description: 'No longer merely a facade, your bravery is very much '
+            'the real deal, now.',
+        prerequisites: 'Personality Score of 8+',
+        tpCost: 12,
+        effect: 'Do not reduce your Combat Rolls through the effects of '
+            'False Courage.',
+      ),
+    ],
+  ),
+  UniqueAbilityDef(
+    // New on the Unique Abilities page (fetched live 20 Jul 2026). The
+    // "Based on the Homebrew by…" credit is printed on the site, kept
+    // verbatim.
+    name: 'Finish Sign',
+    description: 'Based on the Homebrew by Crime Skeleton '
+        '(thecrimeskeleton_5292 in Discord)\n\n'
+        'You are able to gather up power for an overwhelming attack under '
+        'the guise of a cocky gesture.',
+    types: {UniqueAbilityType.technical},
+    prerequisites: 'Personality Score of 8+',
+    baseTpCost: 15,
+    kpCostText: '4(bT)',
+    kpPerTier: 4,
+    kpUsesBaseTier: true,
+    maneuverType: 'Standard',
+    actionCost: '2 Actions',
+    minions: 'Non-Minion',
+    passiveBonus: 'N/A',
+    effect: 'Declare a Signature Technique. Until you use your declared '
+        'Signature Technique, you cannot use the Energy Charge Maneuver, nor '
+        'can you declare a different Signature Technique through the effects '
+        'of Finish Sign.\n\nEach time you use Finish Sign with a declared '
+        'Signature Technique (including the initial use of Finish Sign), gain '
+        'a stack of ‘Finisher’ (max. 7). When you use your declared Signature '
+        'Technique, you must convert all of your Finisher stacks into Energy '
+        'Charges for that Signature Technique. Stacks of Finisher are '
+        'considered to be uses of the Energy Charge Maneuver for the sake of '
+        'the Mandatory Charge Disadvantage.\n\nAs an Instant Maneuver, you '
+        'can lose all stacks of Finisher, stop declaring your Signature '
+        'Technique, and stop applying all effects of Finish Sign.',
+    advancements: [
+      UaAdvancementDef(
+        name: 'Aggressive Taunt',
+        description: 'You’ve learned to blend aggression into your '
+            'cockiness, shoving your superiority into your Opponent’s face '
+            'while they’re still reeling from your assault.',
+        prerequisites: 'Insight Score of 8+',
+        tpCost: 10,
+        effect: 'If you have dealt Damage to an Opponent with 2+ Attacking '
+            'Maneuvers on your turn, lower the Action Cost of this Unique '
+            'Ability to 1 until the end of your turn.',
+      ),
+    ],
+  ),
+  UniqueAbilityDef(
+    // Granted by the Energy Consumption Super Awakening (its page's Unique
+    // Abilities section, fetched live 20 Jul 2026). TP Cost is N/A on the
+    // site (0 here: gained via the Awakening, never bought).
+    name: 'Fire and Flames',
+    description:
+        'The power you have gathered grants you great destructive strength.',
+    types: {UniqueAbilityType.magical},
+    prerequisites: 'Energy Consumption Awakening',
+    baseTpCost: 0,
+    kpCostText: 'N/A',
+    maneuverType: 'Standard',
+    actionCost: '1 Action',
+    minions: 'Non-Minion',
+    passiveBonus: 'N/A',
+    effect: 'Use an Attacking Maneuver of the Elemental (Fire) Profile (this '
+        'may be a Signature Technique, but does not count towards your use of '
+        'the Signature Technique Maneuver). Instead of spending Ki Points to '
+        'pay the Ki Point Cost of this Attacking Maneuver, spend the '
+        'Lifeforce of the planet you are on. Each point of Lifeforce counts '
+        'as 2(bT) for paying the Ki Point Cost of this Attacking '
+        'Maneuver.\n\nWhen you use this Unique Ability, you may spend up to 3 '
+        'additional Lifeforce from the planet to apply one of the following '
+        'effects for each additional Lifeforce spent:\n\nApply an Energy '
+        'Charge to this Attacking Maneuver.\n\nApply a Large AoE of your '
+        'choice to this Attacking Maneuver.\n\nApply 2 ranks of the Power '
+        'Shot Advantage and the Compressed Element Disadvantage to this '
+        'Attacking maneuver.',
+  ),
+  UniqueAbilityDef(
     name: 'Flooding Technique',
     description: 'You can magically produce enough water to change the tides of '
         'battle, creating an ocean on the battlefield.',
@@ -1414,6 +1540,60 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
         'Standard Maneuver with an Action Cost of 1 Action, a Debilitated '
         'Opponent may initiate a Clash (Cognitive/Corporeal vs Cognitive) '
         'against you. If they win, they stop being Debilitated.',
+  ),
+  UniqueAbilityDef(
+    // New on the Unique Abilities page (fetched live 20 Jul 2026).
+    name: 'Judo Toss',
+    description: "You redirect an enemy's momentum against them, sending "
+        'them flying away from you in the process.',
+    types: {UniqueAbilityType.technical},
+    prerequisites: 'Insight Score of 5+',
+    baseTpCost: 10,
+    kpCostText: 'N/A',
+    maneuverType: 'Counter',
+    actionCost: '1 Counter Action',
+    minions: 'N/A',
+    passiveBonus: 'N/A',
+    effect: 'If you are targeted by a Physical Attack from an Opponent '
+        'within your Melee Range, you may use your Physical Strike Roll '
+        'instead of your Dodge Roll against that Attacking Maneuver’s Strike '
+        'Roll. Reduce your Dice Score by 1(bT) for each Energy Charge or rank '
+        'of Power Shot on the Attacking Maneuver.\n\nIf you win, you avoid '
+        'the Attacking Maneuver and may make a Might Clash against that '
+        'Opponent. If you succeed, you may move that Opponent in any '
+        'direction a number of squares equal to 1/2 of their Might.',
+    advancements: [
+      UaAdvancementDef(
+        name: 'Redirected Might',
+        description: "Through mastery of martial prowess, you turn an "
+            "enemy's own strength into their opponent.",
+        prerequisites: 'Insight Score of 8+',
+        tpCost: 7,
+        effect: 'For the Might Clash of Judo Toss, use your Opponents Might '
+            'instead of your own if their Might is higher than yours.',
+      ),
+      UaAdvancementDef(
+        name: 'Opening Flip',
+        description: 'Rather than slinging your enemy away along their own '
+            'trajectory, you flip them onto their back so that you may take '
+            'greater advantage of their new prone position.',
+        prerequisites: 'Insight Score of 8+',
+        tpCost: 7,
+        effect: 'If you win the Might Clash for Judo Toss, instead of moving '
+            'that Opponent, you may knock them Prone.',
+      ),
+      UaAdvancementDef(
+        name: 'Punishing Toss',
+        description: 'Your foe hits the ground with painful force.',
+        prerequisites: 'Opening Flip',
+        tpCost: 6,
+        effect: 'If you knock an Opponent Prone through the effects of Judo '
+            'Toss and the Opening Flip Advancement while you are not in a '
+            'High Environment, they suffer Collision with a Square they are '
+            'occupying (if they are occupying multiple, you decide which '
+            'Square).',
+      ),
+    ],
   ),
   UniqueAbilityDef(
     name: 'Ki Avatar',
@@ -1824,6 +2004,28 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
     ],
   ),
   UniqueAbilityDef(
+    // Granted by the Energy Consumption Super Awakening — see Fire and
+    // Flames' note.
+    name: 'Over-Empower',
+    description: "You can use the energy you've gathered to push your Allies "
+        'past the limits of their power.',
+    types: {UniqueAbilityType.magical},
+    prerequisites: 'Energy Consumption Awakening',
+    baseTpCost: 0,
+    kpCostText: 'N/A',
+    maneuverType: 'Standard',
+    actionCost: 'Varies (1~3 Actions)',
+    minions: 'Non-Minion',
+    passiveBonus: 'N/A',
+    effect: 'Target an Ally and spend up to 3 stacks of Lifeforce or '
+        'Consumed Lifeforce - the Action Cost of this Maneuver is a number '
+        'of Actions equal to the amount of Lifeforce or Consumed Lifeforce '
+        'spent.\n\nFor each stack spent, that Ally:\n\nRegains Ki Points '
+        'equal to 1/2 of your Surgency.\n\nGains a stack of Power until the '
+        'start of your next turn (these stacks of Power may exceed their '
+        'maximum).\n\nHas their Life Points reduced by 1/2 of your Surgency.',
+  ),
+  UniqueAbilityDef(
     name: 'Para Para Dance',
     description: 'Your infectious dance moves act as a form of control, allowing '
         'you to force your opponents to jam out with you while you handily '
@@ -1915,6 +2117,28 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
         'Maneuver, increase your Defense Value by 2(T) for the duration of this '
         'Maneuver. Increase this bonus by an additional 1(T) if the Attacking '
         'Maneuver was a Called Shot.',
+  ),
+  UniqueAbilityDef(
+    // Granted by the Energy Consumption Super Awakening — see Fire and
+    // Flames' note. (Its trait text calls this "Planet Consumption"; the
+    // page's own stat block is titled Planetary Consumption.)
+    name: 'Planetary Consumption',
+    description: 'You can steal life energy directly from the planet you are '
+        'on, granting you great power.',
+    types: {UniqueAbilityType.magical},
+    prerequisites: 'Energy Consumption Awakening',
+    baseTpCost: 0,
+    kpCostText: 'N/A',
+    maneuverType: 'Standard',
+    actionCost: '3 Actions',
+    minions: 'Non-Minion',
+    passiveBonus: 'N/A',
+    effect: 'Target a planet you are on or are close enough (by ARC '
+        'decision). You may gain a number of stacks of Lifeforce from this '
+        'planet up to your number of Skill Ranks in Clairvoyance.\n\nYou may '
+        'then convert a number of Lifeforce stacks equal to 1/2 (rounded up) '
+        'of your number of Skill Ranks in Clairvoyance into Consumed '
+        'Lifeforce.',
   ),
   UniqueAbilityDef(
     name: 'Portal Creation',
@@ -2051,6 +2275,63 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
         'the current one. If you do, you gain 1 Counter Action to use during '
         'their turn and increase your Strike and Dodge Rolls against that '
         'Opponent by 1(T) for the duration of that turn.',
+  ),
+  UniqueAbilityDef(
+    // New on the Unique Abilities page (fetched live 20 Jul 2026). The
+    // "Based on the Homebrew by…" credit is printed on the site, kept
+    // verbatim.
+    name: 'Punisher Guard',
+    description: 'Based on the Homebrew by Crime Skeleton '
+        '(thecrimeskeleton_5292 in Discord)\n\n'
+        'Complete ego, you’re showing it off, and any reasonable person '
+        'would want to knock you down a peg, to smack that smug grin off '
+        'your face, leaving them wide open.',
+    types: {UniqueAbilityType.technical},
+    prerequisites: 'Personality Score of 8+',
+    baseTpCost: 15,
+    kpCostText: '3(bT)',
+    kpPerTier: 3,
+    kpUsesBaseTier: true,
+    maneuverType: 'Standard',
+    actionCost: '1 Action',
+    minions: 'Non-Minion',
+    passiveBonus: 'N/A',
+    effect: 'Target an Opponent who is not at Long Range. Trigger the '
+        'Exploit Maneuver of that Opponent. If that Opponent uses the '
+        'Exploit Maneuver in response to this effect, you may use the Basic '
+        'Attack Maneuver as an Out-of-Sequence Maneuver targeting that '
+        'Opponent. If this Attacking Maneuver knocks that Opponent through a '
+        'Health Threshold or Defeats them, their Attacking Maneuver is '
+        'canceled (they regain any Ki Points spent on that Maneuver, but do '
+        'not regain their Counter Action).\n\nIf your targeted Opponent does '
+        'not use the Exploit Maneuver in response to this effect, regain '
+        '1d10(bT) Life and Ki Points.',
+    advancements: [
+      UaAdvancementDef(
+        name: 'Violent Punishment',
+        description: 'The brutal force of your counterattack leaves your '
+            'enemies reeling.',
+        prerequisites: 'Force or Magic Score of 8+',
+        tpCost: 10,
+        effect: 'If you use an Attacking Maneuver through the effects of '
+            'Punisher Guard, apply an Energy Charge to that Attacking '
+            'Maneuver.',
+      ),
+      UaAdvancementDef(
+        name: 'Cowardly Opponent',
+        description: "With a haughty laugh and an accusing stare, you point "
+            "out your Opponent's foolishness for not even attempting to "
+            'catch you off-guard.',
+        prerequisites: 'N/A',
+        tpCost: 10,
+        effect: 'If your targeted Opponent does not use their Exploit '
+            'Maneuver in response to the effects of Punisher Guard, make a '
+            'Clash (Morale) against them. If you win, increase the amount of '
+            'Life and Ki Points you regain by your Personality Modifier and '
+            'your targeted Opponent gains the Shaken Combat Condition until '
+            'the start of your next turn.',
+      ),
+    ],
   ),
   UniqueAbilityDef(
     name: 'Sealing',
@@ -2347,6 +2628,30 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
             'turn.',
       ),
     ],
+  ),
+  UniqueAbilityDef(
+    // New on the Unique Abilities page (fetched live 20 Jul 2026).
+    name: 'Stardust Barrier',
+    description: "You redirect an enemy's attack away from you with the "
+        'energy you project, protecting yourself from harm.',
+    types: {UniqueAbilityType.technical},
+    prerequisites: 'Insight Score of 4+, Force Score of 8+',
+    baseTpCost: 15,
+    kpCostText: '2(bT)',
+    kpPerTier: 2,
+    kpUsesBaseTier: true,
+    maneuverType: 'Counter',
+    actionCost: '1 Counter Action',
+    minions: 'Free',
+    passiveBonus: 'N/A',
+    effect: 'If you are targeted by an Opponent’s Energy or Magic Attack, '
+        'you may use your Physical or Energy Strike Roll instead of your '
+        'Dodge Roll against that Attacking Maneuver’s Strike Roll. For every '
+        'Energy Charge or rank of Power Shot applied to that Attacking '
+        'Maneuver, increase the Ki Point cost of this Maneuver by 1(bT).\n\n'
+        'If you win, you successfully avoid the Attacking Maneuver and may '
+        'use the Reflect Modifier Maneuver as if this Maneuver was the Parry '
+        'Maneuver.',
   ),
   UniqueAbilityDef(
     name: 'Super Ghost Kamikaze Attack',

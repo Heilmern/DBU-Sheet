@@ -34,8 +34,13 @@
 ///   • Basic Item      → [HomebrewBasicItemData]      → `BasicItemDef`
 ///   • Signature Adv/Dis → [HomebrewSigModifierData]  → `SigModifierDef`
 ///   • Unique Ability  → [HomebrewUniqueAbilityData]  → `UniqueAbilityDef`
-/// (Talent and Racial Trait stay generic on purpose: possession via
-/// `homebrewSelections` IS how an always-on Talent/Trait applies.)
+///   • Talent          → [HomebrewTalentData]         → `TalentDef` (joins
+///     the Talents catalogue picker with its Talent Category)
+///   • Race Traits     → [HomebrewRaceTraitData] (on the Race payload)
+///                     → `RaceTraitDef` for characters of that Race
+/// (Racial Trait entries stay generic on purpose: possession via
+/// `homebrewSelections` IS how a standalone always-on Trait applies; Traits
+/// belonging to a homebrew Race are authored ON the Race instead.)
 /// The conversions live here; `data/homebrew_registry.dart` exposes the
 /// resolved defs behind the same `xByName` lookups the calculator already
 /// uses, with the OFFICIAL catalogue always winning a name clash.
@@ -52,6 +57,7 @@ import '../data/dbu_rules.dart';
 import '../data/factor_traits.dart';
 import '../data/race_traits.dart';
 import '../data/signature_modifiers.dart';
+import '../data/talents.dart';
 import '../data/transformations.dart';
 import '../data/unique_abilities.dart';
 import '../data/weapons.dart';
@@ -154,10 +160,106 @@ class HomebrewAmb {
       );
 }
 
+/// Structured payload for a homebrew TALENT — its Talent Category (so it
+/// groups correctly in the Talents catalogue picker) and Prerequisites line.
+/// Together with the entry's shared text + automations it converts into a
+/// real `TalentDef`, joining the Talent list / Progression picker beside the
+/// official catalogue (which wins any name clash, as ever).
+class HomebrewTalentData {
+  HomebrewTalentData({
+    this.category = TalentCategory.miscellaneous,
+    this.prerequisitesText = 'N/A',
+  });
+
+  TalentCategory category;
+
+  /// Verbatim "–Prerequisites:" line — reference text, like the catalogue's.
+  String prerequisitesText;
+
+  TalentDef toTalentDef(HomebrewEntry e) => TalentDef(
+        name: e.displayName,
+        category: category,
+        prerequisitesText:
+            prerequisitesText.trim().isEmpty ? 'N/A' : prerequisitesText,
+        description: [
+          if (e.flavor.trim().isNotEmpty) e.flavor.trim(),
+          e.effectText,
+        ].join('\n'),
+        automation: List.unmodifiable(e.automations),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'category': category.name,
+        'prerequisitesText': prerequisitesText,
+      };
+
+  factory HomebrewTalentData.fromJson(Map<String, dynamic> json) =>
+      HomebrewTalentData(
+        category: _enumFrom(TalentCategory.values, json['category'],
+            TalentCategory.miscellaneous),
+        prerequisitesText: json['prerequisitesText'] as String? ?? 'N/A',
+      );
+}
+
+/// One Racial Trait authored directly on a homebrew RACE — converts into a
+/// real `RaceTraitDef`, so a character of that Race gets it exactly like an
+/// official Racial Trait (Information tab, automation, Factor swaps, combat
+/// reminders).
+class HomebrewRaceTraitData {
+  HomebrewRaceTraitData({
+    this.name = '',
+    this.tier = RaceTraitTier.secondary,
+    this.category = TraitCategory.body,
+    this.description = '',
+    List<RaceTraitAutomation>? automations,
+  }) : automations = automations ?? [];
+
+  String name;
+  RaceTraitTier tier;
+  TraitCategory category;
+
+  /// Verbatim flavour + numbered effects, like the catalogue's.
+  String description;
+
+  final List<RaceTraitAutomation> automations;
+
+  RaceTraitDef toRaceTraitDef(String race) => RaceTraitDef(
+        race: race,
+        tier: tier,
+        category: category,
+        name: name.trim().isEmpty ? 'Unnamed Trait' : name.trim(),
+        description: description,
+        automation: List.unmodifiable(automations),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'tier': tier.name,
+        'category': category.name,
+        'description': description,
+        'automations': [for (final a in automations) a.toJson()],
+      };
+
+  factory HomebrewRaceTraitData.fromJson(Map<String, dynamic> json) =>
+      HomebrewRaceTraitData(
+        name: json['name'] as String? ?? '',
+        tier: _enumFrom(
+            RaceTraitTier.values, json['tier'], RaceTraitTier.secondary),
+        category: _enumFrom(
+            TraitCategory.values, json['category'], TraitCategory.body),
+        description: json['description'] as String? ?? '',
+        automations: ((json['automations'] as List?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(RaceTraitAutomation.fromJson)
+            .toList(),
+      );
+}
+
 /// Structured payload for a homebrew RACE — everything `RaceDef` needs so a
 /// character can select it exactly like an official Race (Racial Life
 /// Modifier into Max Life, Attribute Score Increases into `Character.scoreOf`,
-/// Racial Saving Throw Bonus, Racial Skill Ranks).
+/// Racial Saving Throw Bonus, Racial Skill Ranks), plus its own directly
+/// authored Racial Traits (see [HomebrewRaceTraitData]).
 class HomebrewRaceData {
   HomebrewRaceData({
     this.racialLifeModifier = 0,
@@ -165,9 +267,11 @@ class HomebrewRaceData {
     List<int>? choiceAmounts,
     List<DbuSavingThrow>? savingThrows,
     this.skillRanks = 0,
+    List<HomebrewRaceTraitData>? traits,
   })  : fixedAttributeIncreases = fixedAttributeIncreases ?? {},
         choiceAmounts = choiceAmounts ?? [],
-        savingThrows = savingThrows ?? [];
+        savingThrows = savingThrows ?? [],
+        traits = traits ?? [];
 
   /// Added to Life Points for each Power Level (like every official Race).
   int racialLifeModifier;
@@ -184,6 +288,10 @@ class HomebrewRaceData {
 
   /// Racial Skill Ranks granted at Character Creation.
   int skillRanks;
+
+  /// The Race's directly authored Racial Traits — a character of this Race
+  /// gets them automatically (see `CharacterCalculator.activeRaceTraits`).
+  final List<HomebrewRaceTraitData> traits;
 
   /// Auto-generated display text mirroring the official Races' verbatim
   /// "Attribute Score Increase" line.
@@ -221,6 +329,8 @@ class HomebrewRaceData {
         'choiceAmounts': choiceAmounts,
         'savingThrows': [for (final s in savingThrows) s.name],
         'skillRanks': skillRanks,
+        if (traits.isNotEmpty)
+          'traits': [for (final t in traits) t.toJson()],
       };
 
   factory HomebrewRaceData.fromJson(Map<String, dynamic> json) {
@@ -248,6 +358,10 @@ class HomebrewRaceData {
             if (s.name == raw) s,
       ],
       skillRanks: (json['skillRanks'] as num?)?.toInt() ?? 0,
+      traits: ((json['traits'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(HomebrewRaceTraitData.fromJson)
+          .toList(),
     );
   }
 }
@@ -1331,6 +1445,7 @@ class HomebrewEntry {
     this.flavor = '',
     this.effectText = '',
     List<RaceTraitAutomation>? automations,
+    HomebrewTalentData? talentData,
     HomebrewRaceData? raceData,
     HomebrewConditionData? conditionData,
     HomebrewStateData? stateData,
@@ -1345,6 +1460,7 @@ class HomebrewEntry {
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : automations = automations ?? [],
+        talentData = talentData ?? HomebrewTalentData(),
         raceData = raceData ?? HomebrewRaceData(),
         conditionData = conditionData ?? HomebrewConditionData(),
         stateData = stateData ?? HomebrewStateData(),
@@ -1382,6 +1498,7 @@ class HomebrewEntry {
   /// present so the maker can edit them freely; only the one matching
   /// [category] is consulted at runtime, and each is serialized only when its
   /// category is selected (keeping shared codes lean).
+  final HomebrewTalentData talentData;
   final HomebrewRaceData raceData;
   final HomebrewConditionData conditionData;
   final HomebrewStateData stateData;
@@ -1418,6 +1535,8 @@ class HomebrewEntry {
         'flavor': flavor,
         'effectText': effectText,
         'automations': automations.map((a) => a.toJson()).toList(),
+        if (category == HomebrewCategory.talent)
+          'talentData': talentData.toJson(),
         if (category == HomebrewCategory.race) 'raceData': raceData.toJson(),
         if (category == HomebrewCategory.condition)
           'conditionData': conditionData.toJson(),
@@ -1467,6 +1586,7 @@ class HomebrewEntry {
       flavor: json['flavor'] as String? ?? '',
       effectText: json['effectText'] as String? ?? '',
       automations: autos,
+      talentData: parse('talentData', HomebrewTalentData.fromJson),
       raceData: parse('raceData', HomebrewRaceData.fromJson),
       conditionData: parse('conditionData', HomebrewConditionData.fromJson),
       stateData: parse('stateData', HomebrewStateData.fromJson),

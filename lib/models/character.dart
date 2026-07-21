@@ -995,6 +995,7 @@ class TransformationSelection {
     this.masteryLevel = 0,
     this.grandAwakeningActive = false,
     this.transcended = false,
+    this.parentForm = '',
     Map<String, Set<String>>? optionChoices,
     Map<DbuAttribute, int>? customAmb,
     Map<DbuAttribute, int>? flatAmb,
@@ -1033,6 +1034,14 @@ class TransformationSelection {
   /// while the Enhancement is active.
   bool transcended;
 
+  /// For an Evolved Stage that has been attached to a specific owned base
+  /// Form, the `name` of that Form (a `TransformationDef.name`). Empty for a
+  /// normal, standalone Transformation. This is purely organizational — it
+  /// nests the Evolved Stage under its Form in the Transformations tab and
+  /// does not change how the calculator applies its Attribute Modifier Bonus
+  /// (an Evolved Stage still applies its own AMB while Active, like any Form).
+  String parentForm;
+
   /// Chosen Option(s) for this Transformation's Traits, keyed
   /// `'<Trait name>::<Option group label>'` (same shape as
   /// `Character.raceTraitOptionChoices`).
@@ -1065,6 +1074,7 @@ class TransformationSelection {
         'masteryLevel': masteryLevel,
         'grandAwakeningActive': grandAwakeningActive,
         'transcended': transcended,
+        if (parentForm.isNotEmpty) 'parentForm': parentForm,
         'optionChoices':
             optionChoices.map((k, v) => MapEntry(k, v.toList())),
         'customAmb': customAmb.map((k, v) => MapEntry(k.name, v)),
@@ -1081,6 +1091,7 @@ class TransformationSelection {
         masteryLevel: (json['masteryLevel'] as num?)?.toInt() ?? 0,
         grandAwakeningActive: json['grandAwakeningActive'] as bool? ?? false,
         transcended: json['transcended'] as bool? ?? false,
+        parentForm: json['parentForm'] as String? ?? '',
         optionChoices:
             ((json['optionChoices'] as Map?) ?? const {}).map(
           (k, v) => MapEntry(

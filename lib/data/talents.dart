@@ -416,6 +416,23 @@ const List<TalentDef> kDbuTalents = [
         'Maneuver or Transformation Maneuver while not at Long Range, '
         'this triggers your Exploit Maneuver.',
   ),
+  // Replaced "Aikido Apprentice" on the site (rewritten, fetched live
+  // 20 Jul 2026).
+  TalentDef(
+    name: 'Shock Tornado',
+    category: TalentCategory.counter,
+    prerequisitesText: 'N/A',
+    description: "As you redirect your enemy's attack, you are able to "
+        'turn that momentum against them, creating space between you and '
+        'your assailant.\n'
+        '(1)-[Triggered, 1/Round]: When you successfully avoid an '
+        'Opponent’s Attacking Maneuver through the Parry effect of the '
+        'Defend Maneuver, if that Opponent is within your Melee Range, you '
+        'may target that Opponent with the Thrust Maneuver as an '
+        'Out-of-Sequence Maneuver. If you succeed the Clash for the Thrust '
+        'Maneuver, reduce that Opponent’s Life Points by 1/2 of your '
+        'Might.',
+  ),
 
   // ============================================================ Damaging ===
   TalentDef(
@@ -4594,19 +4611,6 @@ const List<TalentDef> kDbuTalents = [
         'your Actions (minimum 3) were spent using the Energy Charge '
         'Maneuver this turn, you may use the Energy Charge Maneuver as '
         'an Out-of-Sequence Maneuver.',
-  ),
-  TalentDef(
-    name: 'Aikido Apprentice',
-    category: TalentCategory.miscellaneous,
-    prerequisitesText: 'N/A',
-    description: 'You know how to push opponents away from you with '
-        'greater force.\n'
-        '(1)-[Passive]: Increase the Dice Score of your Clash for the '
-        'Thrust Maneuver by 1(bT).\n'
-        '(2)-[Triggered, 1/Round]: If you successfully avoid an '
-        'Attacking Maneuver through Dodging or through the Parry '
-        'option of the Defend Maneuver, you may use the Thrust '
-        'Maneuver as an Out-of-Sequence Maneuver.',
   ),
   TalentDef(
     name: 'Arrogance',

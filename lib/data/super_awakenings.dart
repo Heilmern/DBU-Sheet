@@ -99,61 +99,121 @@ const List<TransformationDef> kDbuSuperAwakenings = [
       },
     ),
   ),
+  // Rewritten on the site (fetched live 20 Jul 2026): now Origin Mind /
+  // ToP 4+ with the Consuming Life trait, the Power of the Consumed Grand
+  // Awakening, and three granted Unique Abilities (Planetary Consumption,
+  // Fire and Flames, Over-Empower — transcribed in `unique_abilities.dart`).
+  // Note the page grants the "Spirit Consumer Enhancement Power" while the
+  // Enhancement Power's own page is still titled Spirit Absorption (and
+  // still reads "4+ stacks of Energy Consumption") — site inconsistency,
+  // both kept verbatim.
   TransformationDef(
     name: 'Energy Consumption',
     type: TransformationType.awakening,
     awakeningType: AwakeningType.superAwakening,
-    origin: TransformationOrigin.body,
+    origin: TransformationOrigin.mind,
     racialRequirement: 'Any',
-    tierOfPowerRequirement: 1,
+    tierOfPowerRequirement: 4,
     maxStacks: 1,
-    prerequisiteText: 'Energy Drain Unique Ability, 2+ Skill Ranks in Use '
-        'Magic',
-    // Listed on the site as Transformation Type: Manifested Power. AMB is
-    // granted by Lifeforce (trait effect), not a flat table.
-    amb: {},
+    prerequisiteText: 'Energy Poacher Awakening, 5+ Skill Ranks in Use '
+        'Magic, 2+ Skill Ranks in Clairvoyance',
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.tenacity:
+          TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
     traits: [
       TransformationTrait(
-        name: 'Hunger for Power',
+        name: 'Consuming Life',
         description: 'You consume the life force energy of other beings in '
             'order to empower yourself.\n'
-            '-[Triggered, Resource]: Each time you gain Ki from a target via '
-            'Energy Drain, gain 1 Lifeforce (max Z).\n'
-            '-[Triggered]: If you gain Miracle Empowerment, gain 1 '
-            'Lifeforce.\n'
-            '-[Passive]: You only lose 1/2 of Z (rounded up) Lifeforce at '
-            'the end of each Combat Encounter.\n'
-            "-[Passive]: Increase this Manifested Power's Attribute Modifier "
-            'Bonus (AG/FO/TE/MA) by your Lifeforce (independent of stacks).\n'
-            '-[Passive]: Per your amount of Lifeforce, unlock the following '
-            'scaling effects:\n'
-            '2+: Increase the Dice Score of your Magical Wound Roll for the '
-            'effects of the Energy Drain Unique Ability by 1/2 of your Insight '
-            'Modifier.\n'
-            '3+: You may use the Energy Drain Unique Ability an additional '
-            'time per Combat Round.\n'
-            '4+: You gain access to the Planetary Consumption Unique Ability.\n'
-            '5+: You gain access to the Fire and Flames Unique Ability.\n'
-            '6+: You gain access to the Forced Empowerment Unique Ability.\n'
-            '7+: You may use the Energy Drain Unique Ability an additional '
-            'time per Combat Round.',
-      ),
-      TransformationTrait(
-        name: 'Power Restoration',
-        description: 'With every morsel of life energy you consume, you grow '
-            'stronger and stronger, becoming unstoppable.\n'
-            '-[Passive]: Increase your Maximum Ki Point Pool by 10 × Z.\n'
-            '-[Passive]: While at maximum Lifeforce, +2(T) Damage '
-            'Reduction.\n'
-            '-[Passive]: While your Lifeforce < 1/2 of Z (rounded up), Energy '
-            'Drain has a KP Cost of 0.\n'
-            '-[Triggered]: Upon gaining Lifeforce, regain 2(bT) Life '
-            'Points.\n'
-            '-[Triggered, 1/Round]: On a Signature Technique, spend up to '
-            '1/2 (rounded up) of Z Lifeforce; each reduces the Ki Cost by '
-            '1(T) and adds an Energy Charge.',
+            '(1)-[1/Round, Resource]: As a Standard Maneuver with an Action '
+            'Cost of 1 Action, you may convert a stack of Lifeforce into a '
+            'stack of Consumed Lifeforce (max. 5).\n'
+            '(2)-[Passive]: Increase your Maximum Life Points and Maximum '
+            'Ki Points by x for each Power Level reached, where x is equal '
+            'to 1/2 (rounded up) of your number of Consumed Lifeforce '
+            'stacks.\n'
+            '(3)-[Passive]: You do not lose any stacks of Consumed '
+            'Lifeforce when you leave a Combat Encounter or a Combat '
+            'Encounter ends.\n'
+            '(4)-[Passive]: Increase your Surgency and Cognitive Saving '
+            'Throw by 1(T).\n'
+            '(5)-[Passive]: You gain access to the Planet Consumption, Fire '
+            'and Flames, and Over-Empower Unique Abilities. Additionally, '
+            'you gain access to the Spirit Consumer Enhancement Power.\n'
+            '(6)-[Triggered, 1/Round]: If you win the Clash for the effects '
+            'of Energy Drain, instead of gaining Ki Points, you may gain a '
+            'stack of Lifeforce.\n'
+            '(7)-[Triggered, 1/Round]: Upon gaining a stack of Consumed '
+            'Lifeforce, regain Life and Ki Points equal to 1/2 of your '
+            'Surgency.\n'
+            '(8)-[Automatic/Threshold]: If you fail the Steadfast Check, '
+            'lose a stack of Consumed Lifeforce.',
+        automation: [
+          // (4) +1(T) Surgency and Cognitive Save. ((2)'s pools scale off
+          // BOTH Consumed Lifeforce and Power Level at once — no combined
+          // magnitude kind, so it stays reference text.)
+          RaceTraitAutomation(
+            affectedStats: [
+              AffectedStat.surgency,
+              AffectedStat.cognitiveSave,
+            ],
+            coefficient: 1,
+            tierScaling: TierScaling.current,
+          ),
+        ],
       ),
     ],
+    grandAwakening: TransformationTrait(
+      name: 'Power of the Consumed',
+      description: 'With every morsel of life energy you consume, you grow '
+          'stronger and stronger, becoming unstoppable.\n'
+          '(1)-[Grand Trigger]: You have 3+ stacks of Consumed Lifeforce.\n'
+          '(2)-[Passive]: Increase your Stress Bonus by 1.\n'
+          '(3)-[Passive]: Increase your maximum number of Consumed '
+          'Lifeforce stacks by 2.\n'
+          '(4)-[Passive]: Increase your Strike Rolls and Dodge Rolls by '
+          '1(T).\n'
+          '(5)-[Passive]: Increase your Wound Rolls and Soak Value by x(T), '
+          'where x is equal to 1/2 (rounded up) of your number of Consumed '
+          'Lifeforce stacks.\n'
+          '(6)-[Triggered, 1/Encounter]: If you use the Full Awakening '
+          'Maneuver, you may increase the amount of Life and Ki Points '
+          'regained by 3(bT) for every stack of Consumed Lifeforce you '
+          'possess.',
+      automation: [
+        // (2) +1 Stress Bonus.
+        RaceTraitAutomation(
+          affectedStats: [AffectedStat.stressBonus],
+          coefficient: 1,
+        ),
+        // (4) +1(T) Strike and Dodge Rolls.
+        RaceTraitAutomation(
+          affectedStats: [AffectedStat.strike, AffectedStat.dodge],
+          coefficient: 1,
+          tierScaling: TierScaling.current,
+        ),
+        // (5) +ceil(Consumed Lifeforce / 2)(T) Wound Rolls and Soak Value
+        // (track a "Consumed Lifeforce" Resource row).
+        RaceTraitAutomation(
+          affectedStats: [
+            AffectedStat.woundPhysical,
+            AffectedStat.woundEnergy,
+            AffectedStat.woundMagic,
+            AffectedStat.soak,
+          ],
+          coefficient: 1,
+          tierScaling: TierScaling.current,
+          kind: TraitMagnitudeKind.perNamedResourceStack,
+          resourceName: 'Consumed Lifeforce',
+          fractionDenominator: 2,
+          roundUp: true,
+        ),
+      ],
+    ),
   ),
   TransformationDef(
     name: 'Grandmaster',
@@ -657,6 +717,473 @@ const List<TransformationDef> kDbuSuperAwakenings = [
       // (the (T) AMB is already live via the amb map). The Choice effects
       // depend on the Enhancement of the Self Option and stay reference
       // text.
+    ),
+  ),
+
+  TransformationDef(
+    name: 'Super Mutation',
+    type: TransformationType.awakening,
+    awakeningType: AwakeningType.superAwakening,
+    origin: TransformationOrigin.body,
+    racialRequirement: 'Any',
+    tierOfPowerRequirement: 4,
+    maxStacks: 1,
+    prerequisiteText: 'Mutation Factor',
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.tenacity:
+          TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: 'Nurtured Mutation',
+        description: 'Y\n'
+            '(1)-[Passive]: Increase your Maximum Life Points and Maximum '
+            'Ki Points by 2 for each Power Level reached.\n'
+            '(2)-[Passive]: Increase your Surgency by 1(T).\n'
+            '(3)-[Passive]: Upon gaining access to this Awakening, select '
+            'and gain access to a Superior Mutation Trait.\n'
+            '(4)-[1/Encounter]: While below the Injured Health Threshold, '
+            'you may use a Surge of your choice as an Instant Maneuver.',
+        automation: [
+          // (1) +2 Max Life and Max Ki per Power Level.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.maxLife, AffectedStat.maxKi],
+            coefficient: 2,
+            kind: TraitMagnitudeKind.perPowerLevel,
+          ),
+          // (2) +1(T) Surgency.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.surgency],
+            coefficient: 1,
+            tierScaling: TierScaling.current,
+          ),
+        ],
+        // (3) The Superior Mutation Traits (site: their own section on the
+        // Super Mutation page) — each gated on possessing the matching
+        // Factor Trait (its [Prerequisite] line, reference-only as ever).
+        optionGroups: [
+          RaceTraitOptionGroup(
+            label: 'Superior Mutation Trait',
+            options: [
+              TraitOption(
+                name: 'Superior Brute (Body)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Brute Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(TE) of this Transformation by 1(T).\n'
+                    '(3)-[Passive]: You may use your Tenacity Modifier as '
+                    'the Damage Attribute of your Signature Techniques.\n'
+                    '(4)-[Passive]: To calculate your Might, you may use '
+                    'your Tenacity Modifier instead of your Force or Magic '
+                    'Modifiers.\n'
+                    '(5)-[Triggered, 1/Round]: If you are hit by an '
+                    'Attacking Maneuver and the Damage you take (after all '
+                    'other calculations) is less than your Tenacity '
+                    'Modifier, you can spend Ki Points equal to the Damage '
+                    'to not receive any Damage.',
+                // (2) +1(T) AMB (TE).
+                ambPerTierBonus: {DbuAttribute.tenacity: 1},
+              ),
+              TraitOption(
+                name: 'Superior Captain (Mind)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Captain Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(PE) of this Transformation by 2(T).\n'
+                    '(3)-[Passive]: You may use your Personality Modifier '
+                    'as the Damage Attribute of your Signature '
+                    'Techniques.\n'
+                    '(4)-[Triggered/Start of Turn]: If you are not Hyped, '
+                    'you may use the Hype Maneuver as an Out-of-Sequence '
+                    'Maneuver.\n'
+                    '(5)-[Triggered, 1/Encounter]: If you use the Hype '
+                    'Maneuver, you may use a Ki Surge as an Out-of-Sequence '
+                    'Maneuver. If you do, all Allies who are not at Long '
+                    'Range regain Ki Points equal to your Personality '
+                    'Modifier.',
+                // (2) +2(T) AMB (PE).
+                ambPerTierBonus: {DbuAttribute.personality: 2},
+              ),
+              TraitOption(
+                name: 'Superior Giant (Body)',
+                description: 'T\n'
+                    '(1)-[Prerequisite]: You possess the Giant Gene Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(TE) of this Transformation by 1(T).\n'
+                    '(3)-[Passive]: Treat your Size Category as if it was 1 '
+                    'larger for calculating the bonus to your Speed and '
+                    'Soak Value from your Size Category.\n'
+                    '(4)-[Passive]: Increase the Dice Category of your '
+                    'Punching Down Extra Dice by 1 Category.\n'
+                    '(5)-[Passive]: The 4th and 5th effects of Giant Gene '
+                    'lose the [1/Round] Keyword.',
+                // (2) +1(T) AMB (TE).
+                ambPerTierBonus: {DbuAttribute.tenacity: 1},
+              ),
+              TraitOption(
+                name: 'Superior Psychic (Mind)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Psychic Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(IN) of this Transformation by 1(T).\n'
+                    '(3)-[Passive]: Increase the Dice Score of your Might '
+                    'Clashes made due to the effects of a Unique Ability by '
+                    '1(T).\n'
+                    '(4)-[Passive]: Upon gaining access to this Awakening, '
+                    'you may select a Unique Ability with a TP Cost of 25 '
+                    'or less. Gain access to that Unique Ability.\n'
+                    '(5)-[Passive]: Reduce the Ki Point Cost of your Unique '
+                    'Abilities by 1(T).\n'
+                    '(6)-[Passive]: Increase your Grapple Checks by 1(T).',
+                // (2) +1(T) AMB (IN).
+                ambPerTierBonus: {DbuAttribute.insight: 1},
+              ),
+              TraitOption(
+                name: 'Superior Speedster (Body)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Speedster Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(AG) of this Transformation by 1(T).\n'
+                    '(3)-[Passive]: You may use your Agility Modifier as '
+                    'the Damage Attribute of your Signature Techniques.\n'
+                    '(4)-[Passive]: During a Combat Round in which you have '
+                    'used the Movement Maneuver, increase your Defense '
+                    'Value by 1(bT).\n'
+                    '(5)-[1/Round]: You may use the Movement Maneuver as an '
+                    'Instant Maneuver.\n'
+                    '(6)-[Triggered, 1/Round]: If you successfully dodge an '
+                    'Attacking Maneuver made by an Opponent, you may use '
+                    'the Basic Attack Maneuver as an Out-of-Sequence '
+                    'Maneuver. If you do, you must target that Opponent '
+                    'with that Attacking Maneuver.',
+                // (2) +1(T) AMB (AG).
+                ambPerTierBonus: {DbuAttribute.agility: 1},
+              ),
+              TraitOption(
+                name: 'Superior Tactician (Mind)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Tactician Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(SC) of this Transformation by 2(T).\n'
+                    '(3)-[Passive]: You may use your Scholarship Modifier '
+                    'as the Damage Attribute of your Signature '
+                    'Techniques.\n'
+                    '(4)-[Triggered/Start of Turn]: If you have no '
+                    'Analyzed Opponent, you may use the Analysis Maneuver '
+                    'as an Out-of-Sequence Maneuver.\n'
+                    '(5)-[Triggered, 1/Encounter]: If you use the Analysis '
+                    'Maneuver, you may use a Ki Surge as an Out-of-Sequence '
+                    'Maneuver. If you do, all Allies who are not at Long '
+                    'Range regain Ki Points equal to your Scholarship '
+                    'Modifier.',
+                // (2) +2(T) AMB (SC).
+                ambPerTierBonus: {DbuAttribute.scholarship: 2},
+              ),
+              TraitOption(
+                name: 'Superior Technician (Mind)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Technician Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase the Attribute Modifier Bonus '
+                    '(FO/MA) of this Transformation by 1(T).\n'
+                    '(3)-[Passive]: Reduce the Ki Point Cost of your '
+                    'Signature Techniques by 1(T).\n'
+                    '(4)-[Triggered, 1/Round]: If you used a Signature '
+                    'Technique with 3+ Energy Charges, increase the Wound '
+                    'Roll of that Attacking Maneuver by 1/2 of your Force '
+                    'or Magic Modifier (whichever is higher).\n'
+                    '(5)-[Triggered, 1/Encounter]: If you use an Ultimate '
+                    'Signature Technique, you may apply a qualifying Super '
+                    'Profile of your choice to that Signature Technique.',
+                // (2) +1(T) AMB (FO/MA).
+                ambPerTierBonus: {
+                  DbuAttribute.force: 1,
+                  DbuAttribute.magic: 1,
+                },
+              ),
+              TraitOption(
+                name: 'Supreme Emperor (Body)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Emperor Factor '
+                    'Trait.\n'
+                    '(2)-[Passive]: Increase your Stress Bonus by 1.\n'
+                    '(3)-[Passive]: While above the Injured Health '
+                    'Threshold, increase your Wound Rolls, Soak Value, and '
+                    'the Apparel Bonus of your Plating by 1(bT).\n'
+                    '(4)-[Passive]: While in your Form with the highest '
+                    'Tier of Power Requirement, increase the Attribute '
+                    'Modifier Bonuses (FO/MA) of this Transformation by '
+                    '1(T).\n'
+                    '(5)-[Triggered/Start of Turn]: While in your Form with '
+                    'the highest Tier of Power Requirement, gain a stack of '
+                    'Overwhelm.\n'
+                    '(6)-[Triggered, 1/Encounter]: If you use the Full '
+                    'Awakening Maneuver, you may apply the effects of '
+                    'Legend Realized immediately afterwards.',
+                automation: [
+                  // (2) +1 Stress Bonus. ((3)-(5) hinge on Health-Threshold
+                  // and which-Form checks per Maneuver — reference text.)
+                  RaceTraitAutomation(
+                    affectedStats: [AffectedStat.stressBonus],
+                    coefficient: 1,
+                  ),
+                ],
+              ),
+              TraitOption(
+                name: 'Titanic Lord (Body)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Tremendous Lord '
+                    'Factor Trait.\n'
+                    '(2)-[Passive]: While in the Great Namekian '
+                    'Transformation, increase the Attribute Modifier '
+                    'Bonuses (FO/MA) of this Transformation by 1(T).\n'
+                    '(3)-[Passive]: Increase your Soak Value by 1(T) for '
+                    'the duration of all Attacking Maneuvers made by '
+                    'Studied Opponents.\n'
+                    '(4)-[Passive]: Increase the Dice Category of your '
+                    'Punching Down Extra Dice by 1 Category for the '
+                    'duration of your Attacking Maneuvers that target at '
+                    'least 1 Studied Opponent.\n'
+                    '(5)-[Triggered, 1/Encounter]: If you use a Healing '
+                    'Surge while below the Injured Health Threshold, you '
+                    'may apply your Surgency an additional time to this '
+                    'Healing Surge.',
+                automation: [
+                  // (2) +1(T) FO/MA Modifiers while the Great Namekian
+                  // Enhancement is active.
+                  RaceTraitAutomation(
+                    affectedStats: [
+                      AffectedStat.modForce,
+                      AffectedStat.modMagic,
+                    ],
+                    coefficient: 1,
+                    tierScaling: TierScaling.current,
+                    condition:
+                        TraitCondition.whileNamedTransformationActive,
+                    conditionTransformationName: 'Great Namekian',
+                  ),
+                ],
+              ),
+              TraitOption(
+                name: 'Overwhelming Legend (Body)',
+                description: 'Y\n'
+                    '(1)-[Prerequisite]: You possess the Legendary Saiyan '
+                    'Factor Trait.\n'
+                    '(2)-[Passive]: Increase your Stress Bonus by 1.\n'
+                    '(3)-[Passive]: The Legendary Evolved Stage gains the '
+                    'Pinnacle (LV2) Aspect.\n'
+                    '(4)-[Passive]: While in the Legendary Evolved Stage, '
+                    'increase the Attribute Modifier Bonuses (FO/MA) of '
+                    'this Transformation by 1(T).\n'
+                    '(5)-[Triggered, 1/Encounter]: If you use a Surge, gain '
+                    'a stack of Battle Born. This stack of Battle Born must '
+                    'be applied to your Wound Rolls.\n'
+                    '(6)-[Triggered, 1/Encounter]: If you use the Full '
+                    'Awakening Maneuver, you may use a Healing Surge '
+                    'immediately afterwards as an Out-of-Sequence Maneuver.',
+                automation: [
+                  // (2) +1 Stress Bonus. ((4)'s Legendary-Evolved-Stage
+                  // gate depends on which Evolved Stage it was applied to —
+                  // reference text.)
+                  RaceTraitAutomation(
+                    affectedStats: [AffectedStat.stressBonus],
+                    coefficient: 1,
+                  ),
+                ],
+              ),
+              TraitOption(
+                name: 'Greatest Golden Fruit (Body)',
+                description: 'B\n'
+                    '(1)-[Prerequisite]: You possess the Golden Fruit '
+                    'Factor Trait.\n'
+                    '(2)-[Passive]: Increase your maximum amount of Divine '
+                    'Ki Points by 1 for each Power Level reached, and '
+                    'increase the Attribute Modifier Bonus (IN) of this '
+                    'Transformation by 1(T).\n'
+                    '(3)-[Passive]: You are always in the God Ki Special '
+                    'State.\n'
+                    '(4)-[Passive]: If an effect of a Racial or '
+                    'Transformation Trait would allow you to enter the God '
+                    'Ki Special State, you enter the Superior State instead '
+                    'for the duration of its effects.\n'
+                    '(5)-[Passive]: Upon gaining access to this Awakening, '
+                    'select 2 God Maneuvers. You gain access to those God '
+                    'Maneuvers.\n'
+                    '(6)-[Triggered/Superior, 1/Encounter]: Gain 1 Counter '
+                    'Action.',
+                // (2) +1(T) AMB (IN). (Divine Ki Points aren't tracked by
+                // this app — that half stays reference text.)
+                ambPerTierBonus: {DbuAttribute.insight: 1},
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+    grandAwakening: TransformationTrait(
+      name: 'Full Power of a Mutant',
+      description: 'T\n'
+          '(1)-[Grand Trigger]: You have triggered the 4th effect of '
+          'Nurtured Mutation.\n'
+          '(2)-[Passive]: Increase your Combat Rolls and Soak Value by '
+          '1(T).\n'
+          "(3)-[Triggered, Resource, 1/Encounter]: If you use the Full "
+          "Awakening Maneuver, you may gain 'Mutant Energy' equal to 1/2 of "
+          'your Maximum Life Points. You can only spend an amount of Mutant '
+          'Energy equal to 1/2 of your Max Capacity during each Combat '
+          'Round.\n'
+          '(4)-[Triggered]: If you take Damage from an Attacking Maneuver, '
+          'you may spend any amount of Mutant Energy to reduce the Damage '
+          "you'd receive by an equal amount.\n"
+          '(5)-[Triggered]: If you would pay the Ki Point Cost of a '
+          'Maneuver, you may spend any amount of Mutant Energy instead of '
+          'Ki Points. If you do, you still reduce your Capacity as if you '
+          'spent Ki Points.',
+      automation: [
+        // (2) +1(T) Combat Rolls and Soak Value while Grand Awakened.
+        RaceTraitAutomation(
+          affectedStats: [
+            AffectedStat.strike,
+            AffectedStat.dodge,
+            AffectedStat.woundPhysical,
+            AffectedStat.woundEnergy,
+            AffectedStat.woundMagic,
+            AffectedStat.soak,
+          ],
+          coefficient: 1,
+          tierScaling: TierScaling.current,
+        ),
+      ],
+    ),
+  ),
+
+  TransformationDef(
+    name: 'Dark Factor',
+    type: TransformationType.awakening,
+    awakeningType: AwakeningType.superAwakening,
+    origin: TransformationOrigin.body,
+    racialRequirement: 'Any',
+    tierOfPowerRequirement: 4,
+    maxStacks: 1,
+    prerequisiteText: 'Demon Clansman Factor',
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.tenacity:
+          TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: 'Lifeforce of the Dark King',
+        description: 'Y\n'
+            '(1)-[Passive]: Increase your Stress Bonus by 1.\n'
+            '(2)-[Passive]: Increase your Surgency by 2(T).\n'
+            '(3)-[Passive]: Gain access to the Dark King Legendary Form.\n'
+            "(4)-[Addendum]: Please refer to the 'Story of the Dark King' "
+            'textbox below.\n'
+            '(5)-[Triggered/Start of Combat Encounter, Resource]: Gain '
+            '1(bT) stacks of Dark Lifeforce.\n'
+            '(6)-[1/Round, 3/Encounter]: You may spend a stack of Dark '
+            'Lifeforce to use a Ki Surge as an Instant Maneuver.\n'
+            '(7)-[Triggered, 1/Round]: If you use a Unique Ability with a '
+            'Ki Point Cost of 10(bT) or less, you may spend a stack of Dark '
+            'Lifeforce to not pay the Ki Point cost of that Unique '
+            'Ability.\n'
+            '(8)-[Triggered/Start of Turn, 1/Round]: Spend a stack of Dark '
+            'Lifeforce to make a Might Clash against all Opponents. If you '
+            'win against an Opponent, they gain the Shaken, Impaired, and '
+            'Broken Combat Conditions until the end of your turn.',
+        automation: [
+          // (1) +1 Stress Bonus.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.stressBonus],
+            coefficient: 1,
+          ),
+          // (2) +2(T) Surgency.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.surgency],
+            coefficient: 2,
+            tierScaling: TierScaling.current,
+          ),
+        ],
+      ),
+      // The page's lore textbox, referenced by effect (4) — reference text.
+      TransformationTrait(
+        name: 'Story of the Dark King',
+        description: 'The first Character to possess the Dark Factor within '
+            "your setting is known as the 'Origin of the Dark Factor'. Only "
+            'one Character in a setting may possess the Dark Factor Super '
+            'Awakening at any one time. If a Character dies with the Dark '
+            'Factor, they lose this Super Awakening, unless they are the '
+            'Origin of the Dark Factor.\n\n'
+            'If the Origin of the Dark Factor dies, they do not enter the '
+            'afterlife, but instead exist as part of the Super Awakening. If '
+            'another Character gains the Super Awakening for any reason, '
+            'they must win a Might Clash against the Origin of the Dark '
+            'Factor while not benefiting from the bonuses or effects of any '
+            'Forms or Enhancements. If they fail, they are taken over and '
+            'become the Origin of the Dark Factor - their Character does '
+            'not change, but they are completely controlled by the Origin '
+            'of the Dark Factor.',
+      ),
+    ],
+    grandAwakening: TransformationTrait(
+      name: 'Resurgence of the Dark King',
+      description: 'T\n'
+          '(1)-[Grand Trigger]: You are below the Injured Health Threshold '
+          'and have spent at least 4 stacks of Dark Lifeforce.\n'
+          '(2)-[Passive]: Increase your Combat Rolls by 1(T).\n'
+          '(3)-[Passive]: Increase your Wound Rolls and Soak Value by 2(T) '
+          'against characters suffering from a Combat Condition.\n'
+          '(4)-[Triggered/Power, 1/Round]: Gain a stack of Dark Lifeforce.\n'
+          '(5)-[Triggered, 1/Round]: If you use a Signature Technique, you '
+          'may spend a stack of Dark Lifeforce to apply an Energy Charge to '
+          'that Attacking Maneuver.\n'
+          '(6)-[Triggered, 1/Round]: If you are targeted by an Attacking '
+          'Maneuver, you may spend a stack of Dark Lifeforce to use the '
+          'Defend Maneuver without spending a Counter Action.\n'
+          '(7)-[Triggered, 1/Encounter]: Upon using the Full Awakening '
+          'Maneuver, gain a stack of Dark Lifeforce.\n'
+          '(8)-[Triggered, 1/Encounter]: If you Defeat an Opponent with a '
+          'Signature Technique, you may spend 3 stacks of Dark Lifeforce to '
+          'use the Absorb Maneuver (even if you do not have access to it) '
+          'as an Out-of-Sequence Maneuver. You must target that Opponent '
+          'with this use of the Absorb Maneuver, and that Opponent does not '
+          'have to be within your Melee Range.\n'
+          '(9)-[Triggered/Defeated, 1/Character]: If you are the Origin of '
+          'the Dark Factor, die. If you do, select another Character on the '
+          'Battlefield and make a Might Clash against them. If you win, '
+          'they gain the Demon Clansman Factor (you choose which Secondary '
+          'Trait is replaced) and the Dark Factor Super Awakening (if they '
+          'already possessed a Super Awakening, replace it with Dark '
+          'Factor). That Character then becomes your Character while they '
+          'possess the Dark Factor Awakening and this Character ceases to '
+          'exist, except as the Origin of the Dark Factor.',
+      automation: [
+        // (2) +1(T) Combat Rolls while Grand Awakened. ((3)'s Wound/Soak
+        // bonus is per-target (Opponents in a Combat Condition) — text.)
+        RaceTraitAutomation(
+          affectedStats: [
+            AffectedStat.strike,
+            AffectedStat.dodge,
+            AffectedStat.woundPhysical,
+            AffectedStat.woundEnergy,
+            AffectedStat.woundMagic,
+          ],
+          coefficient: 1,
+          tierScaling: TierScaling.current,
+        ),
+      ],
     ),
   ),
 

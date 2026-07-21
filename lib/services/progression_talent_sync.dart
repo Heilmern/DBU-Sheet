@@ -19,7 +19,7 @@
 /// ---------------------------------------------------------------------------
 library;
 
-import '../data/talents.dart';
+import '../data/homebrew_registry.dart';
 import '../models/character.dart';
 import 'character_calculator.dart';
 
@@ -28,8 +28,9 @@ import 'character_calculator.dart';
 /// Addition slots (Main Progression + Bonus Perks, regardless of whether
 /// that Power Level has been reached yet — a planned-ahead pick still gets
 /// a row to fill in). Missing entries are appended prefilled from
-/// `talentByName` when it's a catalogue Talent, or just the bare name for a
-/// homebrew one; existing entries are left untouched.
+/// `HomebrewRegistry.resolveTalentDef` (official catalogue first, then
+/// homebrew Talents), or just the bare name for a freeform one; existing
+/// entries are left untouched.
 void ensureProgressionTalentsInTalentList(Character c) {
   final names = CharacterCalculator.progressionTalentsThroughLevel(
     c,
@@ -42,7 +43,7 @@ void ensureProgressionTalentsInTalentList(Character c) {
     );
     if (exists) continue;
 
-    final catalogueTalent = talentByName(name);
+    final catalogueTalent = HomebrewRegistry.resolveTalentDef(name);
     c.talents.add(TalentEntry(
       name: name,
       prerequisites: catalogueTalent?.prerequisitesText ?? '',

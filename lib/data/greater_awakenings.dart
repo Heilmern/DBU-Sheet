@@ -299,6 +299,76 @@ const List<TransformationDef> kDbuGreaterAwakenings = [
     ],
   ),
   TransformationDef(
+    name: 'Combat Connoisseur',
+    type: TransformationType.awakening,
+    awakeningType: AwakeningType.greater,
+    origin: TransformationOrigin.mind,
+    racialRequirement: 'Any',
+    tierOfPowerRequirement: 1,
+    maxStacks: 1,
+    prerequisiteText: 'Access to the Holding Back Maneuver',
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1),
+      DbuAttribute.force: TransformationAmb(coefficient: 2),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1),
+      DbuAttribute.magic: TransformationAmb(coefficient: 2),
+    },
+    traits: [
+      TransformationTrait(
+        name: 'Staggered Reveal',
+        description: 'Y\n'
+            '(1)-[Triggered, Resource]: If you use the Holding Back '
+            'Maneuver to remove a stack of Holding Back, gain a stack of '
+            "'Revealed'.\n"
+            '(2)-[Passive]: While you possess a stack of Revealed, you '
+            'cannot use the Holding Back Maneuver to gain stacks of '
+            'Holding Back.\n'
+            '(3)-[Passive]: While you possess a stack of Revealed, '
+            'increase your Combat Rolls and Soak Value by 1(bT).\n'
+            '(4)-[Passive]: While you possess no stacks of Revealed and at '
+            'least 1 stack of Holding Back, set the Ki Point Cost of your '
+            'Attacking Maneuvers made through the Basic Attack Maneuver to '
+            'their Minimum Ki Point Cost.\n'
+            '(5)-[Triggered]: If you gain a stack of Revealed, regain '
+            '3(bT) Life and Ki Points.\n'
+            '(6)-[Triggered, 1/Round]: If you gain a stack of Revealed, '
+            'you may ignore the effects of your Holding Back stacks and '
+            'treat yourself as if you have no stacks of Holding Back until '
+            'the start of your next turn.\n'
+            '(7)-[Triggered, 1/Round]: If you would pay the Ki Point Cost '
+            'for a Maneuver, you may spend stacks of Revealed instead of '
+            'Ki Points. Each stack of Revealed is worth 4(bT) Ki Points '
+            'for this effect.\n'
+            '(8)-[Triggered, 1/Round]: If you lose your final stack of '
+            'Revealed, you may use the Holding Back Maneuver as an '
+            'Out-of-Sequence Maneuver. This use of the Holding Back '
+            "Maneuver can occur even if you've used it previously this "
+            'Combat Round.\n'
+            '(9)-[Triggered/Power, 1/Round]: Lose a stack of Holding Back '
+            'and gain a stack of Revealed. If you did, then you may use '
+            'the Basic Attack Maneuver as an Out-of-Sequence Maneuver.',
+        automation: [
+          // (3) +1(bT) Combat Rolls and Soak Value while possessing a
+          // stack of Revealed (track a "Revealed" Resource row).
+          RaceTraitAutomation(
+            affectedStats: [
+              AffectedStat.strike,
+              AffectedStat.dodge,
+              AffectedStat.woundPhysical,
+              AffectedStat.woundEnergy,
+              AffectedStat.woundMagic,
+              AffectedStat.soak,
+            ],
+            coefficient: 1,
+            tierScaling: TierScaling.base,
+            condition: TraitCondition.whileNamedResourceAtLeast,
+            conditionResourceName: 'Revealed',
+          ),
+        ],
+      ),
+    ],
+  ),
+  TransformationDef(
     name: 'Commander',
     type: TransformationType.awakening,
     awakeningType: AwakeningType.greater,
@@ -1195,6 +1265,56 @@ const List<TransformationDef> kDbuGreaterAwakenings = [
             '[1/Round, 3/Encounter].\n'
             '5: Increase the Awareness, Defense Value, Soak Value, and Might '
             'of your created Battle Jackets by 1(bT).',
+      ),
+    ],
+  ),
+  TransformationDef(
+    name: 'Last Hope',
+    type: TransformationType.awakening,
+    awakeningType: AwakeningType.greater,
+    origin: TransformationOrigin.mind,
+    racialRequirement: 'Any',
+    tierOfPowerRequirement: 1,
+    maxStacks: 1,
+    prerequisiteText: 'Lone Warrior',
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1),
+      DbuAttribute.force: TransformationAmb(coefficient: 1),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1),
+      DbuAttribute.insight: TransformationAmb(coefficient: 1),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1),
+    },
+    traits: [
+      TransformationTrait(
+        name: 'Light of Willpower',
+        description: 'Y\n'
+            '(1)-[Passive]: Increase your Maximum Life Points by 2 for '
+            'each Power Level reached.\n'
+            '(2)-[Passive]: While in a Desperate Battle, increase your '
+            'Combat Rolls and Soak Value by 1(T).\n'
+            '(3)-[Passive]: While in a Desperate Battle, you cannot lose a '
+            'Clash initiated by an Opponent that uses your Morale Saving '
+            'Throw.\n'
+            '(4)-[Passive]: While in a Desperate Battle, ignore the '
+            'effects of the Broken and Shaken Combat Conditions.\n'
+            '(5)-[Triggered/Power, 1/Round]: If you are below the Injured '
+            'Health Threshold, you may treat this Combat Encounter as a '
+            'Desperate Battle until the start of your next turn.\n'
+            '(6)-[Triggered/Surging, 1/Encounter]: You may use the '
+            'Transformation Maneuver or Power Up Maneuver as an '
+            'Out-of-Sequence Maneuver.\n'
+            '(7)-[Triggered/Start of Turn, 1/Encounter]: Enter the Surging '
+            'State until the end of your next turn.',
+        automation: [
+          // (1) +2 Max Life per Power Level. (The Desperate Battle
+          // effects are encounter-level judgements — reference text, same
+          // as Lone Warrior's.)
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.maxLife],
+            coefficient: 2,
+            kind: TraitMagnitudeKind.perPowerLevel,
+          ),
+        ],
       ),
     ],
   ),

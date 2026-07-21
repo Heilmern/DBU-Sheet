@@ -38,14 +38,15 @@ library;
 // ============================================================================
 
 /// The tracker's phase cycle. [next] advances Start of Combat → Start of
-/// Round → Start of Turn → End of Turn → Start of Round → … (the round
-/// boundary — "end of the Combat Round" — sits on the End of Turn → Start of
-/// Round transition, see `kCombatEndOfRoundRules`).
+/// Round → Start of Turn → End of Turn → End of Round → Start of Round → …
+/// (the round boundary — "end of the Combat Round" — gets its own phase
+/// card, see `kCombatEndOfRoundRules`).
 enum CombatPhase {
   startOfCombat('Start of Combat'),
   startOfRound('Start of Round'),
   startOfTurn('Start of Turn'),
-  endOfTurn('End of Turn');
+  endOfTurn('End of Turn'),
+  endOfRound('End of Round');
 
   const CombatPhase(this.displayName);
 
@@ -57,7 +58,8 @@ enum CombatPhase {
         CombatPhase.startOfCombat => CombatPhase.startOfRound,
         CombatPhase.startOfRound => CombatPhase.startOfTurn,
         CombatPhase.startOfTurn => CombatPhase.endOfTurn,
-        CombatPhase.endOfTurn => CombatPhase.startOfRound,
+        CombatPhase.endOfTurn => CombatPhase.endOfRound,
+        CombatPhase.endOfRound => CombatPhase.startOfRound,
       };
 }
 
@@ -208,10 +210,10 @@ const Map<CombatPhase, List<CombatRuleEntry>> kCombatPhaseRules = {
           'stop being Hidden for that Character.',
     ),
   ],
+  CombatPhase.endOfRound: kCombatEndOfRoundRules,
 };
 
-/// The round boundary (End of Turn → next Start of Round). Shown as its own
-/// subsection when the tracker wraps to a new Round.
+/// The round boundary — shown on the End of Round phase card.
 const List<CombatRuleEntry> kCombatEndOfRoundRules = [
   CombatRuleEntry(
     'Ending a Round',

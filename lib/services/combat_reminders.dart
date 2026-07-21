@@ -31,13 +31,20 @@ import 'character_calculator.dart';
 import 'rule_text.dart';
 
 /// When during a Combat Encounter a scanned effect fires or expires.
+///
+/// [onAttack] is not a phase timing — it tags effects whose text triggers
+/// when you make an Attacking Maneuver / attack / Signature Technique, shown
+/// on the Attacking Maneuver tab rather than any phase card. It is never
+/// produced by the phase-timing classifier ([timingsForText]) nor returned
+/// by [timingsForPhase], so it can never leak onto a phase card.
 enum CombatTiming {
   startOfCombat('Start of Combat'),
   startOfRound('Start of Round'),
   startOfTurn('Start of Turn'),
   endOfTurn('End of Turn'),
   endOfRound('End of Round'),
-  endOfEncounter('End of Combat');
+  endOfEncounter('End of Combat'),
+  onAttack('On an Attacking Maneuver');
 
   const CombatTiming(this.displayName);
 
@@ -88,8 +95,17 @@ class CombatReminderScanner {
     r'\bends? (?:your|their|its) turn\b',
     caseSensitive: false,
   );
+  // `[a-z-]` keeps hyphenated fillers matching ("start of every
+  // even-numbered Combat Round" — Born for Battle, Adaptation cadences).
   static final RegExp _roundPhrase = RegExp(
-    r'\b(start|beginning|end) of (?:[a-z]+ ){0,3}?Combat Round\b',
+    r'\b(start|beginning|end) of (?:[a-z-]+ ){0,3}?Combat Round\b',
+    caseSensitive: false,
+  );
+
+  /// "every even-numbered Combat Round" / "each odd-numbered Combat Round" —
+  /// effects on a Round cadence. See [roundParity].
+  static final RegExp _roundParityPhrase = RegExp(
+    r'\b(even|odd)(?:-numbered)? Combat Rounds?\b',
     caseSensitive: false,
   );
   static final RegExp _encounterPhrase = RegExp(
@@ -107,6 +123,15 @@ class CombatReminderScanner {
     r'\bafter (?:ending|overcoming) a Combat Encounter\b',
     caseSensitive: false,
   );
+
+  /// Whether [text] fires only on even (`true`) or odd (`false`) numbered
+  /// Combat Rounds, or has no such cadence (`null`) — so the tracker can
+  /// mark a "every even-numbered Combat Round" reminder as not-this-Round.
+  static bool? roundParity(String text) {
+    final m = _roundParityPhrase.firstMatch(text);
+    if (m == null) return null;
+    return m.group(1)!.toLowerCase() == 'even';
+  }
 
   /// Every timing phrase found in [text].
   static Set<CombatTiming> timingsForText(String text) {
@@ -191,30 +216,24 @@ class CombatReminderScanner {
     }
   }
 
-  /// Scans everything the character possesses. Reminders are returned in
-  /// source order; filter by [CombatReminder.timing] for a phase card.
-  static List<CombatReminder> scan(Character c) {
-    final tier = CharacterCalculator.tierOfPower(c);
-    final baseTier = CharacterCalculator.baseTierOfPower(c);
-    final reminders = <CombatReminder>[];
-
+  /// Enumerates every trait/ability/item text the character currently
+  /// possesses, calling [emit] once per source. Shared by [scan] (which
+  /// classifies each text by phase timing) and [attackTriggerReminders]
+  /// (which matches attack-trigger phrases instead) so both stay in sync.
+  static void _forEachSource(
+    Character c,
+    void Function(String source, String title, String text,
+            {int? stacks, int? grade})
+        emit,
+  ) {
     void addText({
       required String source,
       required String title,
       required String text,
       int? stacks,
       int? grade,
-    }) {
-      reminders.addAll(remindersFromText(
-        source: source,
-        title: title,
-        text: text,
-        tier: tier,
-        baseTier: baseTier,
-        stacks: stacks,
-        grade: grade,
-      ));
-    }
+    }) =>
+        emit(source, title, text, stacks: stacks, grade: grade);
 
     // --- Racial Traits (incl. Factor swaps / Custom Species) + Options ----
     for (final trait in CharacterCalculator.activeRaceTraits(c)) {
@@ -367,6 +386,26 @@ class CombatReminderScanner {
     for (final entry in CharacterCalculator.activeHomebrew(c)) {
       addText(source: 'Homebrew', title: entry.name, text: entry.effectText);
     }
+  }
+
+  /// Scans everything the character possesses. Reminders are returned in
+  /// source order; filter by [CombatReminder.timing] for a phase card.
+  static List<CombatReminder> scan(Character c) {
+    final tier = CharacterCalculator.tierOfPower(c);
+    final baseTier = CharacterCalculator.baseTierOfPower(c);
+    final reminders = <CombatReminder>[];
+
+    _forEachSource(c, (source, title, text, {stacks, grade}) {
+      reminders.addAll(remindersFromText(
+        source: source,
+        title: title,
+        text: text,
+        tier: tier,
+        baseTier: baseTier,
+        stacks: stacks,
+        grade: grade,
+      ));
+    });
 
     // --- Built-in tracked-state reminders (rule text verbatim) -------------
     if (c.powerStacks > 0) {
@@ -404,17 +443,66 @@ class CombatReminderScanner {
   static List<CombatReminder> forTiming(Character c, CombatTiming timing) =>
       [for (final r in scan(c)) if (r.timing == timing) r];
 
-  /// Maps a tracker phase to the timings its card shows: the Start of Round
-  /// card also surfaces End of Round reminders (the round boundary sits on
-  /// the End of Turn → Start of Round transition — see [CombatPhase.next]).
+  // --- Attack-trigger phrases ----------------------------------------------
+  // Effects that fire when you make an Attacking Maneuver / attack / land a
+  // Strike or Wound / spend a Ki Wager or Energy Charge / use a Signature
+  // Technique. Matched per-sentence so the reminder shows only the relevant
+  // line. Word boundaries keep "attack" from matching inside longer words.
+  static final RegExp _attackTriggerPhrase = RegExp(
+    r'\b(attacking maneuvers?|attacks?|strike rolls?|wound rolls?|'
+    r'signature techniques?|ki wagers?|energy charges?|critical (?:hit|result))\b',
+    caseSensitive: false,
+  );
+
+  /// The sentence(s) of [text] that mention an attack trigger (newlines are
+  /// hard boundaries), joined — mirrors [snippetFor] but phrase-matched.
+  static String _attackSnippet(String text) {
+    final sentences = <String>[];
+    for (final line in text.split('\n')) {
+      for (final sentence in line.split(RegExp(r'(?<=[.!?])\s+'))) {
+        if (_attackTriggerPhrase.hasMatch(sentence)) {
+          sentences.add(sentence.trim());
+        }
+      }
+    }
+    return sentences.join('\n');
+  }
+
+  /// Reminders for effects that trigger when the character makes an Attacking
+  /// Maneuver / attack / Signature Technique — surfaced on the Attacking
+  /// Maneuver tab. Purely textual, like [scan]; every reminder carries
+  /// [CombatTiming.onAttack].
+  static List<CombatReminder> attackTriggerReminders(Character c) {
+    final tier = CharacterCalculator.tierOfPower(c);
+    final baseTier = CharacterCalculator.baseTierOfPower(c);
+    final reminders = <CombatReminder>[];
+    _forEachSource(c, (source, title, text, {stacks, grade}) {
+      final snippet = _attackSnippet(text);
+      if (snippet.isEmpty) return;
+      reminders.add(CombatReminder(
+        source: source,
+        title: title,
+        timing: CombatTiming.onAttack,
+        text: annotateRuleText(
+          snippet,
+          tier: tier,
+          baseTier: baseTier,
+          stacks: stacks,
+          grade: grade,
+        ),
+      ));
+    });
+    return reminders;
+  }
+
+  /// Maps a tracker phase to the timings its card shows — 1:1 now that the
+  /// round boundary has its own End of Round phase (see [CombatPhase.next]).
   static List<CombatTiming> timingsForPhase(CombatPhase phase) =>
       switch (phase) {
         CombatPhase.startOfCombat => const [CombatTiming.startOfCombat],
-        CombatPhase.startOfRound => const [
-            CombatTiming.endOfRound,
-            CombatTiming.startOfRound,
-          ],
+        CombatPhase.startOfRound => const [CombatTiming.startOfRound],
         CombatPhase.startOfTurn => const [CombatTiming.startOfTurn],
         CombatPhase.endOfTurn => const [CombatTiming.endOfTurn],
+        CombatPhase.endOfRound => const [CombatTiming.endOfRound],
       };
 }

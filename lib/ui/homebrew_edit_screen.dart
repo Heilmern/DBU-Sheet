@@ -37,6 +37,7 @@ import '../data/aspects.dart';
 import '../data/dbu_rules.dart';
 import '../data/race_traits.dart';
 import '../data/signature_modifiers.dart';
+import '../data/talents.dart';
 import '../data/transformations.dart';
 import '../data/unique_abilities.dart';
 import '../data/weapons.dart';
@@ -182,6 +183,11 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
   final List<int> _traitKeys = [];
   final Map<int, List<_AutomationDraft>> _traitDrafts = {};
 
+  /// Same machinery for a homebrew Race's directly authored Racial Traits
+  /// (parallel to `_race.traits`).
+  final List<int> _raceTraitKeys = [];
+  final Map<int, List<_AutomationDraft>> _raceTraitDrafts = {};
+
   @override
   void initState() {
     super.initState();
@@ -197,6 +203,13 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
       final key = _nextKey++;
       _traitKeys.add(key);
       _traitDrafts[key] = [
+        for (final a in t.automations) _AutomationDraft.from(_nextKey++, a),
+      ];
+    }
+    for (final t in e.raceData.traits) {
+      final key = _nextKey++;
+      _raceTraitKeys.add(key);
+      _raceTraitDrafts[key] = [
         for (final a in t.automations) _AutomationDraft.from(_nextKey++, a),
       ];
     }
@@ -227,10 +240,16 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
       ..clear()
       ..addAll(_drafts.map((d) => d.build()));
     // The structured payloads are edited in place on the working copy; only
-    // the extra Traits' automation drafts need rebuilding into the payload.
+    // the per-Trait automation drafts need rebuilding into their payloads.
     for (var i = 0; i < _transformation.extraTraits.length; i++) {
       final drafts = _traitDrafts[_traitKeys[i]] ?? const [];
       _transformation.extraTraits[i].automations
+        ..clear()
+        ..addAll(drafts.map((d) => d.build()));
+    }
+    for (var i = 0; i < _race.traits.length; i++) {
+      final drafts = _raceTraitDrafts[_raceTraitKeys[i]] ?? const [];
+      _race.traits[i].automations
         ..clear()
         ..addAll(drafts.map((d) => d.build()));
     }
@@ -283,9 +302,8 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
               context,
               'Everything an official Race records. A character picking this '
               'Race gets all of it automatically (Life per Power Level, '
-              'Attribute Scores, Racial Saving Throw Bonus, Skill Ranks). '
-              'Author its Racial Traits as separate "Racial Trait" homebrew '
-              'entries.'),
+              'Attribute Scores, Racial Saving Throw Bonus, Skill Ranks) — '
+              'including the Racial Traits authored in the section below.'),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -380,6 +398,196 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _talentSection(BuildContext context) {
+    final t = widget.entry.talentData;
+    return SectionCard(
+      title: 'Talent details',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _sectionHint(
+              context,
+              'This Talent joins the Talents catalogue picker (Information '
+              'tab and Progression) under its Talent Category, beside the '
+              'official Talents. Its text comes from the Flavor/Effect '
+              'fields above; its automated effects from the Automated '
+              'Effects section.'),
+          DropdownButtonFormField<TalentCategory>(
+            initialValue: t.category,
+            decoration: const InputDecoration(
+              labelText: 'Talent Category',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: [
+              for (final c in TalentCategory.values)
+                DropdownMenuItem(value: c, child: Text(c.displayName)),
+            ],
+            onChanged: (v) => setState(
+                () => t.category = v ?? TalentCategory.miscellaneous),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            key: const ValueKey('hb-talent-prereq'),
+            initialValue: t.prerequisitesText,
+            decoration: const InputDecoration(
+              labelText: 'Prerequisites',
+              hintText: 'e.g. "Force Score 6+" — reference text, like the '
+                  'catalogue\'s.',
+            ),
+            onChanged: (v) => t.prerequisitesText = v,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _raceTraitsSection(BuildContext context) {
+    final theme = Theme.of(context);
+    return SectionCard(
+      title: 'Racial Traits',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _sectionHint(
+              context,
+              'The Race\'s own Racial Traits. A character of this Race gets '
+              'them exactly like official ones — they show on the '
+              'Information tab, can be swapped for Factor Traits, feed the '
+              'combat reminders, and each can carry its own automated '
+              'effects.'),
+          for (var i = 0; i < _race.traits.length; i++)
+            _raceTraitCard(context, theme, i),
+          OutlinedButton.icon(
+            onPressed: () => setState(() {
+              _race.traits.add(HomebrewRaceTraitData());
+              final key = _nextKey++;
+              _raceTraitKeys.add(key);
+              _raceTraitDrafts[key] = [];
+            }),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Racial Trait'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _raceTraitCard(BuildContext context, ThemeData theme, int index) {
+    final trait = _race.traits[index];
+    final key = _raceTraitKeys[index];
+    final drafts = _raceTraitDrafts[key]!;
+    return Card(
+      key: ValueKey('hb-racetrait-$key'),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text('Racial Trait ${index + 1}',
+                    style: theme.textTheme.titleSmall),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Remove',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => setState(() {
+                    _race.traits.removeAt(index);
+                    _raceTraitKeys.removeAt(index);
+                    _raceTraitDrafts.remove(key);
+                  }),
+                ),
+              ],
+            ),
+            TextFormField(
+              key: ValueKey('hb-racetrait-name-$key'),
+              initialValue: trait.name,
+              decoration: const InputDecoration(labelText: 'Trait name'),
+              textCapitalization: TextCapitalization.words,
+              onChanged: (v) => trait.name = v,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<RaceTraitTier>(
+                    initialValue: trait.tier,
+                    decoration: const InputDecoration(
+                      labelText: 'Tier',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final tier in RaceTraitTier.values)
+                        DropdownMenuItem(
+                            value: tier, child: Text(tier.displayName)),
+                    ],
+                    onChanged: (v) => setState(
+                        () => trait.tier = v ?? RaceTraitTier.secondary),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<TraitCategory>(
+                    initialValue: trait.category,
+                    decoration: const InputDecoration(
+                      labelText: 'Body / Mind',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final cat in TraitCategory.values)
+                        DropdownMenuItem(
+                            value: cat, child: Text(cat.displayName)),
+                    ],
+                    onChanged: (v) => setState(
+                        () => trait.category = v ?? TraitCategory.body),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              key: ValueKey('hb-racetrait-desc-$key'),
+              initialValue: trait.description,
+              decoration: const InputDecoration(
+                labelText: 'Effect text',
+                hintText: 'Verbatim flavour + numbered effects — (T)/(bT) '
+                    'tokens are annotated live on the sheet.',
+              ),
+              minLines: 2,
+              maxLines: 8,
+              onChanged: (v) => trait.description = v,
+            ),
+            const SizedBox(height: 8),
+            Text('Automated effects of this Trait',
+                style: theme.textTheme.labelMedium),
+            for (var i = 0; i < drafts.length; i++)
+              _AutomationCard(
+                key: ValueKey(drafts[i].key),
+                draft: drafts[i],
+                index: i,
+                showTransformationScaling: false,
+                onChanged: () => setState(() {}),
+                onRemove: () => setState(() => drafts.removeAt(i)),
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => setState(
+                    () => drafts.add(_AutomationDraft(key: _nextKey++))),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add automated effect'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1932,7 +2140,11 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                   ],
                 ),
               ),
+              if (_category == HomebrewCategory.talent)
+                _talentSection(context),
               if (_category == HomebrewCategory.race) _raceSection(context),
+              if (_category == HomebrewCategory.race)
+                _raceTraitsSection(context),
               if (_category == HomebrewCategory.condition)
                 _conditionSection(context),
               if (_category == HomebrewCategory.state) _stateSection(context),

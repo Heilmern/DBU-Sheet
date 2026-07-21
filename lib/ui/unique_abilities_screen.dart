@@ -77,8 +77,7 @@ class UniqueAbilitiesTab extends StatelessWidget {
         children: [
           Text(
             'TP-purchased Maneuvers. Pick an ability, then buy Advancements '
-            '(+TP) or apply Restrictions (−TP, which lock some Advancements). '
-            'TP/KP costs are computed; the effects are reference text.',
+            '(+TP) or apply Restrictions (−TP). ',
             style: theme.textTheme.bodySmall
                 ?.copyWith(fontStyle: FontStyle.italic),
           ),

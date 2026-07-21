@@ -43,6 +43,7 @@ import '../models/character.dart';
 import '../services/character_calculator.dart';
 import '../services/progression_talent_sync.dart';
 import '../services/race_resource_sync.dart';
+import '../services/trait_talent_sync.dart';
 import 'combat_screen.dart' show CombatScreen;
 import 'information_screen.dart' show InformationTab;
 import 'inventory_screen.dart' show InventoryTab;
@@ -58,6 +59,7 @@ class CharacterEditScreen extends StatefulWidget {
     super.key,
     required this.character,
     required this.isNew,
+    required this.onSave,
   });
 
   /// A working copy of the character being edited (safe to mutate).
@@ -65,6 +67,11 @@ class CharacterEditScreen extends StatefulWidget {
 
   /// True when creating a brand-new character (affects the title/labels).
   final bool isNew;
+
+  /// Persists the current working copy (e.g. `repository.upsert`) and refreshes
+  /// the roster. Called by the Save action, which then stays on this page — the
+  /// editor no longer closes on Save; the player leaves via the back button.
+  final Future<void> Function(Character) onSave;
 
   @override
   State<CharacterEditScreen> createState() => _CharacterEditScreenState();
@@ -122,6 +129,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
   void _recompute() {
     ensureRaceGrantedResources(_c);
     ensureProgressionTalentsInTalentList(_c);
+    ensureTraitGrantedTalents(_c);
     _stats = CharacterCalculator.compute(_c);
   }
 
@@ -150,8 +158,29 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     });
   }
 
-  /// Returns the edited character to the list screen for persistence.
-  void _save() => Navigator.of(context).pop(_c);
+  /// Persists the working copy without leaving the page, then confirms with a
+  /// toast — so the player can keep editing after saving. Guards against
+  /// double-taps while a save is in flight.
+  bool _saving = false;
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(_c);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Character saved.'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
 
   /// Opens the Combat tracker page on the SAME working copy — Life/Ki/stack
   /// changes made there show up here and persist via SAVE (or are discarded
@@ -188,8 +217,14 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             label: const Text('Start Combat'),
           ),
           TextButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.save),
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save),
             label: const Text('Save'),
           ),
         ],
@@ -515,14 +550,6 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
               ),
             ),
           const SizedBox(height: 8),
-          Text(
-            'Attribute Scores are computed: 1 (base) + Racial bonus + '
-            'Progression Attribute Additions (see the Progression tab).',
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(fontStyle: FontStyle.italic),
-          ),
           if (race.attributeIncrease.choices.isNotEmpty) ...[
             const SizedBox(height: 8),
             Align(
@@ -640,8 +667,8 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'Racial Skill Ranks — tick one different Skill each (you '
-              "can't choose the same Skill twice). Progression Skill "
+              'Racial Skill Ranks — tick one Skill each '
+              "Progression Skill "
               'Improvements add on top.'
               '${_c.race == 'Custom Species' ? ' A Flaw Trait can raise the '
                   'total by 1 — see the Information tab.' : ''}',

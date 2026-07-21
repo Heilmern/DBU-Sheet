@@ -87,10 +87,8 @@ class SignaturesTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Build an attack: pick a Level, a Foundation + Profile, then '
-            'Advantages (+TP) and Disadvantages (−TP). TP and KP Costs are '
-            'computed automatically. Unconditional Strike/Wound/KP effects are '
-            'applied; the rest is reference text you apply yourself.',
+            'Build a Signature Technique: pick a Level, a Foundation + Profile, then '
+            'Advantages (+TP) and Disadvantages (−TP). ',
             style: theme.textTheme.bodySmall
                 ?.copyWith(fontStyle: FontStyle.italic),
           ),

@@ -34,7 +34,9 @@ import 'apparel.dart';
 import 'basic_items.dart';
 import 'dbu_rules.dart';
 import 'factor_traits.dart';
+import 'race_traits.dart';
 import 'signature_modifiers.dart';
+import 'talents.dart';
 import 'transformations.dart';
 import 'unique_abilities.dart';
 import 'weapons.dart';
@@ -102,6 +104,36 @@ class HomebrewRegistry {
     }
     return raceDefByName(name) ?? RaceDef(name);
   }
+
+  /// The Racial Traits authored directly on the homebrew Race named
+  /// [raceName] (empty for official/unknown Races) — merged into
+  /// `CharacterCalculator.activeRaceTraits` so a character of that Race
+  /// gets them exactly like official Racial Traits.
+  static List<RaceTraitDef> raceTraitDefsFor(String raceName) {
+    final e = _byNameIn(raceName, (e) => e.category == HomebrewCategory.race);
+    if (e == null) return const [];
+    return [
+      for (final t in e.raceData.traits) t.toRaceTraitDef(e.displayName),
+    ];
+  }
+
+  // ==========================================================================
+  // Talents
+  // ==========================================================================
+
+  /// Every homebrew Talent, converted (joins the Talents catalogue picker
+  /// grouped under its Talent Category).
+  static List<TalentDef> talentDefs() => [
+        for (final e in _entries)
+          if (e.category == HomebrewCategory.talent && e.name.trim().isNotEmpty)
+            e.talentData.toTalentDef(e),
+      ];
+
+  /// Homebrew-aware replacement for `talentByName` (official wins).
+  static TalentDef? resolveTalentDef(String name) =>
+      talentByName(name) ??
+      _byNameIn(name, (e) => e.category == HomebrewCategory.talent)
+          ?.let((e) => e.talentData.toTalentDef(e));
 
   // ==========================================================================
   // Conditions

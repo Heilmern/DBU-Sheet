@@ -42,6 +42,7 @@ import 'package:dbu_sheet/services/combat_reminders.dart';
 import 'package:dbu_sheet/services/import_export_service.dart';
 import 'package:dbu_sheet/services/progression_talent_sync.dart';
 import 'package:dbu_sheet/services/race_resource_sync.dart';
+import 'package:dbu_sheet/services/trait_talent_sync.dart';
 import 'package:dbu_sheet/services/rule_text.dart';
 import 'package:dbu_sheet/ui/combat_screen.dart';
 import 'package:dbu_sheet/ui/transformations_screen.dart'
@@ -1576,6 +1577,11 @@ void main() {
       expect(talentByName('Not A Real Talent'), isNull);
     });
 
+    test('20 Jul 2026 site sync: Shock Tornado replaces Aikido Apprentice', () {
+      expect(talentByName('Shock Tornado')?.category, TalentCategory.counter);
+      expect(talentByName('Aikido Apprentice'), isNull);
+    });
+
     test('talentsByCategory returns only Talents of that Category', () {
       final weaponTalents = talentsByCategory(TalentCategory.weapon);
       expect(weaponTalents, isNotEmpty);
@@ -2092,10 +2098,12 @@ void main() {
       expect(alternateFormByName('Super Saiyan')!.masteryLevels, 1);
     });
 
-    test('the full Alternate Forms catalogue is present (147 stage defs)', () {
+    test('the full Alternate Forms catalogue is present (152 stage defs)', () {
       // 84 catalogue pages, several of which hold multiple Stage defs, yield
-      // 100 TransformationDefs. Every entry is a Form.
-      expect(kDbuAlternateForms.length, 147);
+      // 100 TransformationDefs. Every entry is a Form. (+5 on 20 Jul 2026:
+      // Barrier Form, Berserk Controlled, Super Saiyan 5, and the
+      // previously-missed Legendary [Evolved Stage] + Legendary Oozaru.)
+      expect(kDbuAlternateForms.length, 152);
       expect(kDbuAlternateForms.every((f) => f.type == TransformationType.form),
           isTrue);
       // Racial "Power" Forms, Evolved Stages, and pinnacle Legendaries.
@@ -2121,7 +2129,7 @@ void main() {
       // Evolved Stages are detected from prerequisiteText; there are 18.
       final evolved =
           kDbuAlternateForms.where((f) => f.isEvolvedStage).toList();
-      expect(evolved.length, 48);
+      expect(evolved.length, 52);
       expect(alternateFormByName('Ascended Super Saiyan')!.isEvolvedStage,
           isTrue);
       expect(alternateFormByName('Super Saiyan')!.isEvolvedStage, isFalse);
@@ -2146,7 +2154,7 @@ void main() {
       // Every Legendary Trait marker across the catalogue resolves.
       final withLegendary =
           kDbuAlternateForms.where((f) => f.legendaryTrait != null).length;
-      expect(withLegendary, 51);
+      expect(withLegendary, 54);
     });
 
     test('Null Stages (Stage 0) are flagged and do NOT grant the Ki Multiplier',
@@ -2269,6 +2277,14 @@ void main() {
       expect(save.parameter, 'Impulsive');
       expect(save.level, isNull);
 
+      // Pinnacle is levelled since the 20 Jul 2026 site update
+      // ("Pinnacle [Solo, LV~2]") — printed labels carry the level.
+      final pinnacle = resolveAspect('Pinnacle (LV2)');
+      expect(pinnacle.def?.name, 'Pinnacle');
+      expect(pinnacle.level, 2);
+      expect(pinnacle.def!.hasLevels, isTrue);
+      expect(pinnacle.def!.maxLevels, 2);
+      expect(pinnacle.def!.solo, isTrue);
       // A bare name resolves with no level/parameter.
       expect(resolveAspect('Graded').def?.name, 'Graded');
       // An unknown Aspect degrades gracefully.
@@ -2278,9 +2294,9 @@ void main() {
 
   group('Awakening catalogues (Lesser / Greater / Super)', () {
     test('each catalogue has the expected size and awakeningType', () {
-      expect(kDbuLesserAwakenings.length, 124);
-      expect(kDbuGreaterAwakenings.length, 60);
-      expect(kDbuSuperAwakenings.length, 33);
+      expect(kDbuLesserAwakenings.length, 125);
+      expect(kDbuGreaterAwakenings.length, 62);
+      expect(kDbuSuperAwakenings.length, 35);
       expect(
           kDbuLesserAwakenings
               .every((a) => a.awakeningType == AwakeningType.lesser),
@@ -3375,15 +3391,23 @@ void main() {
       expect(r.notes, 'x');
     });
 
-    test('catalogue integrity: 60 abilities, unique names, valid costs, '
+    test('catalogue integrity: 69 abilities, unique names, valid costs, '
         'advancement/restriction names unique, locked advancements resolve', () {
-      expect(kDbuUniqueAbilities, hasLength(60));
+      expect(kDbuUniqueAbilities, hasLength(69));
+      // Awakening-granted abilities (Energy Consumption's three) have no TP
+      // cost on the site ("TP Cost: N/A") — everything else costs TP.
+      const granted = {
+        'Fire and Flames',
+        'Over-Empower',
+        'Planetary Consumption',
+      };
       final seen = <String>{};
       for (final a in kDbuUniqueAbilities) {
         expect(seen.add(a.name), isTrue, reason: 'duplicate ${a.name}');
         expect(a.types, isNotEmpty, reason: a.name);
         expect(a.effect.isNotEmpty, isTrue, reason: a.name);
-        expect(a.baseTpCost > 0, isTrue, reason: a.name);
+        expect(granted.contains(a.name) ? a.baseTpCost == 0 : a.baseTpCost > 0,
+            isTrue, reason: a.name);
         expect(uniqueAbilityByName(a.name), same(a), reason: a.name);
         final advNames = a.advancements.map((x) => x.name).toSet();
         expect(advNames, hasLength(a.advancements.length),
@@ -3401,6 +3425,16 @@ void main() {
           }
         }
       }
+    });
+
+    test('20 Jul 2026 site sync: the six new Unique Abilities resolve', () {
+      expect(uniqueAbilityByName('Bluff Attack')?.allowsBothTypes, isTrue);
+      expect(uniqueAbilityByName('False Courage')?.baseTpCost, 8);
+      expect(uniqueAbilityByName('Finish Sign')?.advancements.single.name,
+          'Aggressive Taunt');
+      expect(uniqueAbilityByName('Judo Toss')?.advancements, hasLength(3));
+      expect(uniqueAbilityByName('Punisher Guard')?.advancements, hasLength(2));
+      expect(uniqueAbilityByName('Stardust Barrier')?.maneuverType, 'Counter');
     });
   });
 
@@ -6242,6 +6276,134 @@ void main() {
           containsAll(
               ['Tuffle Cyborg', 'Frostbitten', 'Inner Fire', 'Gravity Training']));
     });
+
+    test('homebrew Talent joins the Talent pipeline with its category and '
+        'never double-counts with a generic possession', () {
+      addTearDown(HomebrewRegistry.clear);
+      HomebrewRegistry.setAll([
+        HomebrewEntry(
+          id: 'hb-talent',
+          category: HomebrewCategory.talent,
+          name: 'Steel Training',
+          effectText: 'Increase your Soak Value by 2.',
+          talentData: HomebrewTalentData(
+            category: TalentCategory.durability,
+            prerequisitesText: 'Tenacity Score 4+',
+          ),
+          automations: const [
+            RaceTraitAutomation(
+              affectedStats: [AffectedStat.soak],
+              coefficient: 2,
+            ),
+          ],
+        ),
+      ]);
+
+      // Resolves like a catalogue Talent (official wins clashes).
+      final def = HomebrewRegistry.resolveTalentDef('Steel Training')!;
+      expect(def.category, TalentCategory.durability);
+      expect(def.prerequisitesText, 'Tenacity Score 4+');
+      expect(HomebrewRegistry.talentDefs(), hasLength(1));
+
+      // Added as a Talent row → applies through the talent pipeline.
+      final c = Character.blank('hb-t')..powerLevel = 1;
+      final before = CharacterCalculator.compute(c).soak;
+      c.talents.add(TalentEntry(name: 'Steel Training'));
+      expect(CharacterCalculator.compute(c).soak, before + 2);
+
+      // Possessing it generically TOO must not double-apply.
+      c.homebrewSelections.add(HomebrewSelection(name: 'Steel Training'));
+      expect(CharacterCalculator.compute(c).soak, before + 2);
+      // Remove the Talent row: the generic possession takes over (old saves).
+      c.talents.clear();
+      expect(CharacterCalculator.compute(c).soak, before + 2);
+    });
+
+    test('a homebrew Race\'s directly authored Racial Traits reach '
+        'activeRaceTraits and automate', () {
+      addTearDown(HomebrewRegistry.clear);
+      HomebrewRegistry.setAll([
+        HomebrewEntry(
+          id: 'hb-race-traits',
+          category: HomebrewCategory.race,
+          name: 'Moon Clan',
+          raceData: HomebrewRaceData(
+            traits: [
+              HomebrewRaceTraitData(
+                name: 'Lunar Vigor',
+                tier: RaceTraitTier.primary,
+                category: TraitCategory.body,
+                description: 'Increase your Soak Value by 2.',
+                automations: const [
+                  RaceTraitAutomation(
+                    affectedStats: [AffectedStat.soak],
+                    coefficient: 2,
+                  ),
+                ],
+              ),
+              HomebrewRaceTraitData(name: 'Moonlit Mind'),
+            ],
+          ),
+        ),
+      ]);
+
+      final c = Character.blank('hb-rt')..powerLevel = 1;
+      final before = CharacterCalculator.compute(c).soak;
+      c.race = 'Moon Clan';
+      final traits = CharacterCalculator.activeRaceTraits(c);
+      expect(traits.map((t) => t.name),
+          containsAll(['Lunar Vigor', 'Moonlit Mind']));
+      expect(traits.firstWhere((t) => t.name == 'Lunar Vigor').tier,
+          RaceTraitTier.primary);
+      expect(CharacterCalculator.compute(c).soak, before + 2);
+      // Deactivating the Trait removes it (same machinery as official ones).
+      c.inactiveRaceTraitNames.add('Lunar Vigor');
+      expect(CharacterCalculator.compute(c).soak, before);
+    });
+
+    test('talentData and Race traits survive the JSON round-trip', () {
+      final entry = HomebrewEntry(
+        id: 'hb-json',
+        category: HomebrewCategory.talent,
+        name: 'Iron Focus',
+        talentData: HomebrewTalentData(
+          category: TalentCategory.mindful,
+          prerequisitesText: 'Insight Score 6+',
+        ),
+      );
+      final back = HomebrewEntry.fromJson(entry.toJson());
+      expect(back.talentData.category, TalentCategory.mindful);
+      expect(back.talentData.prerequisitesText, 'Insight Score 6+');
+
+      final race = HomebrewEntry(
+        id: 'hb-json-race',
+        category: HomebrewCategory.race,
+        name: 'Moon Clan',
+        raceData: HomebrewRaceData(
+          traits: [
+            HomebrewRaceTraitData(
+              name: 'Lunar Vigor',
+              tier: RaceTraitTier.primary,
+              category: TraitCategory.mind,
+              description: 'Text.',
+              automations: const [
+                RaceTraitAutomation(
+                  affectedStats: [AffectedStat.soak],
+                  coefficient: 1,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final raceBack = HomebrewEntry.fromJson(race.toJson());
+      expect(raceBack.raceData.traits, hasLength(1));
+      final t = raceBack.raceData.traits.single;
+      expect(t.name, 'Lunar Vigor');
+      expect(t.tier, RaceTraitTier.primary);
+      expect(t.category, TraitCategory.mind);
+      expect(t.automations.single.coefficient, 1);
+    });
   });
 
   group('Bulk export/import ("export all / multiple")', () {
@@ -6347,7 +6509,8 @@ void main() {
       expect(CombatPhase.startOfCombat.next, CombatPhase.startOfRound);
       expect(CombatPhase.startOfRound.next, CombatPhase.startOfTurn);
       expect(CombatPhase.startOfTurn.next, CombatPhase.endOfTurn);
-      expect(CombatPhase.endOfTurn.next, CombatPhase.startOfRound);
+      expect(CombatPhase.endOfTurn.next, CombatPhase.endOfRound);
+      expect(CombatPhase.endOfRound.next, CombatPhase.startOfRound);
     });
 
     test('maneuver catalogue is complete and uniquely named', () {
@@ -6449,6 +6612,48 @@ void main() {
       );
     });
 
+    test('attack-trigger effects surface as onAttack reminders only', () {
+      // A tracked effect with two sentences: one on a turn timing, one on an
+      // Attacking Maneuver. The attack scanner keeps only the attack sentence
+      // and never lets it leak onto a phase card.
+      final c = Character.blank('atk-trigger')
+        ..conditions.add(TrackedEntry()
+          ..name = 'Test Focus'
+          ..stacks = 1
+          ..notes = 'At the start of your turn, gain a stack. '
+              'Whenever you make an Attacking Maneuver, increase its Wound '
+              'Roll by 2.');
+
+      final atk = CombatReminderScanner.attackTriggerReminders(c);
+      final focus = atk.firstWhere((r) => r.title == 'Test Focus');
+      expect(focus.timing, CombatTiming.onAttack);
+      expect(focus.text, contains('Attacking Maneuver'));
+      expect(focus.text, isNot(contains('start of your turn')));
+
+      // The turn sentence still reaches its phase card...
+      expect(
+        CombatReminderScanner.forTiming(c, CombatTiming.startOfTurn)
+            .map((r) => r.title),
+        contains('Test Focus'),
+      );
+      // ...but onAttack never appears in the phase scan.
+      expect(
+        CombatReminderScanner.scan(c)
+            .every((r) => r.timing != CombatTiming.onAttack),
+        isTrue,
+      );
+      // An effect that never names an attack produces no onAttack reminder.
+      final plain = Character.blank('atk-none')
+        ..conditions.add(TrackedEntry()
+          ..name = 'Quiet'
+          ..stacks = 1
+          ..notes = 'At the end of your turn, do nothing special.');
+      expect(
+        CombatReminderScanner.attackTriggerReminders(plain).map((r) => r.title),
+        isNot(contains('Quiet')),
+      );
+    });
+
     test('built-in tracked-state reminders (Power / Diminishing stacks)', () {
       final c = Character.blank('combat-builtin')
         ..powerStacks = 1
@@ -6492,15 +6697,34 @@ void main() {
       expect(boost.text, contains('2(T) [=6]'));
     });
 
-    test('phase cards map the round boundary onto Start of Round', () {
+    test('phase cards map timings 1:1 (End of Round has its own phase)', () {
       expect(
         CombatReminderScanner.timingsForPhase(CombatPhase.startOfRound),
-        [CombatTiming.endOfRound, CombatTiming.startOfRound],
+        [CombatTiming.startOfRound],
+      );
+      expect(
+        CombatReminderScanner.timingsForPhase(CombatPhase.endOfRound),
+        [CombatTiming.endOfRound],
       );
       expect(
         CombatReminderScanner.timingsForPhase(CombatPhase.startOfCombat),
         [CombatTiming.startOfCombat],
       );
+      // Round-cadence detection ("see Battle Born"): the scanner classifies
+      // the phrase AND reports its even/odd parity.
+      const bornForBattle = 'At the start of every even-numbered Combat '
+          'Round, you gain 1 stack of Battle Born.';
+      expect(CombatReminderScanner.timingsForText(bornForBattle),
+          contains(CombatTiming.startOfRound));
+      expect(CombatReminderScanner.roundParity(bornForBattle), isTrue);
+      expect(
+          CombatReminderScanner.roundParity(
+              'At the start of each odd-numbered Combat Round, lose 1 stack.'),
+          isFalse);
+      expect(
+          CombatReminderScanner.roundParity(
+              'At the start of each Combat Round, gain a stack.'),
+          isNull);
     });
 
     testWidgets(
@@ -6546,8 +6770,9 @@ void main() {
       await tester.tap(find.text('Got it'));
       await tester.pumpAndSettle();
 
-      // "Make an Attacking Maneuver" opens the Attack Reference page;
-      // finishing it with "Attack made" counts the attack.
+      // "Make an Attacking Maneuver" switches to the Attacking Maneuver tab,
+      // which hosts the Attack Reference calculator plus the on-attack
+      // reminders. Finishing there with "Attack made" counts the attack.
       final makeAttack = find.text('Make an Attacking Maneuver');
       await tester.scrollUntilVisible(makeAttack, 200,
           scrollable: find
@@ -6559,16 +6784,30 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(makeAttack, warnIfMissed: true);
       await tester.pumpAndSettle();
-      // Both the page's AppBar and the References card carry the title.
-      expect(find.text('Attack Reference'), findsWidgets);
-      await tester.tap(find.text('Attack made'));
+      // Now on the Attacking Maneuver tab: the calculator card and the
+      // triggers-on-attack reminders card are both present.
+      expect(find.text('Attack Reference'), findsOneWidget);
+      expect(find.text('Triggers on an Attacking Maneuver'), findsOneWidget);
+      final attackMade = find.textContaining('Attack made');
+      await tester.ensureVisible(attackMade);
       await tester.pumpAndSettle();
-      expect(find.text('Attack Reference'), findsNothing);
+      await tester.tap(attackMade, warnIfMissed: true);
+      await tester.pumpAndSettle();
+      // First attack counted — no Diminishing Offense until after the third.
+      expect(c.diminishingOffenseStacks, 0);
 
-      // The Diminishing Offense automation: no stack for the first three
-      // attacks, one on the fourth ("Count an attack" for the rest).
+      // Back to the Combat tab: "Count an attack" for the rest (its ListView
+      // reset to the top, so scroll the button into view). The fourth attack
+      // overall (these are #2..#4) adds the first stack.
+      await tester.tap(find.text('Combat').first);
+      await tester.pumpAndSettle();
       final countAttack = find.textContaining('Count an attack (');
-      await tester.ensureVisible(countAttack);
+      await tester.scrollUntilVisible(countAttack, 200,
+          scrollable: find
+              .descendant(
+                  of: find.byType(ListView),
+                  matching: find.byType(Scrollable))
+              .first);
       await tester.pumpAndSettle();
       for (var i = 0; i < 3; i++) {
         await tester.tap(countAttack, warnIfMissed: true);
@@ -6646,6 +6885,222 @@ void main() {
         reminders.map((r) => r.title),
         contains('Weighted Vest — Test Regrowth Weave'),
       );
+    });
+  });
+
+  group('20 Jul 2026 site additions (Black Sparks, Combat Connoisseur, Last '
+      'Hope, Super Mutation, Barrier Form, Berserk Controlled, Super Saiyan '
+      '5)', () {
+    test('Black Sparks: flat FO/IN/MA AMB always on; 120% Special State '
+        'gates +1(T) Combat Rolls and -1 Physical Strike Crit Target', () {
+      final c = Character.blank('jul1')..powerLevel = 1;
+      final baseFo =
+          CharacterCalculator.effectiveModifier(c, DbuAttribute.force);
+      c.transformations.add(TransformationSelection(name: 'Black Sparks'));
+      expect(CharacterCalculator.effectiveModifier(c, DbuAttribute.force),
+          baseFo + 1);
+      final owned = CharacterCalculator.compute(c);
+      expect(
+          CharacterCalculator.channelTotal(
+              c, AffectedStat.strikePhysicalCriticalTarget),
+          0,
+          reason: '120% not entered yet');
+      c.states.add(TrackedEntry(name: '120%', stacks: 1, maxStacks: 1));
+      final on = CharacterCalculator.compute(c);
+      expect(on.strike.total, owned.strike.total + 1);
+      expect(on.dodge.total, owned.dodge.total + 1);
+      expect(
+          CharacterCalculator.channelTotal(
+              c, AffectedStat.strikePhysicalCriticalTarget),
+          -1);
+    });
+
+    test('Combat Connoisseur: +1(bT) Combat Rolls and Soak only while a '
+        'Revealed stack is tracked', () {
+      final c = Character.blank('jul2')..powerLevel = 1;
+      c.transformations
+          .add(TransformationSelection(name: 'Combat Connoisseur'));
+      final hidden = CharacterCalculator.compute(c);
+      c.resources.add(TrackedEntry(name: 'Revealed', stacks: 1, maxStacks: 3));
+      final revealed = CharacterCalculator.compute(c);
+      expect(revealed.strike.total, hidden.strike.total + 1);
+      expect(revealed.soak, hidden.soak + 1);
+    });
+
+    test('Last Hope: +2 Max Life per Power Level reached', () {
+      final c = Character.blank('jul3')..powerLevel = 3;
+      final before = CharacterCalculator.compute(c).maxLife;
+      c.transformations.add(TransformationSelection(name: 'Last Hope'));
+      expect(CharacterCalculator.compute(c).maxLife, before + 2 * 3);
+    });
+
+    test('Super Mutation: pools/Surgency automate; a chosen Superior '
+        'Mutation Trait raises the AMB; Grand Awakening toggles Combat '
+        'Rolls/Soak', () {
+      final c = Character.blank('jul4')..powerLevel = 1;
+      final lifeBefore = CharacterCalculator.compute(c).maxLife;
+      final kiBefore = CharacterCalculator.compute(c).maxKi;
+      final tenBefore =
+          CharacterCalculator.effectiveModifier(c, DbuAttribute.tenacity);
+      final sel = TransformationSelection(name: 'Super Mutation');
+      c.transformations.add(sel);
+      // (1) +2 Max Life/Ki per Power Level; (2) +1(T) Surgency; AMB TE +1(T).
+      expect(CharacterCalculator.compute(c).maxLife, lifeBefore + 2);
+      expect(CharacterCalculator.compute(c).maxKi, kiBefore + 2);
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.surgency), 1);
+      expect(CharacterCalculator.effectiveModifier(c, DbuAttribute.tenacity),
+          tenBefore + 1);
+      // Superior Brute: +1(T) AMB (TE) on top of the base table.
+      sel.optionChoices['Nurtured Mutation::Superior Mutation Trait'] = {
+        'Superior Brute (Body)'
+      };
+      expect(CharacterCalculator.effectiveModifier(c, DbuAttribute.tenacity),
+          tenBefore + 2);
+      // Grand Awakening: +1(T) Combat Rolls and Soak Value while toggled.
+      final off = CharacterCalculator.compute(c);
+      sel.grandAwakeningActive = true;
+      final on = CharacterCalculator.compute(c);
+      expect(on.soak, off.soak + 1);
+      expect(on.strike.total, off.strike.total + 1);
+    });
+
+    test('Barrier Form: +1(T) TE AMB and +1(T) Damage Reduction while '
+        'active', () {
+      final c = Character.blank('jul5')..powerLevel = 1;
+      final tenBefore =
+          CharacterCalculator.effectiveModifier(c, DbuAttribute.tenacity);
+      final sel = TransformationSelection(name: 'Barrier Form', active: false);
+      c.transformations.add(sel);
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.damageReduction),
+          0, reason: 'inactive Evolved Stage contributes nothing');
+      sel.active = true;
+      expect(CharacterCalculator.effectiveModifier(c, DbuAttribute.tenacity),
+          tenBefore + 1);
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.damageReduction),
+          1);
+    });
+
+    test('Energy Consumption (site rewrite): Surgency/Cognitive Save '
+        'automate; Grand Awakening scales Wound/Soak off Consumed Lifeforce '
+        '(rounded up)', () {
+      final ec = superAwakeningByName('Energy Consumption')!;
+      expect(ec.origin, TransformationOrigin.mind);
+      expect(ec.tierOfPowerRequirement, 4);
+      expect(ec.grandAwakening?.name, 'Power of the Consumed');
+
+      final c = Character.blank('jul7')..powerLevel = 1;
+      final base = CharacterCalculator.compute(c);
+      final sel = TransformationSelection(name: 'Energy Consumption');
+      c.transformations.add(sel);
+      final owned = CharacterCalculator.compute(c);
+      // (4) +1(T) Surgency and Cognitive Save (on top of the TE AMB's
+      // knock-on effects, none of which touch these two channels).
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.surgency), 1);
+      expect(
+          owned.savingThrows[DbuSavingThrow.cognitive]!.total,
+          base.savingThrows[DbuSavingThrow.cognitive]!.total + 1);
+
+      // Grand Awakening: +1 Stress, +1(T) Strike/Dodge, and Wound/Soak
+      // +ceil(stacks/2)(T) from a tracked Consumed Lifeforce row.
+      c.resources
+          .add(TrackedEntry(name: 'Consumed Lifeforce', stacks: 3, maxStacks: 5));
+      final off = CharacterCalculator.compute(c);
+      sel.grandAwakeningActive = true;
+      final on = CharacterCalculator.compute(c);
+      expect(on.strike.total, off.strike.total + 1);
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.stressBonus), 1);
+      // ceil(3/2) = 2 at ToP 1.
+      expect(on.soak, off.soak + 2);
+      expect(on.woundPhysical.total, off.woundPhysical.total + 2);
+    });
+
+    test('Dark Factor: Stress/Surgency automate; Grand Awakening toggles '
+        '+1(T) Combat Rolls', () {
+      final df = superAwakeningByName('Dark Factor')!;
+      expect(df.origin, TransformationOrigin.body);
+      expect(df.prerequisiteText, 'Demon Clansman Factor');
+      expect(df.grandAwakening?.name, 'Resurgence of the Dark King');
+
+      final c = Character.blank('jul8')..powerLevel = 1;
+      final sel = TransformationSelection(name: 'Dark Factor');
+      c.transformations.add(sel);
+      // (1) +1 Stress Bonus; (2) +2(T) Surgency.
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.stressBonus), 1);
+      expect(CharacterCalculator.channelTotal(c, AffectedStat.surgency), 2);
+      final off = CharacterCalculator.compute(c);
+      sel.grandAwakeningActive = true;
+      final on = CharacterCalculator.compute(c);
+      expect(on.strike.total, off.strike.total + 1);
+      expect(on.woundEnergy.total, off.woundEnergy.total + 1);
+    });
+
+    test('Berserk Controlled and Super Saiyan 5 classify as Evolved Stages; '
+        'SS5 surfaces its Legendary and Mastery Traits', () {
+      final berserk = alternateFormByName('Berserk Controlled')!;
+      expect(berserk.isEvolvedStage, isTrue);
+      expect(berserk.racialRequirement, 'Saiyan');
+      expect(berserk.aspects, contains('Innate State (Berserk)'));
+
+      final ss5 = alternateFormByName('Super Saiyan 5')!;
+      expect(ss5.isEvolvedStage, isTrue);
+      expect(ss5.formType, FormType.legendary);
+      expect(ss5.tierOfPowerRequirement, 6);
+      expect(ss5.legendaryTrait?.name, 'Primal Hunger');
+      expect(ss5.masteryTrait?.name, 'Primal Focus');
+      expect(
+          ss5.situationalTraits.map((t) => t.name),
+          containsAll(['Primal Aggression', 'Bloodlusted (Special State)']));
+
+      // Active SS5 applies its +1(T) AMB (AG/FO/TE/IN/MA).
+      final c = Character.blank('jul6')..powerLevel = 1;
+      final agBefore =
+          CharacterCalculator.effectiveModifier(c, DbuAttribute.agility);
+      c.transformations
+          .add(TransformationSelection(name: 'Super Saiyan 5', active: true));
+      expect(CharacterCalculator.effectiveModifier(c, DbuAttribute.agility),
+          agBefore + 1);
+    });
+  });
+
+  group('Trait-granted Talents auto-sync (ensureTraitGrantedTalents)', () {
+    // Majin's "Secondary Traits (choose 4)" holds Options that grant Talents:
+    // "Snack Motivated" → Snack Fiend, "Majin See, Majin Do" → Quick Learner.
+    const key = 'Secondary Traits (choose 4)::Choose up to 4';
+
+    test('an Option granting a Talent adds it (prefilled) only once chosen', () {
+      final c = Character.blank('maj')..race = 'Majin';
+
+      // Not chosen → nothing added.
+      ensureTraitGrantedTalents(c);
+      expect(c.talents.any((t) => t.name.toLowerCase() == 'snack fiend'),
+          isFalse);
+
+      // Choose the granting Option → Snack Fiend appears, prefilled from the
+      // catalogue (name + description).
+      c.raceTraitOptionChoices[key] = {'Snack Motivated'};
+      ensureTraitGrantedTalents(c);
+      final snack =
+          c.talents.where((t) => t.name.toLowerCase() == 'snack fiend').toList();
+      expect(snack, hasLength(1));
+      expect(snack.single.name, 'Snack Fiend');
+      expect(snack.single.description, talentByName('Snack Fiend')!.description);
+
+      // No bogus rows from surrounding wording ("that Talent", blanks, etc.).
+      for (final bogus in ['that', 'a', 'the', 'talent']) {
+        expect(c.talents.any((t) => t.name.toLowerCase() == bogus), isFalse);
+      }
+      expect(c.talents.any((t) => t.name.trim().isEmpty), isFalse);
+    });
+
+    test('is idempotent — running twice never duplicates a granted Talent', () {
+      final c = Character.blank('maj2')..race = 'Majin';
+      c.raceTraitOptionChoices[key] = {'Snack Motivated', 'Majin See, Majin Do'};
+      ensureTraitGrantedTalents(c);
+      ensureTraitGrantedTalents(c);
+      expect(c.talents.where((t) => t.name.toLowerCase() == 'snack fiend'),
+          hasLength(1));
+      expect(c.talents.where((t) => t.name.toLowerCase() == 'quick learner'),
+          hasLength(1));
     });
   });
 }

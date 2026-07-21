@@ -63,13 +63,25 @@ class TransformationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Responsive: one column on narrow windows; on wide desktop windows the
-    // sections split into two columns under one shared scroll view (Stress +
-    // Awakenings left, Enhancements + Forms right) — same pattern as the
-    // Character tab.
+    // Responsive, in three tiers under one shared scroll view:
+    //   • narrow (<1000): a single stacked column;
+    //   • medium (1000–1399): two columns — Stress + Awakenings on the left,
+    //     Enhancements + Forms on the right;
+    //   • wide (≥1400): three columns — Stress + Awakenings, then Enhancements,
+    //     then Forms in its own third column (Forms are the densest section, so
+    //     they get the full-height slot to themselves).
+    Widget column(List<Widget> children) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [...children, const SizedBox(height: 24)],
+          ),
+        );
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 1000) {
+        final width = constraints.maxWidth;
+
+        if (width < 1000) {
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
@@ -86,35 +98,38 @@ class TransformationsTab extends StatelessWidget {
             ),
           );
         }
-        return Center(
+
+        final threeColumns = width >= 1400;
+        return Align(
+          // Top-align so the columns start at the top of the tab rather than
+          // floating in the vertical centre when their content is short.
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1500),
+            constraints:
+                BoxConstraints(maxWidth: threeColumns ? 1900 : 1500),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildStressBonus(context),
-                        _buildAwakenings(context),
-                        const SizedBox(height: 24),
+                children: threeColumns
+                    ? [
+                        column([
+                          _buildStressBonus(context),
+                          _buildAwakenings(context),
+                        ]),
+                        column([_buildEnhancements(context)]),
+                        column([_buildForms(context)]),
+                      ]
+                    : [
+                        column([
+                          _buildStressBonus(context),
+                          _buildAwakenings(context),
+                        ]),
+                        column([
+                          _buildEnhancements(context),
+                          _buildForms(context),
+                        ]),
                       ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildEnhancements(context),
-                        _buildForms(context),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -258,8 +273,8 @@ class TransformationsTab extends StatelessWidget {
             padding: EdgeInsets.only(bottom: 8),
             child: Text(
               'Awakenings are permanent — always active. Their Attribute '
-              'Modifier Bonus (× Stacks) applies at all times and is '
-              'computed automatically. A Super Awakening also carries a '
+              'Modifier Bonus (× Stacks) applies at all times '
+              '. A Super Awakening also carries a '
               'Grand Awakening (activated via the Full Awakening Maneuver); '
               'you may possess only one Super Awakening.',
               style: TextStyle(fontStyle: FontStyle.italic),
@@ -385,15 +400,17 @@ class TransformationsTab extends StatelessWidget {
   // `formType` (Legendary vs Alternate). Null Stages stay in their formType
   // bucket. The add-button is a 3-way popup, one filtered picker each.
   // ==========================================================================
-  static const _formCatalogues = <(String, String, bool Function(TransformationDef))>[
+  // The top-level "Add Form" popup offers only base Forms — Alternate and
+  // Legendary. Evolved Stages are NOT added here; they're added onto a specific
+  // owned Form via that Form's "Add Evolved Stage" button (see `_buildForms`).
+  static const _formCatalogues =
+      <(String, String, bool Function(TransformationDef))>[
     ('Alternate Forms', 'Pick an Alternate Form', _isAlternateForm),
-    ('Evolved Stages', 'Pick an Evolved Stage', _isEvolvedStageForm),
     ('Legendary Forms', 'Pick a Legendary Form', _isLegendaryForm),
   ];
 
   static bool _isAlternateForm(TransformationDef d) =>
       !d.isEvolvedStage && d.formType == FormType.alternate;
-  static bool _isEvolvedStageForm(TransformationDef d) => d.isEvolvedStage;
   static bool _isLegendaryForm(TransformationDef d) =>
       !d.isEvolvedStage && d.formType == FormType.legendary;
 
@@ -402,12 +419,103 @@ class TransformationsTab extends StatelessWidget {
       alternateFormByName(name) ??
       _homebrewDef(name, (d) => d.type == TransformationType.form);
 
+  /// Whether Evolved Stage [stage] can be applied onto base Form [form]: a
+  /// UNIQUE Evolved Stage must name [form] as its Original Form; a GENERIC
+  /// Evolved Stage applies to any Form (its finer prerequisites — Race,
+  /// Talents, Aspects, Mastery — stay as reference text for the player to
+  /// confirm), so it's offered on every Form.
+  bool _evolvedStageAppliesTo(
+      TransformationDef stage, TransformationDef form) {
+    final original = stage.evolvedStageOriginalForm;
+    return original == null || original == form.name;
+  }
+
+  /// Opens the Evolved-Stage picker filtered to those that apply to [form],
+  /// and attaches the chosen Stage to it (`TransformationSelection.parentForm`).
+  Future<void> _addEvolvedStage(
+      BuildContext context, TransformationDef form) async {
+    // An Evolved Stage may be attached once PER Form — so exclude the ones
+    // already on THIS Form, but a Generic Stage can still be applied to a
+    // different Form separately.
+    final attachedHere = {
+      for (final s in _c.transformations)
+        if (s.parentForm == form.name) s.name,
+    };
+    bool available(TransformationDef d) =>
+        d.isEvolvedStage &&
+        _evolvedStageAppliesTo(d, form) &&
+        !attachedHere.contains(d.name);
+    final catalogue = [
+      ...kDbuAlternateForms.where(available),
+      ..._homebrewCatalogue(
+          (d) => d.type == TransformationType.form && available(d)),
+    ];
+    final chosen = await showDialog<TransformationDef>(
+      context: context,
+      builder: (dialogContext) => _TransformationPickerDialog(
+        catalogue: catalogue.where(_eligible).toList(),
+        title: 'Add Evolved Stage to ${form.name}',
+      ),
+    );
+    if (chosen == null) return;
+    // Once per Form (the same Stage may still live on another Form).
+    if (_c.transformations
+        .any((s) => s.name == chosen.name && s.parentForm == form.name)) {
+      return;
+    }
+    _update(() => _c.transformations.add(TransformationSelection(
+          name: chosen.name,
+          parentForm: form.name,
+          stacks: 1,
+        )));
+  }
+
   Widget _buildForms(BuildContext context) {
     final theme = Theme.of(context);
     final owned = _c.transformations
         .where((s) => _formDef(s.name) != null)
         .map((s) => (s, _formDef(s.name)!))
         .toList();
+
+    // The base (non-Evolved) Forms actually owned — the valid parents.
+    final ownedBaseNames = {
+      for (final (_, def) in owned)
+        if (!def.isEvolvedStage) def.name,
+    };
+
+    // Evolved Stages attached to a given base Form.
+    List<(TransformationSelection, TransformationDef)> childrenOf(String name) =>
+        owned
+            .where((e) => e.$2.isEvolvedStage && e.$1.parentForm == name)
+            .toList();
+
+    // A base Form, then its attached Evolved Stages (indented), then the
+    // "Add Evolved Stage" button. Forms render with `readable: true` — larger
+    // text and a clearer outline, since they carry the densest rules text.
+    Widget baseForm(TransformationSelection sel, TransformationDef def) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _readableFormCard(context, sel, def),
+          for (final (childSel, childDef) in childrenOf(def.name))
+            Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: _readableFormCard(context, childSel, childDef),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(left: 16, bottom: 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Evolved Stage'),
+                onPressed: () => _addEvolvedStage(context, def),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     Widget group(String label, bool Function(TransformationDef) test) {
       final rows = owned.where((e) => test(e.$2)).toList();
@@ -421,10 +529,20 @@ class TransformationsTab extends StatelessWidget {
                 style: theme.textTheme.titleSmall
                     ?.copyWith(fontWeight: FontWeight.bold)),
           ),
-          for (final (sel, def) in rows) _transformationCard(context, sel, def),
+          for (final (sel, def) in rows) baseForm(sel, def),
         ],
       );
     }
+
+    // Evolved Stages whose parent Form isn't owned (added before this version,
+    // or after their base Form was removed) — surfaced in a fallback group so
+    // they're never silently lost.
+    final orphans = owned
+        .where((e) =>
+            e.$2.isEvolvedStage &&
+            (e.$1.parentForm.isEmpty ||
+                !ownedBaseNames.contains(e.$1.parentForm)))
+        .toList();
 
     return SectionCard(
       title: 'Forms',
@@ -455,9 +573,11 @@ class TransformationsTab extends StatelessWidget {
               'Enter one Form at a time via the Transformation Maneuver. An '
               'active Form applies its Attribute Modifier Bonus AND the Ki '
               'Multiplier (double Max Ki, +1/2 Max Capacity) — except a Null '
-              'Stage (Stage 0), which counts as your Normal State. An Evolved '
-              "Stage also adds its Original Form's AMB and Aspects (shown in "
-              'its prerequisite text).',
+              'Stage (Stage 0), which counts as your Normal State. Add an '
+              'Evolved Stage onto the Form it evolves using the button under '
+              "that Form; an Evolved Stage also adds its Original Form's AMB "
+              'and Aspects (shown in its prerequisite text). Toggle a Stage '
+              'Active to enter it.',
               style: TextStyle(fontStyle: FontStyle.italic),
             ),
           ),
@@ -465,10 +585,52 @@ class TransformationsTab extends StatelessWidget {
             const Text('No Forms gained.')
           else ...[
             group('Alternate Forms', _isAlternateForm),
-            group('Evolved Stages', _isEvolvedStageForm),
             group('Legendary Forms', _isLegendaryForm),
+            if (orphans.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 2),
+                child: Text('Other Evolved Stages',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+              for (final (sel, def) in orphans)
+                _readableFormCard(context, sel, def),
+            ],
           ],
         ],
+      ),
+    );
+  }
+
+  /// A Form card rendered for readability: an ambient [Theme] override
+  /// (resolved by the [Builder] BELOW it, so every descendant — Traits,
+  /// Aspects, automation lines — scales up without per-widget edits) enlarges
+  /// the dense verbatim text, and `readable: true` gives the card a clearer
+  /// outline and more separation from its neighbours.
+  Widget _readableFormCard(
+    BuildContext context,
+    TransformationSelection sel,
+    TransformationDef def,
+  ) {
+    return Theme(
+      data: _readableTheme(context),
+      child: Builder(
+        builder: (ctx) => _transformationCard(ctx, sel, def, readable: true),
+      ),
+    );
+  }
+
+  ThemeData _readableTheme(BuildContext context) {
+    final theme = Theme.of(context);
+    final tt = theme.textTheme;
+    TextStyle? grow(TextStyle? s, double delta) =>
+        s?.copyWith(fontSize: (s.fontSize ?? 14) + delta, height: 1.35);
+    return theme.copyWith(
+      textTheme: tt.copyWith(
+        bodySmall: grow(tt.bodySmall, 2),
+        bodyMedium: grow(tt.bodyMedium, 1),
+        labelSmall: grow(tt.labelSmall, 1.5),
+        labelLarge: grow(tt.labelLarge, 1),
       ),
     );
   }
@@ -499,15 +661,23 @@ class TransformationsTab extends StatelessWidget {
   Widget _transformationCard(
     BuildContext context,
     TransformationSelection sel,
-    TransformationDef def,
-  ) {
+    TransformationDef def, {
+    bool readable = false,
+  }) {
     final theme = Theme.of(context);
     final ambText = _ambText(def);
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: EdgeInsets.symmetric(vertical: readable ? 8 : 4),
+      elevation: readable ? 2 : null,
+      shape: readable
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            )
+          : null,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(readable ? 14 : 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -525,8 +695,13 @@ class TransformationsTab extends StatelessWidget {
                 IconButton(
                   tooltip: 'Remove',
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _update(
-                      () => _c.transformations.remove(sel)),
+                  // Removing a base Form also removes any Evolved Stages
+                  // attached to it, so they don't linger as orphans.
+                  onPressed: () => _update(() =>
+                      _c.transformations.removeWhere((s) =>
+                          identical(s, sel) ||
+                          (sel.name.isNotEmpty &&
+                              s.parentForm == sel.name))),
                 ),
               ],
             ),
@@ -1223,12 +1398,20 @@ class TransformationsTab extends StatelessWidget {
                               ),
                           ]),
                         ),
-                        Text(
-                          r.def == null
-                              ? 'Unrecognized Aspect — see the site.'
-                              : _annotate(r.def!.effect),
-                          style: theme.textTheme.bodySmall,
-                        ),
+                        if (r.def == null)
+                          Text('Unrecognized Aspect — see the site.',
+                              style: theme.textTheme.bodySmall)
+                        else if (r.def!.isClassificationOnly)
+                          Text(
+                            'Classification only — no mechanical effect.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontStyle: FontStyle.italic,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          )
+                        else
+                          Text(_annotate(r.def!.effect),
+                              style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ),

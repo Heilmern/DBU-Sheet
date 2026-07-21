@@ -30,14 +30,19 @@
 /// state (phase, Round number, Actions left, Battlefield picks, damage
 /// calculator inputs) is ephemeral widget state, like the References tab.
 ///
-/// "Make an Attacking Maneuver" opens the References tab's attack
-/// calculator as its own page ([_AttackReferencePage]) to actually resolve
-/// the attack; closing it with "Attack made" counts it toward Diminishing
-/// Offense (plain back-navigation doesn't).
+/// "Make an Attacking Maneuver" switches to the Attacking Maneuver tab —
+/// its own top-level tab hosting the References attack calculator (in combat
+/// mode) beside the effects that trigger on an attack / Attacking Maneuver /
+/// Signature Technique. Resolving it there with "Attack made" spends the
+/// attack's Ki + Capacity (Ki Cost + Ki Wager) and counts it toward
+/// Diminishing Offense; the calculator also warns when that Ki exceeds your
+/// current Ki or Capacity, or the Wager exceeds its maximum.
 ///
-/// Also on the page: a Status card (pools, Surges), Resources / Conditions /
-/// States trackers (the same catalogue machinery as the Character tab —
-/// picking a Condition here immediately feeds the phase reminders), a
+/// Also on the page: a Status card (pools, Surges), a Custom Buffs card
+/// (toggle your buffs/debuffs Active on and off mid-combat — each toggle
+/// recomputes the rolls), Resources / Conditions / States trackers (the same
+/// catalogue machinery as the Character tab — picking a Condition here
+/// immediately feeds the phase reminders), a
 /// Battlefield card (Battle Weather + Tier / Battle Environment / Light
 /// Level pickers whose verbatim effects feed the phase reminders) and the
 /// full Maneuver reference catalogue (`data/combat_flow.dart`) with live
@@ -85,13 +90,17 @@ class _CombatScreenState extends State<CombatScreen>
   late Character _c;
   late DerivedCharacterStats _stats;
 
-  /// Combat tracker / Information / Transformations / Inventory /
-  /// Signatures / Unique Abilities — all but the first are the SAME tab
-  /// widgets the edit screen uses, on the same working copy, so the player
-  /// can transform, check a Trait, or swap gear mid-combat without leaving
-  /// the tracker; every change feeds the reminders.
+  /// Combat tracker / Attacking Maneuver / Information / Transformations /
+  /// Inventory / Signatures / Unique Abilities — all but the first two are
+  /// the SAME tab widgets the edit screen uses, on the same working copy, so
+  /// the player can transform, check a Trait, or swap gear mid-combat without
+  /// leaving the tracker; every change feeds the reminders.
   late final TabController _tabController =
-      TabController(length: 6, vsync: this);
+      TabController(length: 7, vsync: this);
+
+  /// Index of the Attacking Maneuver tab (see the [TabBar] below) — the
+  /// "Make an Attacking Maneuver" button jumps here.
+  static const int _attackTabIndex = 1;
 
   // --- Ephemeral encounter state (not persisted, like the References tab) ---
   CombatPhase _phase = CombatPhase.startOfCombat;
@@ -122,6 +131,10 @@ class _CombatScreenState extends State<CombatScreen>
   final _modifyKiController = TextEditingController();
   final _healingSurgeRollController = TextEditingController();
 
+  /// Live filter for the Maneuvers Reference card.
+  final _maneuverSearchController = TextEditingController();
+  String _maneuverQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +147,7 @@ class _CombatScreenState extends State<CombatScreen>
     _modifyLifeController.dispose();
     _modifyKiController.dispose();
     _healingSurgeRollController.dispose();
+    _maneuverSearchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -207,13 +221,35 @@ class _CombatScreenState extends State<CombatScreen>
   }
 
   /// All reminders for the given timings, in display order.
-  List<CombatReminder> _remindersFor(List<CombatTiming> timings) {
+  /// Reminders for [timings], with Round-cadence effects ("at the start of
+  /// every even-numbered Combat Round" — Born for Battle etc.) annotated
+  /// when the current Round's parity doesn't match. [forRound] overrides the
+  /// Round the parity is checked against (the Start of Round popup fires
+  /// BEFORE the Round counter increments).
+  List<CombatReminder> _remindersFor(List<CombatTiming> timings,
+      {int? forRound}) {
     final all = [...CombatReminderScanner.scan(_c), ..._battlefieldReminders()];
-    return [
-      for (final timing in timings)
-        for (final r in all)
-          if (r.timing == timing) r,
-    ];
+    final round = forRound ?? _round;
+    final result = <CombatReminder>[];
+    for (final timing in timings) {
+      for (final r in all) {
+        if (r.timing != timing) continue;
+        final parity = CombatReminderScanner.roundParity(r.text);
+        if (parity == null || round <= 0 || (round.isEven == parity)) {
+          result.add(r);
+        } else {
+          result.add(CombatReminder(
+            source: r.source,
+            title: r.title,
+            timing: r.timing,
+            text: '${r.text}\n(Not this Round: fires on '
+                '${parity ? 'even' : 'odd'}-numbered Combat Rounds, and '
+                'Round $round is ${round.isEven ? 'even' : 'odd'}.)',
+          ));
+        }
+      }
+    }
+    return result;
   }
 
   // ==========================================================================
@@ -226,9 +262,12 @@ class _CombatScreenState extends State<CombatScreen>
     final next = _phase.next;
     // Gather the popup's reminders BEFORE the automation below mutates
     // anything — entering a new Round clears the Diminishing trackers, and
-    // the popup should still tell the player that just happened.
-    final popupReminders =
-        _remindersFor(CombatReminderScanner.timingsForPhase(next));
+    // the popup should still tell the player that just happened. (The Round
+    // counter hasn't incremented yet, so parity checks look 1 ahead.)
+    final popupReminders = _remindersFor(
+      CombatReminderScanner.timingsForPhase(next),
+      forRound: next == CombatPhase.startOfRound ? _round + 1 : null,
+    );
     final messages = <String>[];
     setState(() {
       if (next == CombatPhase.startOfRound) {
@@ -402,6 +441,9 @@ class _CombatScreenState extends State<CombatScreen>
           isScrollable: true,
           tabs: const [
             Tab(text: 'Combat', icon: Icon(Icons.timelapse)),
+            Tab(
+                text: 'Attacking Maneuver',
+                icon: Icon(Icons.sports_martial_arts)),
             Tab(text: 'Information', icon: Icon(Icons.info_outline)),
             Tab(text: 'Transformations', icon: Icon(Icons.bolt)),
             Tab(text: 'Inventory', icon: Icon(Icons.backpack_outlined)),
@@ -422,6 +464,7 @@ class _CombatScreenState extends State<CombatScreen>
               Expanded(child: _buildTrackerBody()),
             ],
           ),
+          _buildAttackingManeuverTab(),
           InformationTab(character: _c, stats: _stats, onUpdate: _update),
           TransformationsTab(character: _c, stats: _stats, onUpdate: _update),
           InventoryTab(character: _c, stats: _stats, onUpdate: _update),
@@ -503,6 +546,7 @@ class _CombatScreenState extends State<CombatScreen>
   /// Right column: trackers and reference material.
   List<Widget> _rightSections() => [
         _buildStatusCard(),
+        _buildCustomBuffsCard(),
         _buildResourcesCard(),
         _buildConditionsCard(),
         _buildStatesCard(),
@@ -603,13 +647,6 @@ class _CombatScreenState extends State<CombatScreen>
                 child: _reminderTile(r),
               ),
           const Divider(height: 20),
-          // The round boundary's rules render above the Start of Round ones.
-          if (_phase == CombatPhase.startOfRound) ...[
-            Text('End of the previous Round',
-                style: Theme.of(context).textTheme.titleSmall),
-            for (final rule in kCombatEndOfRoundRules) _ruleTile(rule),
-            const SizedBox(height: 8),
-          ],
           Text('Rules for this phase',
               style: Theme.of(context).textTheme.titleSmall),
           for (final rule in kCombatPhaseRules[_phase]!) _ruleTile(rule),
@@ -963,6 +1000,73 @@ class _CombatScreenState extends State<CombatScreen>
   }
 
   // ==========================================================================
+  // Custom Buffs & Debuffs (toggle mid-combat; edit on the Character tab)
+  // ==========================================================================
+
+  /// The character's Custom Buffs, each with a live Active toggle so the
+  /// player can flip situational buffs/debuffs on and off mid-fight — every
+  /// toggle recomputes the derived stats (and therefore the rolls on the
+  /// Attacking / Being-Attacked cards and the Attacking Maneuver tab). Full
+  /// authoring (targets, magnitudes) stays on the Character tab.
+  Widget _buildCustomBuffsCard() {
+    return SectionCard(
+      title: 'Custom Buffs & Debuffs',
+      icon: Icons.tune,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_c.customBuffs.isEmpty)
+            Text(
+              'No Custom Buffs yet — add them on the Character tab; they show '
+              'here so you can toggle them on and off mid-combat.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(fontStyle: FontStyle.italic),
+            )
+          else
+            for (final buff in _c.customBuffs) _customBuffToggleRow(buff),
+        ],
+      ),
+    );
+  }
+
+  Widget _customBuffToggleRow(CustomBuff buff) {
+    final theme = Theme.of(context);
+    final total = CharacterCalculator.customBuffTotal(_c, buff);
+    final name = buff.name.trim().isEmpty ? '(unnamed)' : buff.name;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Switch(
+            value: buff.active,
+            onChanged: (v) => _update(() => buff.active = v),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: theme.textTheme.bodyMedium),
+                Text(
+                  buff.target.isAutomated
+                      ? buff.target.displayName
+                      : '${buff.target.displayName} · manual',
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          DerivedStat(label: 'Total', value: _fmt(total)),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================================
   // Tracked lists: Resources / Conditions / States
   // ==========================================================================
 
@@ -1008,17 +1112,6 @@ class _CombatScreenState extends State<CombatScreen>
                 ),
               ),
             ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Power and Super Stacks live on the Status card; the '
-              'Diminishing trackers on the Attacking/Being-Attacked cards.',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(fontStyle: FontStyle.italic),
-            ),
           ),
           const Divider(height: 20),
           if (_c.resources.isEmpty)
@@ -1277,36 +1370,91 @@ class _CombatScreenState extends State<CombatScreen>
   // Attacking
   // ==========================================================================
 
-  /// Opens the full Attack Reference (the References tab's attack
-  /// calculator) as its own page to actually resolve the attack — Profile /
-  /// Signature pick, roll strings, Ki Cost, Wager. Popping it via "Attack
-  /// made" counts the attack for Diminishing Offense; backing out doesn't.
-  Future<void> _openAttackReference() async {
-    final counted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => _AttackReferencePage(character: _c),
+  /// The Attacking Maneuver tab: the effects that trigger on an attack, then
+  /// the full Attack Reference calculator in combat mode (Ki/Capacity/Wager
+  /// warnings + a "Attack made" button that spends the Ki and counts the
+  /// attack). Its own tab so it stays open beside the tracker.
+  Widget _buildAttackingManeuverTab() {
+    final reminders = CombatReminderScanner.attackTriggerReminders(_c);
+    final remindersCard = SectionCard(
+      title: 'Triggers on an Attacking Maneuver',
+      icon: Icons.notifications_active_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (reminders.isEmpty)
+            Text(
+              'Nothing you possess names an attack, an Attacking Maneuver, or '
+              'a Signature Technique — no reminders.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(fontStyle: FontStyle.italic),
+            )
+          else
+            for (final r in reminders)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _reminderTile(r),
+              ),
+        ],
       ),
     );
-    // Recompute regardless — the Reference page is a pure scratchpad, but
-    // staying in sync is free and mirrors the edit screen's return path.
-    if (!mounted) return;
-    _update(() {});
-    if (counted == true) _recordAttack();
+    // The calculator reads live stats, so it always reflects the latest
+    // Ki/Capacity after an "Attack made" deduction (the tab rebuilds with
+    // fresh `_stats`).
+    return ReferencesTab(
+      character: _c,
+      stats: _stats,
+      leadingCard: remindersCard,
+      onAttackMade: _onAttackMade,
+    );
+  }
+
+  /// Resolves an attack from the Attack Reference: spends [kiSpent] (Ki Cost +
+  /// Ki Wager) from Current Ki and Capacity, then counts the Attacking
+  /// Maneuver for Diminishing Offense.
+  void _onAttackMade(int kiSpent) {
+    var gainedStack = false;
+    _update(() {
+      if (kiSpent > 0) {
+        final ki = _c.currentKi ?? _stats.maxKi;
+        _c.currentKi = (ki - kiSpent).clamp(0, _stats.maxKi);
+        _c.capacitySpent =
+            (_c.capacitySpent + kiSpent).clamp(0, _stats.maxCapacity);
+      }
+      gainedStack = _countAttack();
+    });
+    final parts = <String>[
+      if (kiSpent > 0) 'Spent $kiSpent Ki & Capacity',
+      'Attack #$_attacksThisRound',
+      if (gainedStack)
+        '+1 Diminishing Offense (now ${_c.diminishingOffenseStacks}, '
+            '${_fmt(-CharacterCalculator.diminishingOffensePenalty(_c))} Strike)',
+    ];
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(parts.join(' · '))));
   }
 
   /// Counts one Attacking Maneuver made this Round — "for each Attacking
   /// Maneuver you make after your third during this Combat Round, gain a
-  /// stack of Diminishing Offense."
+  /// stack of Diminishing Offense." Returns whether a stack was gained. Call
+  /// inside an [_update].
+  bool _countAttack() {
+    _attacksThisRound += 1;
+    if (_attacksThisRound > 3) {
+      _c.diminishingOffenseStacks += 1;
+      return true;
+    }
+    return false;
+  }
+
+  /// The "Count an attack" button (attacks resolved without the Reference,
+  /// so no Ki is deducted).
   void _recordAttack() {
     var gainedStack = false;
-    _update(() {
-      _attacksThisRound += 1;
-      if (_attacksThisRound > 3) {
-        _c.diminishingOffenseStacks += 1;
-        gainedStack = true;
-      }
-    });
+    _update(() => gainedStack = _countAttack());
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
@@ -1357,7 +1505,8 @@ class _CombatScreenState extends State<CombatScreen>
                 child: FilledButton.icon(
                   icon: const Icon(Icons.sports_martial_arts),
                   label: const Text('Make an Attacking Maneuver'),
-                  onPressed: _openAttackReference,
+                  onPressed: () =>
+                      _tabController.animateTo(_attackTabIndex),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1385,10 +1534,11 @@ class _CombatScreenState extends State<CombatScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            '“Make an Attacking Maneuver” opens the full Attack '
-            'Reference (Profiles, Signatures, Energy Charges, Ki Costs, '
-            'copyable roll strings); finishing it with “Attack made” '
-            'counts it for Diminishing Offense. Use “Count an '
+            '“Make an Attacking Maneuver” switches to the Attacking Maneuver '
+            'tab — the full Attack Reference (Profiles, Signatures, Energy '
+            'Charges, Ki Costs, copyable roll strings) plus your on-attack '
+            'reminders; finishing it there with “Attack made” spends its Ki & '
+            'Capacity and counts it for Diminishing Offense. Use “Count an '
             'attack” for attacks resolved without the Reference.',
             style: Theme.of(context)
                 .textTheme
@@ -1749,6 +1899,27 @@ class _CombatScreenState extends State<CombatScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          TextField(
+            decoration: InputDecoration(
+              labelText: 'Search maneuvers',
+              hintText: 'Name or effect text…',
+              border: const OutlineInputBorder(),
+              isDense: true,
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _maneuverQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () => setState(() {
+                        _maneuverQuery = '';
+                        _maneuverSearchController.clear();
+                      }),
+                    ),
+            ),
+            controller: _maneuverSearchController,
+            onChanged: (v) => setState(() => _maneuverQuery = v.trim()),
+          ),
+          const SizedBox(height: 4),
           _maneuverGroup('Standard Maneuvers', kDbuStandardManeuvers),
           _maneuverGroup('Instant Maneuvers', kDbuInstantManeuvers),
           _maneuverGroup('Counter Maneuvers', kDbuCounterManeuvers),
@@ -1759,15 +1930,58 @@ class _CombatScreenState extends State<CombatScreen>
             note: 'You cannot use any Special Maneuvers until you have '
                 'gained access to them through an effect.',
           ),
+          if (_maneuverQuery.isNotEmpty && !_anyManeuverMatches())
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'No maneuver matches "$_maneuverQuery".',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(fontStyle: FontStyle.italic),
+              ),
+            ),
         ],
       ),
     );
   }
 
+  /// Whether [m] matches the current search query (name first, then the
+  /// rest of its printed text).
+  bool _maneuverMatches(ManeuverDef m) {
+    if (_maneuverQuery.isEmpty) return true;
+    final q = _maneuverQuery.toLowerCase();
+    return m.name.toLowerCase().contains(q) ||
+        m.effect.toLowerCase().contains(q) ||
+        m.flavor.toLowerCase().contains(q) ||
+        (m.maneuverType?.toLowerCase().contains(q) ?? false);
+  }
+
+  bool _anyManeuverMatches() => [
+        ...kDbuStandardManeuvers,
+        ...kDbuInstantManeuvers,
+        ...kDbuCounterManeuvers,
+        ...kDbuModifierManeuvers,
+        ...kDbuSpecialManeuvers,
+      ].any(_maneuverMatches);
+
   Widget _maneuverGroup(String title, List<ManeuverDef> maneuvers,
       {String? note}) {
+    final filtered = [
+      for (final m in maneuvers)
+        if (_maneuverMatches(m)) m,
+    ];
+    if (_maneuverQuery.isNotEmpty && filtered.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return ExpansionTile(
-      title: Text('$title (${maneuvers.length})'),
+      // Re-key on the query so groups auto-expand while searching and
+      // collapse again when the search is cleared.
+      key: ValueKey('$title::${_maneuverQuery.isNotEmpty}'),
+      initiallyExpanded: _maneuverQuery.isNotEmpty,
+      title: Text(_maneuverQuery.isEmpty
+          ? '$title (${maneuvers.length})'
+          : '$title (${filtered.length}/${maneuvers.length})'),
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(left: 8),
       children: [
@@ -1783,7 +1997,7 @@ class _CombatScreenState extends State<CombatScreen>
                       ?.copyWith(fontStyle: FontStyle.italic)),
             ),
           ),
-        for (final maneuver in maneuvers) _maneuverTile(maneuver),
+        for (final maneuver in filtered) _maneuverTile(maneuver),
       ],
     );
   }
@@ -1911,36 +2125,6 @@ class _CombatScreenState extends State<CombatScreen>
       min: min,
       max: max,
       onChanged: onChanged,
-    );
-  }
-}
-
-/// Hosts the References tab's attack calculator as its own page so the
-/// player can actually resolve the attack mid-combat. "Attack made" pops
-/// with `true` so the Combat page counts it toward Diminishing Offense;
-/// plain back-navigation pops with nothing (browsing costs no attack).
-class _AttackReferencePage extends StatelessWidget {
-  const _AttackReferencePage({required this.character});
-
-  final Character character;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attack Reference'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => Navigator.of(context).pop(true),
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text('Attack made'),
-          ),
-        ],
-      ),
-      body: ReferencesTab(
-        character: character,
-        stats: CharacterCalculator.compute(character),
-      ),
     );
   }
 }

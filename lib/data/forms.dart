@@ -480,8 +480,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -528,10 +526,12 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Android Power",
         description: "You overclock your internal systems, squeezing more "
             "power out of them.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Triggered/Power]: Regain 2(bT) Ki Points.\n"
-            "(3)-[Triggered, 1/Encounter]: If you use the Energy Charge "
+            "(1)-[Permanent]: Android Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Android Power gains the Realization Aspect and "
+            "M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Triggered/Power]: Regain 2(bT) Ki Points.\n"
+            "(4)-[Triggered, 1/Encounter]: If you use the Energy Charge "
             "Maneuver, gain an additional stack of Energy Charge from that use "
             "of the Energy Charge Maneuver.",
       ),
@@ -585,8 +585,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -615,9 +613,11 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Cerealian Power",
         description: "Your evolved right eye thrums with the power that fills "
             "every inch of your body.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
+            "(1)-[Permanent]: Cerealian Power loses the Exhausting and "
             "Draining Aspects.\n"
-            "(2)-[Triggered, 1/Round]: If you score a Critical Result on a "
+            "(2)-[Permanent]: Cerealian Power gains the Realization Aspect "
+            "and M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Triggered, 1/Round]: If you score a Critical Result on a "
             "Combat Roll, increase the Dice Score of that Combat Roll by 1(T)",
       ),
       TransformationTrait(
@@ -659,8 +659,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -690,11 +688,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Earthling Power",
         description: "The weaker you feel, the stronger your determination "
             "becomes, and the deeper your reserve of power seems to grow.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
+            "(1)-[Permanent]: Earthling Power loses the Exhausting and "
             "Draining Aspects.\n"
-            "(2)-[Passive]: While you have 2+ stacks of Power, increase the "
+            "(2)-[Permanent]: Earthling Power gains the Realization Aspect "
+            "and M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: While you have 2+ stacks of Power, increase the "
             "Dice Score of your Steadfast Checks by 1.\n"
-            "(3)-[Triggered/Threshold]: Gain a stack of Power until the end of "
+            "(4)-[Triggered/Threshold]: Gain a stack of Power until the end of "
             "your next turn.",
       ),
       TransformationTrait(
@@ -948,8 +948,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -999,9 +997,11 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Glass Power",
         description: "The glass you create is infused with your new power, "
             "too, becoming deadlier.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Triggered, 1/Round]: If you win the Clash for the effects of "
+            "(1)-[Permanent]: Glass Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Glass Power gains the Realization Aspect and M "
+            "levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Triggered, 1/Round]: If you win the Clash for the effects of "
             "Glassification against an Opponent, reduce their Life Points by "
             "x(T), where x is equal to the sum of the number of times that "
             "Opponent was targeted by the effects of Glassification and your "
@@ -1045,8 +1045,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Corporeal/Morale)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1085,11 +1083,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Konatsian Power",
         description: "You take control of the flow of battle, turning power "
             "into technique.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
+            "(1)-[Permanent]: Konatsian Power loses the Exhausting and "
             "Draining Aspects.\n"
-            "(2)-[Passive]: Increase your Wound Rolls by 1/4 (rounded up) of "
+            "(2)-[Permanent]: Konatsian Power gains the Realization Aspect "
+            "and M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: Increase your Wound Rolls by 1/4 (rounded up) of "
             "your Damage Reduction.\n"
-            "(3)-[Passive]: You may spend your stacks of Power as if they were "
+            "(4)-[Passive]: You may spend your stacks of Power as if they were "
             "stacks of Tension for the effects of your Vocation(s).",
       ),
       TransformationTrait(
@@ -1127,8 +1127,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1160,11 +1158,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Majin Power",
         description: "No matter how much damage you take, you never seem to be "
             "hurt for long.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Triggered/Threshold]: Gain a stack of Power until the end of "
+            "(1)-[Permanent]: Majin Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Majin Power gains the Realization Aspect and M "
+            "levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Triggered/Threshold]: Gain a stack of Power until the end of "
             "your next turn.\n"
-            "(3)-[Triggered, 1/Round]: If you spend 2+ stacks of Power on a "
+            "(4)-[Triggered, 1/Round]: If you spend 2+ stacks of Power on a "
             "Healing Surge through the 3rd effect of Paranormal Power, you may "
             "increase the Healing Surge by 1 Dice Category.",
       ),
@@ -1207,8 +1207,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Corporeal/Morale)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1248,11 +1246,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Namekian Power",
         description: "You bring out the latent potential of your Namekian "
             "blood, becoming significantly stronger.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
+            "(1)-[Permanent]: Namekian Power loses the Exhausting and "
             "Draining Aspects.\n"
-            "(2)-[Passive]: While you possess 2+ stacks of Power, increase the "
+            "(2)-[Permanent]: Namekian Power gains the Realization Aspect and "
+            "M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: While you possess 2+ stacks of Power, increase the "
             "Dice Score of your Steadfast Checks by 1.\n"
-            "(3)-[Triggered, 1/Round]: If your Opponent would stop being "
+            "(4)-[Triggered, 1/Round]: If your Opponent would stop being "
             "studied by any effect, except due to the 2nd effect of "
             "Intelligent Fighter, you may choose to instead lose a stack of "
             "Power.",
@@ -1293,8 +1293,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1327,9 +1325,11 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Mortal Power",
         description: "Your instincts guide your attacks, emboldened by the "
             "power you are now wielding.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Passive]: If you possess 2+ stacks of Power, you may double "
+            "(1)-[Permanent]: Mortal Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Mortal Power gains the Realization Aspect and M "
+            "levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: If you possess 2+ stacks of Power, you may double "
             "the bonus from the 3rd effect of Worldly Power.",
       ),
       TransformationTrait(
@@ -1369,8 +1369,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1398,11 +1396,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Shinjin Power",
         description: "The power you wield settles into your soul, becoming "
             "familiar and easily accessible.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Passive]: While you possess 2+ stacks of Power, increase the "
+            "(1)-[Permanent]: Shinjin Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Shinjin Power gains the Realization Aspect and "
+            "M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: While you possess 2+ stacks of Power, increase the "
             "Dice Score of your Skill Checks by 1.\n"
-            "(3)-[Passive]: While you possess 2+ stacks of Power, you cannot "
+            "(4)-[Passive]: While you possess 2+ stacks of Power, you cannot "
             "gain the Compelled Combat Condition (except through the Rampaging "
             "Aspect).",
       ),
@@ -1444,8 +1444,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal/Morale)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1482,11 +1480,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Negative Power",
         description: "You warp your reality-defying presence further, turning "
             "competent foes into simpering buffoons.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
+            "(1)-[Permanent]: Negative Power loses the Exhausting and "
             "Draining Aspects.\n"
-            "(2)-[Passive]: Increase the Magnitude for the Shadow Zone's AoE "
+            "(2)-[Permanent]: Negative Power gains the Realization Aspect and "
+            "M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: Increase the Magnitude for the Shadow Zone's AoE "
             "by 1.\n"
-            "(3)-[Passive]: While you possess 2+ stacks of Power, increase the "
+            "(4)-[Passive]: While you possess 2+ stacks of Power, increase the "
             "Botch Range of all Combat Rolls made by Opponents in the Shadow "
             "Zone by 1.",
       ),
@@ -1526,8 +1526,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     stressTestRequirement: 12,
     aspects: [
       "Enhanced Save (Corporeal/Cognitive/Morale)",
-      "Scaling (LV2)",
-      "Realization",
       "Difficult (LV1)",
       "Power High (LV2)",
     ],
@@ -1645,12 +1643,14 @@ const List<TransformationDef> kDbuAlternateForms = [
             "reserves of power.\n"
             "(1)-[Permanent]: Super Demon loses M levels of the Power High "
             "Aspect.\n"
-            "(2)-[Passive]: The 6th effect Fiendish Power loses the "
+            "(2)-[Permanent]: Super Demon gains the Realization Aspect and M "
+            "levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: The 6th effect Fiendish Power loses the "
             "[1/Encounter] Keyword and gains the [M/Round, 3/Encounter] "
             "Keywords.\n"
-            "(3)-[Triggered]: If you succeed at a Pressure Check, regain M(bT) "
+            "(4)-[Triggered]: If you succeed at a Pressure Check, regain M(bT) "
             "Life and Ki Points.\n"
-            "(4)-[Triggered/Power, M/Encounter]: Make a Pressure Check.",
+            "(5)-[Triggered/Power, M/Encounter]: Make a Pressure Check.",
       ),
       TransformationTrait(
         name: "Fiendish Evolution",
@@ -1676,8 +1676,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1707,11 +1705,13 @@ const List<TransformationDef> kDbuAlternateForms = [
       TransformationTrait(
         name: "Initial Neko Power",
         description: "You learn to mimic even more new abilities at a time.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Passive]: While you possess 2+ stacks of Power, you cannot "
+            "(1)-[Permanent]: Neko Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Neko Power gains the Realization Aspect and M "
+            "levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: While you possess 2+ stacks of Power, you cannot "
             "gain the Sleeping Combat Condition.\n"
-            "(3)-[Triggered, 1/Round]: If you gain a Copied Technique, you may "
+            "(4)-[Triggered, 1/Round]: If you gain a Copied Technique, you may "
             "spend a stack of Power to not have that Copied Technique count "
             "towards your maximum number of Copied Techniques for the "
             "remainder of the Combat Encounter.",
@@ -1753,8 +1753,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Corporeal/Impulsive/Cognitive)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -1786,11 +1784,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Neo Power",
         description: "Soon, the power to achieve your revenge will be at hand, "
             "and all will celebrate the day those vermin died.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
-            "Draining Aspects.\n"
-            "(2)-[Passive]: Increase the amount of Revenge Points gained "
+            "(1)-[Permanent]: Neo Power loses the Exhausting and Draining "
+            "Aspects.\n"
+            "(2)-[Permanent]: Neo Power gains the Realization Aspect and M "
+            "levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: Increase the amount of Revenge Points gained "
             "through the 4th effect of Tuffle Power by 1.\n"
-            "(3)-[Triggered, M/Encounter]: When making an Attacking Maneuver, "
+            "(4)-[Triggered, M/Encounter]: When making an Attacking Maneuver, "
             "gain a number of Revenge Points equal to your number of Power "
             "Stacks and then immediately spend them on that Attacking "
             "Maneuver.",
@@ -1832,8 +1832,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     stressTestRequirement: 12,
     aspects: [
       "Enhanced Save (Impulsive/Corporeal)",
-      "Scaling (LV2)",
-      "Realization",
       "Bursting",
       "Draining (LV1)",
       "Power High (LV1)",
@@ -1885,8 +1883,10 @@ const List<TransformationDef> kDbuAlternateForms = [
             "entire galaxy trembles in fear of you.\n"
             "(1)-[Permanent]: Unbound loses the Draining and Power High "
             "Aspects.\n"
-            "(2)-[Triggered/Power]: Regain M(bT) Ki Points.\n"
-            "(3)-[M/Encounter]: As an Instant Maneuver, use the Power Up "
+            "(2)-[Permanent]: Unbound gains the Realization Aspect and M "
+            "levels of the Scaling Aspect.\n"
+            "(3)-[Triggered/Power]: Regain M(bT) Ki Points.\n"
+            "(4)-[M/Encounter]: As an Instant Maneuver, use the Power Up "
             "Maneuver.",
       ),
       TransformationTrait(
@@ -2178,8 +2178,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     tierOfPowerRequirement: 2,
     stressTestRequirement: 12,
     aspects: [
-      "Scaling (LV2)",
-      "Realization",
       "Difficult (LV1)",
       "Draining (LV1)",
     ],
@@ -2238,11 +2236,13 @@ const List<TransformationDef> kDbuAlternateForms = [
             "allowing you to unlock all the hidden powers of your race.\n"
             "(1)-[Permanent]: Super Incredible Guy loses the Draining "
             "Aspect.\n"
-            "(2)-[Passive]: Ignore the 2nd effect of the Superior State.\n"
-            "(3)-[Passive]: The 5th effect of A Red-Hot, Raging, Super-Fierce "
+            "(2)-[Permanent]: Super Incredible Guy gains the Realization "
+            "Aspect and M levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: Ignore the 2nd effect of the Superior State.\n"
+            "(4)-[Passive]: The 5th effect of A Red-Hot, Raging, Super-Fierce "
             "Fight applies until the end of your next turn instead of the "
             "start.\n"
-            "(4)-[Permanent, Option]: Upon gaining this Mastery Trait, select "
+            "(5)-[Permanent, Option]: Upon gaining this Mastery Trait, select "
             "and gain access to one of the following effects while in this "
             "Transformation: Adjust [Permanent, Passive]: select an additional "
             "Aspect through the 2nd effect of World's Strongest Guy to apply "
@@ -2332,7 +2332,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Snack Motivated Racial Trait",
     aspects: [
       "Enhanced Save (Impulsive/Corporeal/Morale)",
-      "Scaling (LV2)",
       "Exhausting",
       "Difficult (LV1)",
       "Draining (LV2)",
@@ -2391,10 +2390,12 @@ const List<TransformationDef> kDbuAlternateForms = [
             "you're truly sated.\n"
             "(1)-[Permanent]: For this Transformation, the Limited Aspect "
             "gains M Levels, and the Draining Aspect loses M levels.\n"
-            "(2)-[Passive]: During a Combat Round in which you have consumed a "
+            "(2)-[Permanent]: Snack Empowerment gains M levels of the Scaling "
+            "Aspect.\n"
+            "(3)-[Passive]: During a Combat Round in which you have consumed a "
             "Snack Basic Item, increase the Dice Category of your Tier of "
             "Power Extra Dice and Greater Dice by M Categories.\n"
-            "(3)-[Triggered, 1/Round]: If you use a Snack Basic Item, you may "
+            "(4)-[Triggered, 1/Round]: If you use a Snack Basic Item, you may "
             "use the Power Up Maneuver as an Out-of-Sequence Maneuver.",
       ),
       TransformationTrait(
@@ -2424,8 +2425,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     aspects: [
       "Enhanced Save (Impulsive/Morale)",
       "Draining (LV*)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -2478,8 +2477,10 @@ const List<TransformationDef> kDbuAlternateForms = [
             "yourself, taking away the downsides.\n"
             "(1)-[Permanent]: This Transformation loses the Exhausting "
             "Aspect.\n"
-            "(2)-[Triggered/Power]: Regain 2(bT) Ki Points.\n"
-            "(3)-[Triggered, M/Encounter]: If you would lose any Power stacks, "
+            "(2)-[Permanent]: Power Boost gains the Realization Aspect and M "
+            "levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Triggered/Power]: Regain 2(bT) Ki Points.\n"
+            "(4)-[Triggered, M/Encounter]: If you would lose any Power stacks, "
             "except through the 2nd effect of Overflowing Power, you may "
             "choose to delay losing those Power stacks for 1 Combat Round.",
       ),
@@ -2518,8 +2519,6 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Variant (Power Boost)",
       "Enhanced Save (Impulsive/Corporeal)",
       "Draining (LV1)",
-      "Scaling (LV2)",
-      "Realization",
       "Glowing",
       "Difficult (LV2)",
       "Light Dependent",
@@ -2562,13 +2561,15 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Initial Spiritual Power",
         description: "You have learned to mold your newfound power to fit the "
             "vessel that wields it- your body.\n"
-            "(1)-[Permanent]: This Transformation loses the Exhausting and "
+            "(1)-[Permanent]: Spiritual Power loses the Exhausting and "
             "Draining Aspects.\n"
-            "(2)-[Passive]: While you possess 2+ stacks of Power, increase "
+            "(2)-[Permanent]: Spiritual Power gains the Realization Aspect "
+            "and M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: While you possess 2+ stacks of Power, increase "
             "your Soak Value and Surgency by 1(T).\n"
-            "(3)-[Passive]: Increase the Magnitude for the Transference Zone's "
+            "(4)-[Passive]: Increase the Magnitude for the Transference Zone's "
             "AoE by 1.\n"
-            "(4)-[1/Encounter]: You may trigger the 7th effect of Spiritual "
+            "(5)-[1/Encounter]: You may trigger the 7th effect of Spiritual "
             "Apprentice without counting towards its [1/Encounter] limit.",
       ),
       TransformationTrait(
@@ -2607,8 +2608,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     stressTestRequirement: 12,
     aspects: [
       "Battle Uniform",
-      "Scaling (LV2)",
-      "Realization",
       "Prelude",
       "Difficult (LV1)",
       "Long Transformation (LV1)",
@@ -2746,9 +2745,11 @@ const List<TransformationDef> kDbuAlternateForms = [
         description: "Hold on to peace and preserve it in the world.\n"
             "(1)-[Permanent]: This Transformation loses the Long "
             "Transformation Aspect.\n"
-            "(2)-[Passive]: The 3rd effect of Transformation! gains the "
+            "(2)-[Permanent]: Mode Change gains the Realization Aspect and M "
+            "levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: The 3rd effect of Transformation! gains the "
             "[2/Round] Keyword instead of the [1/Round] Keyword.\n"
-            "(3)-[1/Round]: If you are facing an Opponent who has a higher "
+            "(4)-[1/Round]: If you are facing an Opponent who has a higher "
             "base Tier of Power than you, you may use the Power Up Maneuver as "
             "an Instant Maneuver.",
       ),
@@ -3443,7 +3444,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Unique (Super Saiyan 1). Mastered Super "
         "Saiyan 1. Stress Test Requirement: +4.",
     transformationLine: "Super Saiyan",
-    aspects: ["Scaling (LV1)", "Realization", "Pinnacle"],
+    aspects: ["Scaling (LV1)", "Realization", "Pinnacle (LV1)"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -3611,7 +3612,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Unique (Super Saiyan 3). Fully Mastered "
         "Super Saiyan 3. Stress Test Requirement: +3.",
     transformationLine: "Super Saiyan",
-    aspects: ["Scaling (LV2)", "Draining (LV2)", "Peaked", "Pinnacle"],
+    aspects: ["Scaling (LV2)", "Draining (LV2)", "Peaked", "Pinnacle (LV1)"],
     amb: _powerBoostAmb,
     traits: [
       TransformationTrait(
@@ -3660,7 +3661,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Unique (Super Saiyan 2). Fully Mastered "
         "Super Saiyan 2. Stress Test Requirement: +8.",
     transformationLine: "Super Saiyan",
-    aspects: ["Innate State (Raging)", "Pinnacle"],
+    aspects: ["Innate State (Raging)", "Pinnacle (LV1)"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 2, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 2, tierScaled: true),
@@ -3826,8 +3827,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     stage: 1,
     aspects: [
       "Enhanced Save (All)",
-      "Scaling (LV2)",
-      "Realization",
       "Draining (LV1)",
       "Difficult (LV1)",
       "Straining",
@@ -3889,8 +3888,10 @@ const List<TransformationDef> kDbuAlternateForms = [
             "innate strength.\n"
             "(1)-[Permanent]: All-Out Form loses 1 level of the Draining "
             "Aspect and the Straining Aspect.\n"
-            "(2)-[Passive]: Ignore the 3rd effect of Unleash it All.\n"
-            "(3)-[Passive]: You do not gain the Fatigued Combat Condition "
+            "(2)-[Permanent]: All-Out Form gains the Realization Aspect and M "
+            "levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: Ignore the 3rd effect of Unleash it All.\n"
+            "(4)-[Passive]: You do not gain the Fatigued Combat Condition "
             "through the 7th effect of All-Out Power.",
       ),
       TransformationTrait(
@@ -4806,7 +4807,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Unique (Monster Form). Pure Progress "
         "Greater Awakening. Tier of Power Requirement: Same as Original Form. "
         "Stress Test Requirement: +9.",
-    aspects: ["Scaling (LV2)", "Pinnacle", "Peaked"],
+    aspects: ["Scaling (LV2)", "Pinnacle (LV1)", "Peaked"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -4858,7 +4859,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     racialRequirement: "Any",
     tierOfPowerRequirement: 2,
     stressTestRequirement: 12,
-    aspects: ["Scaling (LV2)", "Realization", "Prelude", "Difficult (LV1)"],
+    aspects: ["Prelude", "Difficult (LV1)"],
     amb: _powerBoostAmb,
     traits: [
       TransformationTrait(
@@ -4931,8 +4932,10 @@ const List<TransformationDef> kDbuAlternateForms = [
             "your mind and body.\n"
             "(1)-[Permanent]: Your level for the Rampaging Aspect is set to "
             "2.\n"
-            "(2)-[Passive]: Ignore the effects of the Rampaging Aspect.\n"
-            "(3)-[Passive]: Increase your Combat Rolls by 1(T) while all of "
+            "(2)-[Permanent]: Monster Form gains the Realization Aspect and M "
+            "levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: Ignore the effects of the Rampaging Aspect.\n"
+            "(4)-[Passive]: Increase your Combat Rolls by 1(T) while all of "
             "your Opponents are below the Bruised Health Threshold.",
       ),
       TransformationTrait(
@@ -5087,9 +5090,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     stage: 1,
     aspects: [
       "Enhanced Save (Morale)",
-      "Scaling (LV2)",
       "Prelude",
-      "Realization",
       "Difficult (LV1)",
       "Power High (LV1)",
     ],
@@ -5149,9 +5150,11 @@ const List<TransformationDef> kDbuAlternateForms = [
         description: "T\n"
             "(1)-[Permanent]: True Genetics loses the Power High Aspect, and "
             "gains M levels of the Natural Aspect.\n"
-            "(2)-[Passive]: Apply your Tier of Power Extra Dice an additional "
+            "(2)-[Permanent]: True Genetics gains the Realization Aspect and "
+            "M levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: Apply your Tier of Power Extra Dice an additional "
             "time.\n"
-            "(3)-[Triggered, 1/Round]: If you select a Signature Technique or "
+            "(4)-[Triggered, 1/Round]: If you select a Signature Technique or "
             "a Unique Ability through the effects of Connoisseur Cut, you can "
             "choose not to gain your selection to instead gain an Adaptation "
             "Point and regain Ki Points equal to your Surgency.",
@@ -5437,11 +5440,9 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "1+ stacks of Unified, Android Fusion Talent.",
     aspects: [
       "Enhanced Save (Corporeal/Cognitive)",
-      "Scaling (LV2)",
       "Growth (LV1)",
       "Armored",
       "Bulky",
-      "Realization",
       "Rampaging (LV1)",
       "Power High (LV2)",
       "Difficult (LV2)",
@@ -5509,8 +5510,10 @@ const List<TransformationDef> kDbuAlternateForms = [
             "that strength with none of the flaws.\n"
             "(1)-[Permanent]: United Android loses the Rampaging Aspect and M "
             "levels of Power High.\n"
-            "(2)-[Passive]: Reduce your Muscle Penalty by 1(bT).\n"
-            "(3)-[Passive]: Ignore the 2nd effect of the Surging State if you "
+            "(2)-[Permanent]: United Android gains the Realization Aspect and "
+            "M levels of the Scaling Aspect (max. 2).\n"
+            "(3)-[Passive]: Reduce your Muscle Penalty by 1(bT).\n"
+            "(4)-[Passive]: Ignore the 2nd effect of the Surging State if you "
             "entered it through the 4th effect of Murder Machine.",
       ),
       TransformationTrait(
@@ -6386,7 +6389,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     tierOfPowerRequirement: 6,
     prerequisiteText: "Evolved Stage: Unique (Ultra Instinct \"Sign\"). Fully "
         "Mastered Ultra Instinct \"Sign\". Stress Test Requirement: +2.",
-    aspects: ["Pinnacle"],
+    aspects: ["Pinnacle (LV1)"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -6834,8 +6837,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     tierOfPowerRequirement: 2,
     stressTestRequirement: 12,
     aspects: [
-      "Scaling (LV2)",
-      "Realization",
       "Prelude",
       "Draining (LV1)",
       "Power High (LV1)",
@@ -7220,7 +7221,9 @@ const List<TransformationDef> kDbuAlternateForms = [
       description: "You have incorporated this newfound power into yourself, "
           "making it your own.\n"
           "(1)-[Permanent]: Super Form loses the Draining and Power High "
-          "Aspects.",
+          "Aspects.\n"
+          "(2)-[Permanent]: Super Form gains the Realization and Scaling "
+          "(LV2) Aspects.",
     ),
   ),
 
@@ -7236,8 +7239,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     aspects: [
       "Enhanced Save (Morale)",
       "Battle Uniform",
-      "Realization",
-      "Scaling (LV2)",
       "Difficult (LV1)",
       "Long Transformation (LV2)",
     ],
@@ -7365,12 +7366,14 @@ const List<TransformationDef> kDbuAlternateForms = [
             "of its power.\n"
             "(1)-[Permanent]: Formation loses M Levels of the Long "
             "Transformation Aspect.\n"
-            "(2)-[Constant]: When you use the Transformation Maneuver to enter "
+            "(2)-[Permanent]: Formation gains the Realization Aspect and M "
+            "levels of the Scaling Aspect.\n"
+            "(3)-[Constant]: When you use the Transformation Maneuver to enter "
             "this Transformation, this Transformation may gain up to M levels "
             "of the Long Transformation Aspect for the duration of that "
-            "Maneuver. For each level added, upon successfully entering, gain "
-            "an equal amount of Love stacks.\n"
-            "(3)-[Triggered/Start of Turn]: Gain a stack of Love.",
+            "Maneuver. For each level added, upon successfully entering this "
+            "Transformation, gain an equal amount of Love stacks.\n"
+            "(4)-[Triggered/Start of Turn]: Gain a stack of Love.",
       ),
       TransformationTrait(
         name: "Faith in Love",
@@ -7399,7 +7402,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     tierOfPowerRequirement: 4,
     prerequisiteText: "Evolved Stage: Unique (Formation). Stress Test "
         "Requirement: +9.",
-    aspects: ["Growth (LV3)", "Scaling (LV2)", "Pinnacle", "Peaked"],
+    aspects: ["Growth (LV3)", "Scaling (LV2)", "Pinnacle (LV1)", "Peaked"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -7497,7 +7500,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     tierOfPowerRequirement: 4,
     prerequisiteText: "Evolved Stage: Unique (Mode Change). Fully Mastered "
         "Mode Change. Stress Test Requirement: +9.",
-    aspects: ["Scaling (LV2)", "Pinnacle"],
+    aspects: ["Pinnacle (LV1)"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -7553,16 +7556,19 @@ const List<TransformationDef> kDbuAlternateForms = [
       name: "Super Ultimate Mode",
       description: "You have surpassed even the greatest heroes, backed by the "
           "hopes and dreams of all those you stand to protect.\n"
-          "(1)-[Passive]: While you are below the Critical Health Threshold, "
+          "(1)-[Permanent]: Final Mode Change gains the Scaling (LV2) "
+          "Aspect.\n"
+          "(2)-[Passive]: While you are below the Critical Health Threshold, "
           "increase all of your Combat Rolls and Soak Value by 1(T).\n"
-          "(2)-[Triggered, 1/Round]: Upon entering a Mode, you may choose to "
+          "(3)-[Triggered, 1/Round]: Upon entering a Mode, you may choose to "
           "use one of the following effects: use the Movement Maneuver as an "
           "Out-of-Sequence Maneuver; use the Basic Attack Maneuver as an "
           "Out-of-Sequence Maneuver; gain 1 Counter Action; or use the Hype "
           "Maneuver as an Out-of-Sequence Maneuver.\n"
-          "(3)-[Triggered/Defeated, 1/Encounter]: Regain Life Points equal to "
+          "(4)-[Triggered/Defeated, 1/Encounter]: Regain Life Points equal to "
           "twice your Personality Modifier. Then, you may trigger any effects "
-          "that occur when you enter a Mode.",
+          "that occur when you enter a Mode (ignoring any [1/Round] "
+          "limitations).",
     ),
   ),
 
@@ -7729,8 +7735,6 @@ const List<TransformationDef> kDbuAlternateForms = [
     stage: 1,
     aspects: [
       "Enhanced Save (Impulsive/Morale)",
-      "Scaling (LV2)",
-      "Realization",
       "Prelude",
       "Difficult (LV1)",
       "Draining (LV2)",
@@ -7825,11 +7829,14 @@ const List<TransformationDef> kDbuAlternateForms = [
             "heights.\n"
             "(1)-[Permanent]: Shattered Shell loses M levels of the Draining "
             "Aspect and gains the High Speed Aspect.\n"
-            "(2)-[Passive]: Increase your Combat Rolls against an Opponent "
+            "(2)-[Permanent]: Shattered Shell gains the Realization Aspect "
+            "and M levels of the Scaling Aspect.\n"
+            "(3)-[Passive]: Increase your Combat Rolls against an Opponent "
             "suffering from the Impaired Combat Condition by 1(T).\n"
-            "(3)-[Triggered, 1/Round]: If you would inflict the Impaired "
+            "(4)-[Triggered, 1/Round]: If you would inflict the Impaired "
             "Combat Condition to an Opponent, you may inflict the Broken "
-            "Combat Condition instead (for the same duration).",
+            "Combat Condition instead (for the same duration as the Impaired "
+            "Combat Condition).",
       ),
       TransformationTrait(
         name: "Accustomed to a Shell-less Life",
@@ -11297,6 +11304,100 @@ const List<TransformationDef> kDbuAlternateForms = [
   // ==================================== GENERIC EVOLVED STAGES — apply onto any
   // qualifying Original Form (Racial Requirement inherited, so "Any" here); the
   // listed AMB/Aspects ADD to the Original's and the Stress Test is an addition.
+  // ================================================================ Barrier Form ===
+  TransformationDef(
+    name: "Barrier Form",
+    type: TransformationType.form,
+    formType: FormType.alternate,
+    racialRequirement: "Any",
+    prerequisiteText: "Evolved Stage: Generic. Access to the Barrier Unique "
+        "Ability. Tier of Power Requirement: Same as Original Form. Stress "
+        "Test Requirement: +2.",
+    aspects: ["Draining (LV2)", "Peaked"],
+    amb: {
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "Protection from Harm",
+        description: "Y\n"
+            "(1)-[Acclimated]: If the Original Form is Mastered, reduce the "
+            "level of Barrier Form's Draining Aspect by 1. If the Original "
+            "Form is Fully Mastered, reduce the level of Barrier Form's "
+            "Draining Aspect by 2 instead.\n"
+            "(2)-[Passive]: Increase your Damage Reduction by 1(T)\n"
+            "(3)-[Passive]: Reduce the Ki Point Cost of the Barrier Unique "
+            "Ability by 2(T).\n"
+            "(4)-[Triggered, 1/Round]: If you make a Clash that is initiated "
+            "by another Character and uses either your Cognitive or Corporeal "
+            "Save, you may spend 5(bT) Ki Points to automatically win that "
+            "Clash.\n"
+            "(5)-[1/Encounter]: You may use the Barrier Unique Ability "
+            "without paying its Action Cost.",
+        automation: [
+          // (2) +1(T) Damage Reduction.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.damageReduction],
+            coefficient: 1,
+            tierScaling: TierScaling.current,
+          ),
+        ],
+      ),
+    ],
+  ),
+
+  // ============================================================ Berserk Controlled ===
+  TransformationDef(
+    name: "Berserk Controlled",
+    type: TransformationType.form,
+    formType: FormType.alternate,
+    racialRequirement: "Saiyan",
+    prerequisiteText: "Evolved Stage: Generic. Saiyan Race, have previously "
+        "entered the Berserk State. Tier of Power Requirement: Equal to "
+        "Original Form. Stress Test Requirement: +4.",
+    aspects: [
+      "Enhanced Save (Cognitive)",
+      "Innate State (Berserk)",
+      "Peaked",
+      "Exhausting",
+      "Straining",
+      "Draining (LV1)",
+      "Fading (LV1)",
+    ],
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "True Nature of the Saiyans",
+        description: "Your innate lust for battle runs rampant, though it no "
+            "longer overwhelms your conscious mind.\n"
+            "(1)-[Acclimated]: If the Original Form is Fully Mastered, "
+            "Berserk Controlled loses the Exhausting, Straining, Draining, "
+            "and Fading Aspects.\n"
+            "(2)-[Constant]: If you are in the Berserk State and not in this "
+            "Transformation, you may use the Transformation Maneuver as an "
+            "Instant Maneuver to attempt and enter Berserk Controlled.\n"
+            "(3)-[Passive]: You cannot gain the Compelled Combat Condition "
+            "and, upon entering this Transformation, you immediately stop "
+            "suffering from the Compelled Combat Condition if you were in it "
+            "previously.\n"
+            "(4)-[Passive]: Ignore the 1st and 3rd effects of the Berserk "
+            "State.\n"
+            "(5)-[Passive]: The 2nd effect of the Berserk State increases "
+            "the relevant Combat Rolls instead of reducing them.\n"
+            "(6)-[Triggered/Transform, 1/Encounter]: For the Combat Roll "
+            "with the lowest number of Battle Born stacks applied to it, set "
+            "its number of Battle Born stacks to 2. This effect cannot "
+            "reduce the number of Battle Born stacks applied to a Combat "
+            "Roll.",
+      ),
+    ],
+  ),
+
   // ============================================================= Empowered Form ===
   TransformationDef(
     name: "Empowered Form",
@@ -11307,7 +11408,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Generic. Original Form is a fully "
         "Mastered Alternate Form (not Restrained Form or its variants) with no "
         "effects that make it Legendary. Stress Test Requirement: +13.",
-    aspects: ["Enhanced Save (All)", "Peaked", "Pinnacle"],
+    aspects: ["Enhanced Save (All)", "Peaked", "Pinnacle (LV1)"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 3, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 3, tierScaled: true),
@@ -11322,17 +11423,24 @@ const List<TransformationDef> kDbuAlternateForms = [
             "unleashing the latent power of that Transformation that few ever "
             "reach.\n"
             "(1)-[Passive]: If the Original Form possesses the Scaling Aspect, "
-            "reduce the Stress Test Requirement of this Transformation by 4 and "
-            "the Attribute Modifier Bonuses (AG/FO/TE/MA) by 2(T), but "
-            "Empowered Form gains 2 levels of the Scaling Aspect.\n"
-            "(2)-[Passive]: If the Original Form has an Attribute Modifier "
-            "Bonus to any Attribute not already increased by Empowered, "
-            "increase Empowered Form's AMB for that Attribute by 1(T).\n"
-            "(3)-[Triggered/Transform]: If you were in the Original Form before "
-            "entering it, increase your Combat Rolls and Soak Value by 1(T) "
-            "until you leave this Transformation.\n"
-            "(4)-[Permanent, Option]: Select one effect (regardless of "
-            "Original Form) below.",
+            "reduce the Stress Test Requirement of this Transformation by 4 "
+            "and the Attribute Modifier Bonuses (AG/FO/TE/MA) of this "
+            "Transformation by 2(T), but Empowered Form gains 2 levels of the "
+            "Scaling Aspect.\n"
+            "(2)-[Passive]: If the Original Form of this Transformation has an "
+            "Attribute Modifier Bonus to any Attribute that is not already "
+            "increased by Empowered, increase Empowered Form's Attribute "
+            "Modifier Bonus for that Attribute by 1(T) (this increase is "
+            "modified by Empowered Form's Scaling Aspect, if it possesses "
+            "it).\n"
+            "(3)-[Triggered/Transform]: If you were in the Original Form for "
+            "this Transformation before entering it, increase your Combat "
+            "Rolls and Soak Value by 1(T) until you leave this "
+            "Transformation.\n"
+            "(4)-[Permanent, Option]: Upon gaining access to this "
+            "Transformation, select and gain access to one of the following "
+            "effects while you're in this Transformation (this applies "
+            "regardless of the Original Form):",
         optionGroups: [
           RaceTraitOptionGroup(
             label: 'Empowered Option',
@@ -12306,7 +12414,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Generic. Overtaken and Tuffleization "
         "Awakenings. Tier of Power Requirement: Equal to Original Form. Stress "
         "Test Requirement: +4.",
-    aspects: ["Pinnacle", "Peaked"],
+    aspects: ["Pinnacle (LV2)", "Peaked"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -12336,6 +12444,238 @@ const List<TransformationDef> kDbuAlternateForms = [
     ],
   ),
 
+  // =================================================================== Legendary ===
+  // (The "Legendary Super Saiyan Evolved Stage" granted by the Legendary
+  // Saiyan Factor Trait; transcribed live 20 Jul 2026 — was previously only
+  // referenced by other effects, never catalogued.)
+  TransformationDef(
+    name: "Legendary",
+    type: TransformationType.form,
+    formType: FormType.legendary,
+    racialRequirement: "Saiyan",
+    prerequisiteText: "Evolved Stage: Generic. Original Form (or an Evolved "
+        "Stage applied to it) has Super Saiyan Form Aspect, Legendary Saiyan "
+        "Factor Trait. Tier of Power Requirement: Same as Original Form. "
+        "Stress Test Requirement: +5.",
+    aspects: [
+      "Armored",
+      "Bulky",
+      "Pinnacle (LV1)",
+      "Growth (LV1)",
+      "Peaked",
+      "Rampaging (LV2)",
+    ],
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "Unlimited Power",
+        description: "Your power grows stronger and stronger, the longer you "
+            "fight for.\n"
+            "(1)-[Acclimated]: If the Original Form is Mastered:\n"
+            "Remove the Rampaging Aspect from this Evolved Stage.\n"
+            "Reduce your Muscle Penalty by 1(bT).\n"
+            "Ignore the 5th effect of Unlimited Power.\n"
+            "The 6th effect of Unlimited Power becomes [Triggered] instead of "
+            "[Automatic].\n"
+            "(2)-[Passive]: While you possess 4+ stacks of Battle Born "
+            "applied to your Wound Rolls, increase the Attribute Modifier "
+            "Bonus (FO/TE/MA) of this Transformation by 1(T).\n"
+            "(3)-[Passive]: While you possess 6+ stacks of Battle Born, "
+            "ignore all Health Threshold Penalties.\n"
+            "(4)-[Passive]: Your Ki Points may exceed your Maximum Ki "
+            "Points.\n"
+            "(5)-[Automatic]: At the end of your turn, reduce your Life "
+            "Points by 1/10th (rounded up) of your Ki Points.\n"
+            "(6)-[Automatic/Start of Turn]: Reduce your Life Points by "
+            "1/10th of your Maximum Life Points to use a Ki Surge as an "
+            "Out-of-Sequence Maneuver.",
+      ),
+      TransformationTrait(
+        name: "Unstoppable Legend (Legendary Trait)",
+        description: "You are nearly impossible to kill, and even harder to "
+            "hold at bay.\n"
+            "(1)-[Passive]: While in a Transformation with the Super Saiyan "
+            "Form Aspect, increase your Wound Rolls and Soak Value by 1(T).\n"
+            "(2)-[Triggered]: Upon making a Stress Test to enter or remain in "
+            "a Transformation with the Super Saiyan Form Aspect, you may "
+            "(after seeing the result) reduce your Life Points by 1/10th of "
+            "your Maximum Life Points to increase the Dice Score of that "
+            "Stress Test by 2.\n"
+            "(3)-[Triggered, 1/Encounter]: Upon entering a Transformation "
+            "with the Super Saiyan Form Aspect, gain a stack of Battle Born. "
+            "You must apply this stack of Battle Born to your Wound Rolls.",
+        automation: [
+          // (1) +1(T) Wound Rolls and Soak while in a Super-Saiyan-Form-
+          // Aspect Transformation (always-on Legendary Trait).
+          RaceTraitAutomation(
+            affectedStats: [
+              AffectedStat.woundPhysical,
+              AffectedStat.woundEnergy,
+              AffectedStat.woundMagic,
+              AffectedStat.soak,
+            ],
+            coefficient: 1,
+            tierScaling: TierScaling.current,
+            condition: TraitCondition.whileFormWithAspectActive,
+            conditionAspectName: 'Super Saiyan Form',
+          ),
+        ],
+      ),
+    ],
+  ),
+
+  // ============================================================ Legendary Oozaru ===
+  // (Standalone Legendary Form; transcribed live 20 Jul 2026 — missing from
+  // the catalogue until now.)
+  TransformationDef(
+    name: "Legendary Oozaru",
+    type: TransformationType.form,
+    formType: FormType.legendary,
+    racialRequirement: "Saiyan",
+    tierOfPowerRequirement: 4,
+    stressTestRequirement: 25,
+    prerequisiteText: "Legendary Mutant Trait, access to Oozaru, and access "
+        "to Super Saiyan 1",
+    aspects: [
+      "Enhanced Save (Corporeal)",
+      "Armored",
+      "Bulky",
+      "Strainless",
+      "Raging (LV2)",
+      "Growth (LV3)",
+      "Rampaging (LV2)",
+      "Dedicated",
+      "Difficult (LV1)",
+    ],
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 2, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 4, tierScaled: true),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 3, tierScaled: true),
+      DbuAttribute.insight: TransformationAmb(coefficient: 2, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "Hulking Power",
+        description: "The rampaging fury of your full power emerges in your "
+            "Great Ape form.\n"
+            "-[Permanent]: If you fail the Stress Test for this "
+            "Transformation, enter the Oozaru Transformation (you still "
+            "suffer Stress Exhaustion).\n"
+            "-[Permanent]: This Transformation is considered a part of the "
+            "Great Ape Transformation Line for all effects.\n"
+            "-[Passive]: Treat all characters as if they were 1 Size Category "
+            "smaller for the sake of your effects and the Punching Down rules "
+            "when you are targeted by one of their Attacking Maneuvers, or "
+            "when you target them with one of your Attacking Maneuvers.\n"
+            "-[Passive]: This Transformation gains access to the Rampaging "
+            "Assault Trait.\n"
+            "-[Passive]: Ignore the Strike Penalty from your Super Stacks.",
+      ),
+      TransformationTrait(
+        name: "Super Saiyan Heritage",
+        description: "Despite the nature of this Transformation, you are "
+            "still infused with the awesome power of the Super Saiyan.\n"
+            "-[Permanent]: This Transformation is considered a part of the "
+            "Super Saiyan Transformation Line for all effects.\n"
+            "-[Passive]: Apply your Tier of Power Extra Dice an additional "
+            "time.\n"
+            "-[Passive]: Increase your Maximum Ki Points and Max Capacity by "
+            "1/4.\n"
+            "-[Triggered/Transform]: Regain Ki Points equal to 1/4 of your "
+            "Max Capacity.",
+        automation: [
+          // +1/4 Maximum Ki Points and Max Capacity while active.
+          RaceTraitAutomation(
+            affectedStats: [
+              AffectedStat.maxKiQuarter,
+              AffectedStat.maxCapacityQuarter,
+            ],
+            coefficient: 1,
+          ),
+        ],
+      ),
+      TransformationTrait(
+        name: "Legendary Rampage",
+        description: "Pure power flows through you, driving you to "
+            "absolutely destroy your enemies.\n"
+            "-[Triggered/Transform]: Maximize your Battle Born stacks applied "
+            "to your Wound Roll.\n"
+            "-[Passive]: Reduce the Dice Score of your roll against the "
+            "Rampaging Aspect by 2.\n"
+            "-[Passive]: While in the Raging State or while suffering from "
+            "the Compelled Combat Condition, gain the following effects:\n"
+            "[Passive]: Double the bonus to your Wound Roll from your stacks "
+            "of Battle Born.\n"
+            "[Passive]: Double the bonus to your Soak Value from your Size "
+            "Category.\n"
+            "[Triggered/Start of Turn]: Before you roll for the Rampaging "
+            "Aspect, lose Life Points equal to your Power Level and regain Ki "
+            "Points equal to twice the amount of Life Points lost.\n"
+            "[Triggered, 2/Round]: If an Opponent is hit by any of your "
+            "Attacking Maneuvers, they gain the Broken Combat Condition until "
+            "the start of your next turn.",
+      ),
+      TransformationTrait(
+        name: "Legend (Legendary Trait)",
+        description: "No other Great Ape can compare to the awe-inspiring "
+            "might of your legendary power.\n"
+            "-[Passive]: Increase the Attribute Modifier Bonus (FO/TE) of "
+            "every Transformation in the Great Ape Transformation Line by "
+            "1(T).\n"
+            "-[Passive]: You cannot enter the Golden Oozaru Transformation.\n"
+            "-[Passive]: While you are in the Raging State, increase your "
+            "Strike Rolls by 1(T).",
+        automation: [
+          // (3rd bullet) +1(T) Strike Rolls while in the Raging State.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.strike],
+            coefficient: 1,
+            tierScaling: TierScaling.current,
+            condition: TraitCondition.whileNamedStateActive,
+            conditionStateName: 'Raging',
+          ),
+        ],
+      ),
+      TransformationTrait(
+        name: "Arguably the Real Legendary Super Saiyan (Exceed Trait)",
+        description: "Unleashing the full might of the Legendary Super "
+            "Saiyan in the bestial form of the Great Ape, you tower over "
+            "even the greatest warriors of all time.\n"
+            "-[Passive]: This Transformation gains the Scaling (LV2) "
+            "Aspect.\n"
+            "-[Passive]: Increase the Wound Roll of any Attacking Maneuver "
+            "you make with a Ki Wager by 1/2 of the amount of Ki Points "
+            "spent on the Ki Wager.\n"
+            "-[Triggered]: If you hit an Opponent with an Attacking Maneuver "
+            "that possesses a Ki Wager of 10(bT) or more, increase the "
+            "Damage Category of that Attacking Maneuver by 1 Category.",
+        // (2nd bullet) Wound Roll +1/2 of the Ki wagered.
+        wagerWoundEffect: WagerWoundEffect(fractionOfWagerDen: 2),
+      ),
+    ],
+    masteryTrait: TransformationTrait(
+      name: "Superior Specimen",
+      description: "The pinnacle of power emerges in your Great Ape form, "
+          "proving your Great Ape to be the strongest out there.\n"
+          "-[Permanent]: Legendary Oozaru loses the Rampaging Aspect and "
+          "increases the Attribute Modifier Bonus (AG) by +2(T).\n"
+          "-[Permanent]: Remove the first effect of Rampaging Assault while "
+          "in this Transformation.\n"
+          "-[Passive]: Halve the penalties to your Defense Value from your "
+          "Size Category and halve the penalties to your Dodge Rolls from "
+          "your stacks of Super Stack.\n"
+          "-[Passive]: You do not lose Life Points through the effects "
+          "gained through the third effect of Legendary Rampage.\n"
+          "-[Automatic/Transform]: Enter the Raging State until you leave "
+          "this Transformation.",
+    ),
+  ),
+
   // ============================================================= Condensed Legend ===
   TransformationDef(
     name: "Condensed Legend",
@@ -12346,7 +12686,7 @@ const List<TransformationDef> kDbuAlternateForms = [
         "Stage applied to it) has the Super Saiyan Form Aspect and is "
         "Mastered; Legendary Saiyan Factor Trait. Tier of Power Requirement: "
         "Same as Original Form. Stress Test Requirement: +5.",
-    aspects: ["Armored", "Bulky", "Pinnacle", "Peaked"],
+    aspects: ["Armored", "Bulky", "Pinnacle (LV1)", "Peaked"],
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -12698,6 +13038,120 @@ const List<TransformationDef> kDbuAlternateForms = [
           "(5)-[Triggered, 1/Round]: If you Defeat an Opponent with your "
           "Multiplicative Technique, to use a [Triggered/Defeated] effect they "
           "must first pass a Steadfast Check.",
+    ),
+  ),
+
+  // ============================================== Super Saiyan 5 (Evolved SS4) ===
+  TransformationDef(
+    name: "Super Saiyan 5",
+    type: TransformationType.form,
+    formType: FormType.legendary,
+    racialRequirement: "Saiyan",
+    tierOfPowerRequirement: 6,
+    prerequisiteText: "Evolved Stage: Unique (Super Saiyan 4). Fully Mastered "
+        "Super Saiyan 4. Stress Test Requirement: +4.",
+    aspects: [
+      "Innate State (Raging/Bloodlusted)",
+      "Exhausting",
+      "Straining",
+      "Draining (LV2)",
+    ],
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.insight: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "Primal Aggression",
+        description: "An almost instinctual thirst for violence is fueling "
+            "you now. You don't plan to stop until you put your enemy in the "
+            "dirt or die trying.\n"
+            "(1)-[Permanent]: You cannot enter the Super Saiyan 5 "
+            "Transformation unless you are in the Bloodlusted State.\n"
+            "(2)-[Passive]: You cannot leave the Bloodlusted State through "
+            "any means.\n"
+            "(3)-[Ruling]: Your 'Primal Force' is equal to x(T), where x is "
+            "equal to 1/2 of the number of Battle Born stacks applied to "
+            "your Wound Rolls (max. 3(T)).\n"
+            "(4)-[Passive]: Increase your maximum number of Battle Born "
+            "stacks you may apply to your Wound Rolls by 4, but you do not "
+            "gain any bonuses to your Strike or Dodge Rolls from any stacks "
+            "of Battle Born applied to them.\n"
+            "(5)-[Passive]: While your number of Battle Born stacks applied "
+            "to your Wound Rolls exceeds the number of stacks applied to "
+            "your Strike or Dodge Rolls, increase your Strike Rolls, Dodge "
+            "Rolls, and Soak Value by your Primal Force.\n"
+            "(6)-[Passive]: For any effects that apply bonuses based on your "
+            "number of Battle Born stacks, treat your number of Battle Born "
+            "stacks as if they were 1 higher for every 2 stacks of Battle "
+            "Born applied to your Wound Rolls.\n"
+            "(7)-[Automatic]: Upon leaving this Transformation, you suffer "
+            "from the Impediment Combat Condition for the remainder of the "
+            "Combat Encounter.\n"
+            "(8)-[Triggered, 1/Round]: If you spend a stack(s) of Battle "
+            "Born through any effects, regain Life and Ki Points equal to "
+            "your Primal Force.\n"
+            "(9)-[Triggered, 1/Encounter]: If you use your Multiplicative "
+            "Technique while below the Injured Health Threshold, before you "
+            "apply any other [Triggered] effects in response to that "
+            "Attacking Maneuver, you may gain a stack of Battle Born in each "
+            "Combat Roll.",
+      ),
+      TransformationTrait(
+        name: "Primal Hunger (Legendary Trait)",
+        description: "Beyond seeking battle, the Saiyan blood within you "
+            "boils over and seeks the destruction of your enemies.\n"
+            "(1)-[Triggered, 1/Round]: If you would enter the Raging or "
+            "Superior State through an effect (except that of an Aspect), "
+            "you may instead enter the Bloodlusted Special State for the "
+            "duration listed for that effect.",
+      ),
+      TransformationTrait(
+        name: "Bloodlusted (Special State)",
+        description: "(1)-[Passive]: Apply your Tier of Power Extra Dice an "
+            "additional time to your Wound Rolls, ignoring the Tier of Power "
+            "Limit (see — Core Rules).\n"
+            "(2)-[Triggered, 1/Round]: When making an Attacking Maneuver, "
+            "you may spend a stack of Battle Born to apply an Energy Charge "
+            "to that Attacking Maneuver.\n"
+            "(3)-[Triggered, 1/Round]: If you are hit by an Attacking "
+            "Maneuver, you may spend a stack of Battle Born to use the Basic "
+            "Attack Maneuver or Signature Technique Maneuver as an "
+            "Out-of-Sequence Maneuver.\n"
+            "(4)-[Triggered, 1/Round]: If you Defeat or knock an Opponent "
+            "through a Health Threshold with an Attacking Maneuver, gain a "
+            "stack of Battle Born.\n"
+            "(5)-[Triggered, 1/Encounter]: If you Defeat an Opponent with "
+            "one of your Attacking Maneuvers and trigger the 4th effect of "
+            "Bloodlusted, instead of gaining a single stack of Battle Born, "
+            "you may apply a stack of Battle Born to each Combat Roll.",
+      ),
+    ],
+    masteryTrait: TransformationTrait(
+      name: "Primal Focus",
+      description: "You have learned to harness the inner beast, no longer "
+          "losing yourself to your bloodlust.\n"
+          "(1)-[Permanent]: Super Saiyan 5 loses the Draining, Exhausting, "
+          "Straining Aspects, and gains access to the Innate State (Mindful) "
+          "Aspect.\n"
+          "(2)-[Permanent]: Ignore the 1st and 7th effects of Primal "
+          "Aggression.\n"
+          "(3)-[Passive]: While you possess 6+ stacks of Battle Born applied "
+          "to your Wound Rolls, increase your Combat Rolls and Surgency by "
+          "1(T).\n"
+          "(4)-[Passive]: Ignore the 2nd effect for the first Levels of the "
+          "Mindful and Raging States.\n"
+          "(5)-[1/Round]: Spend a stack of Battle Born to use the Power Up "
+          "Maneuver as an Instant Maneuver.\n"
+          "(6)-[1/Round]: Spend 2 stacks of Battle Born to use a Healing "
+          "Surge as an Instant Maneuver.\n"
+          "(7)-[Triggered, 1/Encounter]: If you use your Multiplicative "
+          "Technique while you are below the Injured Health Threshold, you "
+          "may apply either the All-Out Super Profile or the Complete "
+          "Annihilation Super Profile to that Attacking Maneuver.",
     ),
   ),
 ];

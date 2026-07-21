@@ -14,6 +14,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/changelog.dart';
 import '../data/homebrew_registry.dart';
 import '../models/character.dart';
 import '../models/homebrew.dart';
@@ -22,6 +23,7 @@ import '../services/character_repository.dart';
 import '../services/file_transfer_service.dart';
 import '../services/homebrew_repository.dart';
 import '../services/import_export_service.dart';
+import 'changelog_screen.dart';
 import 'character_edit_screen.dart';
 import 'widgets/multi_select_dialog.dart';
 
@@ -81,22 +83,22 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
     final isNew = character == null;
     final working = character?.copy() ?? Character.blank(_newId());
 
-    final saved = await Navigator.of(context).push<Character>(
+    // The editor persists in-place via [onSave] (Save no longer closes the
+    // page), so nothing needs to come back through the pop result — the roster
+    // is already refreshed by the time the editor closes.
+    await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => CharacterEditScreen(
           character: working,
           isNew: isNew,
+          onSave: (c) async {
+            await widget.repository.upsert(c);
+            _selectedId = c.id;
+            await _refresh();
+          },
         ),
       ),
     );
-
-    // The editor returns the character to persist, or null if the user backed
-    // out without saving.
-    if (saved != null) {
-      await widget.repository.upsert(saved);
-      _selectedId = saved.id;
-      await _refresh();
-    }
   }
 
   /// Confirms and deletes a character.
@@ -466,6 +468,13 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             tooltip: 'Import character(s)',
             icon: const Icon(Icons.download),
             onPressed: _importCharacter,
+          ),
+          IconButton(
+            tooltip: "What's new (v$currentVersion)",
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ChangelogScreen()),
+            ),
           ),
         ],
       ),

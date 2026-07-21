@@ -2969,7 +2969,12 @@ abstract final class CharacterCalculator {
     if (c.race == 'Custom Species') {
       result.addAll(customSpeciesActiveTraits(c));
     } else {
-      for (final trait in raceTraitsFor(c.race)) {
+      // Official Traits plus any authored directly on a homebrew Race —
+      // both flow through the same Factor-swap / deactivation machinery.
+      for (final trait in [
+        ...raceTraitsFor(c.race),
+        ...HomebrewRegistry.raceTraitDefsFor(c.race),
+      ]) {
         FactorSelection? selection;
         for (final s in c.factorSelections) {
           if (s.replacedTraitName == trait.name) {
@@ -3086,8 +3091,12 @@ abstract final class CharacterCalculator {
         return auto.coefficient * c.powerStacks * scale;
       case TraitMagnitudeKind.perNamedResourceStack:
         final stacks = namedResourceStacks(c, auto.resourceName!);
-        // fractionDenominator supports "for every 2 stacks of X" wordings.
-        return auto.coefficient * (stacks ~/ auto.fractionDenominator) * scale;
+        // fractionDenominator supports "for every 2 stacks of X" wordings;
+        // roundUp covers "1/2 (rounded up) of your stacks of X".
+        final stackFrac = auto.roundUp
+            ? (stacks / auto.fractionDenominator).ceil()
+            : stacks ~/ auto.fractionDenominator;
+        return auto.coefficient * stackFrac * scale;
       case TraitMagnitudeKind.perPowerLevel:
         return auto.coefficient * c.powerLevel * scale;
       case TraitMagnitudeKind.perNamedTransformationStack:
@@ -3241,11 +3250,13 @@ abstract final class CharacterCalculator {
           .expand((option) => option.automation);
 
   /// The catalogue `TalentDef` for each of the character's recorded
-  /// `TalentEntry`s, skipping any whose name doesn't match a known Talent
-  /// (freeform/homebrew entries, or stale data) — those simply contribute no
+  /// `TalentEntry`s — official catalogue first, then homebrew Talents (see
+  /// `HomebrewRegistry.resolveTalentDef`) — skipping any whose name matches
+  /// neither (freeform entries, or stale data): those simply contribute no
   /// automated effect, same tolerance as `_factorTraitFor`.
-  static Iterable<TalentDef> activeTalentDefs(Character c) =>
-      c.talents.map((t) => talentByName(t.name)).whereType<TalentDef>();
+  static Iterable<TalentDef> activeTalentDefs(Character c) => c.talents
+      .map((t) => HomebrewRegistry.resolveTalentDef(t.name))
+      .whereType<TalentDef>();
 
   /// Sums every recorded Talent's automated effect per Affected Stat (see
   /// `TalentDef.isAutomated`) — same additive pipeline as Custom
@@ -3270,12 +3281,23 @@ abstract final class CharacterCalculator {
   /// The definitions for every ACTIVE homebrew this character possesses,
   /// resolved by name against the runtime registry. Selections naming homebrew
   /// that isn't in the library are silently skipped here (and surfaced to the
-  /// player by [unresolvedHomebrewNames]).
-  static Iterable<HomebrewEntry> activeHomebrew(Character c) => c
-      .homebrewSelections
-      .where((s) => s.active)
-      .map((s) => HomebrewRegistry.byName(s.name))
-      .whereType<HomebrewEntry>();
+  /// player by [unresolvedHomebrewNames]). A homebrew Talent that is ALSO on
+  /// the character's Talents list is skipped too — it already applies through
+  /// the Talent pipeline ([activeTalentDefs]), so nothing may double-count.
+  static Iterable<HomebrewEntry> activeHomebrew(Character c) sync* {
+    for (final s in c.homebrewSelections) {
+      if (!s.active) continue;
+      final entry = HomebrewRegistry.byName(s.name);
+      if (entry == null) continue;
+      if (entry.category == HomebrewCategory.talent &&
+          c.talents.any((t) =>
+              t.name.trim().toLowerCase() ==
+              entry.name.trim().toLowerCase())) {
+        continue;
+      }
+      yield entry;
+    }
+  }
 
   /// Names the character has selected that no longer resolve to a homebrew
   /// definition — e.g. an imported character referencing homebrew the player
