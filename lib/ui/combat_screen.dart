@@ -1934,6 +1934,13 @@ class _CombatScreenState extends State<CombatScreen>
             note: 'You cannot use any Special Maneuvers until you have '
                 'gained access to them through an effect.',
           ),
+          _maneuverGroup(
+            'God Maneuvers',
+            kDbuGodManeuvers,
+            note: 'God Maneuvers are only available to those with access to '
+                'Divine Ki Points. They must be gained through a Trait, and '
+                'spend Divine Ki Points (DKP) to use.',
+          ),
           if (_maneuverQuery.isNotEmpty && !_anyManeuverMatches())
             Padding(
               padding: const EdgeInsets.only(top: 4),
@@ -1967,6 +1974,7 @@ class _CombatScreenState extends State<CombatScreen>
         ...kDbuCounterManeuvers,
         ...kDbuModifierManeuvers,
         ...kDbuSpecialManeuvers,
+        ...kDbuGodManeuvers,
       ].any(_maneuverMatches);
 
   Widget _maneuverGroup(String title, List<ManeuverDef> maneuvers,
@@ -2011,7 +2019,7 @@ class _CombatScreenState extends State<CombatScreen>
     final costLine = [
       if (m.maneuverType != null) m.maneuverType!,
       m.actionCost,
-      'KP: ${_annotate(m.kpCost)}',
+      '${m.costLabel}: ${_annotate(m.kpCost)}',
       if (m.limit != null) m.limit!,
       if (m.isSpecialModifier) 'Special Modifier',
     ].join(' · ');

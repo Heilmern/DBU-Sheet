@@ -49,6 +49,7 @@ library;
 import 'dbu_rules.dart';
 import 'race_traits.dart';
 import 'transformations.dart';
+import 'apparel.dart' show ApparelCategory;
 
 /// Shared Attribute Modifier Bonus for the racial "Power" Forms and other
 /// `Variant (Power Boost)` Forms — AG/FO/TE/IN/MA +1(T), no SC/PE.
@@ -2612,6 +2613,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Difficult (LV1)",
       "Long Transformation (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.armor,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Durable'],
+    ),
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -5897,6 +5903,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Battle Uniform",
       "Draining (LV2)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+      qualityNames: ['Divine Apparel', 'Enchanted'],
+    ),
     amb: _legendary4Amb,
     traits: [
       TransformationTrait(
@@ -7146,8 +7157,9 @@ const List<TransformationDef> kDbuAlternateForms = [
                 description: '(1)-[Permanent]: Super Form gains the Super '
                     'Saiyan Form, Glowing, and Light Dependent Aspects. '
                     '(2)-[Mastery, Passive]: Increase the Dice Score for your '
-                    'Duel Clashes by 1(T). (3)-[Mastery, Triggered/Transform]: '
-                    'Use a Ki Surge as an Out-of-Sequence Maneuver.',
+                    'Duel Clashes by 1(T). (3)-[Mastery, Triggered/Transform, '
+                    '1/Encounter]: Use a Ki Surge as an Out-of-Sequence '
+                    'Maneuver.',
               ),
               TraitOption(
                 name: 'Survival Form',
@@ -7242,6 +7254,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Difficult (LV1)",
       "Long Transformation (LV2)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.standardClothing,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Durable'],
+    ),
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -10310,6 +10327,10 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Dedicated",
       "Difficult (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+    ),
     amb: _legendary6Amb,
     traits: [
       TransformationTrait(
@@ -10493,6 +10514,10 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Draining (LV2)",
       "Difficult (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+    ),
     amb: _legendary6Amb,
     traits: [
       TransformationTrait(
@@ -11016,6 +11041,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Battle Uniform",
       "Difficult (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+      qualityNames: ['Combat Ready', 'Divine Apparel'],
+    ),
     amb: _legendary4Amb,
     traits: [
       TransformationTrait(
@@ -11522,7 +11552,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Generic. Original Form is Mastered. Tier "
         "of Power Requirement: +1 higher than Original Form. Stress Test "
         "Requirement: +2.",
-    aspects: ["Draining (LV1)", "Peaked"],
+    aspects: ["Pinnacle (LV2)", "Draining (LV1)", "Peaked"],
     amb: {
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -11539,6 +11569,39 @@ const List<TransformationDef> kDbuAlternateForms = [
             "Attacking Maneuver that has a Ki Wager equal to or exceeding 1/4 "
             "of your Max Capacity, apply an Energy Charge to that Attacking "
             "Maneuver.",
+      ),
+    ],
+  ),
+
+  // ============================================================== Power Stressed ===
+  TransformationDef(
+    name: "Power Stressed",
+    type: TransformationType.form,
+    formType: FormType.alternate,
+    racialRequirement: "Any",
+    prerequisiteText: "Evolved Stage: Generic. Tier of Power Requirement: Same "
+        "as Original Form. Stress Test Requirement: Same as Original Form.",
+    aspects: [
+      "Pinnacle (LV2)",
+      "Bulky",
+      "Draining (LV2)",
+      "Exhausting",
+      "Peaked",
+      "Weakening",
+    ],
+    amb: {
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "Stressed by Power",
+        description: "Your body is overwhelmed and distorted by the power "
+            "you've flooded into it.\n"
+            "(1)-[Passive]: If your Original Form is Mastered, reduce the "
+            "Muscle Penalty by 1(bT).\n"
+            "(2)-[Passive]: Increase the Ki Point Cost of all your Attacking "
+            "Maneuvers by 2(T).",
       ),
     ],
   ),
@@ -12188,6 +12251,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         "the Original Form does not have a Battle Uniform. Tier of Power "
         "Requirement: Equal to Original Form. Stress Test Requirement: +5.",
     aspects: ["Battle Uniform"],
+    // (3) "The Battle Uniform of this Transformation is the same as that of
+    // Formation." — Standard Clothing, Craftsmanship Grade 4.
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.standardClothing,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Durable'],
+    ),
     amb: {
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -12698,15 +12768,18 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Power Redefined",
         description: "You redistribute your intense power, bringing it to heel "
             "under your control.\n"
-            "(1)-[Passive]: Reduce your Muscle Penalty by 1(bT).\n"
-            "(2)-[Passive]: Increase the maximum number of Battle Born stacks "
+            "(1)-[Permanent]: Condensed Legend is considered to be the "
+            "Legendary Evolved Stage for all of your effects, except the 1st "
+            "effect of Legendary Saiyan.\n"
+            "(2)-[Passive]: Reduce your Muscle Penalty by 1(bT).\n"
+            "(3)-[Passive]: Increase the maximum number of Battle Born stacks "
             "for your Strike and Dodge Rolls by 1.\n"
-            "(3)-[Passive]: While you possess 4+ stacks of Battle Born, "
+            "(4)-[Passive]: While you possess 4+ stacks of Battle Born, "
             "increase your Combat Rolls and Might by 1(T).\n"
-            "(4)-[Passive]: Your Ki Points may exceed your Maximum Ki Points.\n"
-            "(5)-[Triggered/Transform]: This Transformation gains the Growth "
+            "(5)-[Passive]: Your Ki Points may exceed your Maximum Ki Points.\n"
+            "(6)-[Triggered/Transform]: This Transformation gains the Growth "
             "(LV1) Aspect until you leave this Transformation.\n"
-            "(6)-[Triggered/Power]: Regain Ki Points equal to your Might.",
+            "(7)-[Triggered/Power]: Regain Ki Points equal to your Might.",
       ),
       TransformationTrait(
         name: "Sparks of Super Saiyan (Legendary Trait)",

@@ -61,7 +61,51 @@ String get currentVersion => kChangelog.first.version;
 
 /// Every release, NEWEST FIRST. Prepend new entries here.
 const List<ChangelogEntry> kChangelog = [
-    ChangelogEntry(
+  ChangelogEntry(
+    version: '0.1.2',
+    date: '22 Jul 2026',
+    headline: 'Site sync, Battle Uniform automation, and Transformation '
+        'customisation.',
+    changes: [
+      ChangelogChange(ChangeKind.added,
+          'Battle Uniforms now auto-equip when you enter a Transformation that '
+          'grants one — their Grade and Category feed your derived stats '
+          '(Damage Reduction, Defense, etc.), and your manual Apparel is '
+          'suppressed while in effect. The Apparel screen lists the '
+          'auto-equipped uniform.'),
+      ChangelogChange(ChangeKind.added,
+          'Aspect customisation: you can now add your own Aspects to a '
+          'Transformation, or disable any of its catalogue Aspects — both '
+          'drive the same automation as catalogue Aspects. Each Transformation '
+          'now has a "Customise" panel holding both the Attribute (AMB) and '
+          'Aspect customisation.'),
+      ChangelogChange(ChangeKind.added,
+          'Added the 12 God Maneuvers (God Ki) as a new group in the combat '
+          'tracker.'),
+      ChangelogChange(ChangeKind.added,
+          'Added the Manipulation Sorcery Unique Ability and the full set of '
+          'Warlock Wizarding Traits (Baneful Black Magic, Elemental Expert, '
+          'Magic Touch, Magical Manipulation, Marvelous Magic, Mighty Magic, '
+          'Wondrous White Magic).'),
+      ChangelogChange(ChangeKind.added,
+          'Added the Power Stressed Form, and the Pinnacle (LV2) Aspect to '
+          'Full Power and Tuffleized Form.'),
+      ChangelogChange(ChangeKind.changed,
+          'Majin Mark is now a Greater Awakening and has been buffed '
+          '(Prince of Destruction).'),
+      ChangelogChange(ChangeKind.changed,
+          'Evil Saiyan reworked: Dark Saiya Power now inflicts the Berserk '
+          'Special State, and the Aura Tail Special Maneuver is fully listed.'),
+      ChangelogChange(ChangeKind.changed,
+          'Synced Condensed Legend, Super Saiyan Wannabe (Ki Surge), Throwing '
+          'Technique, Primal Connection and Hero\'s Enough Games with the '
+          'site.'),
+      ChangelogChange(ChangeKind.changed,
+          'Bad Batch of Animorphaline now permanently grants the Beast-Man '
+          'Factor.'),
+    ],
+  ),
+  ChangelogEntry(
     version: '0.1.1',
     date: '21 Jul 2026',
     headline: 'First public testing build of Universal Scouter — the '

@@ -539,11 +539,26 @@ abstract final class CharacterCalculator {
   /// Every Aspect label carried by a Transformation currently in effect
   /// (Awakenings always; Enhancements/Forms while ACTIVE), resolved against
   /// the Aspects catalogue.
+  /// The effective Aspect labels for one owned Transformation: its catalogue
+  /// Aspects minus any the player disabled ([TransformationSelection.
+  /// removedAspects]), plus any the player added ([customAspects]).
+  static List<String> effectiveAspectLabels(
+    TransformationDef def,
+    TransformationSelection sel,
+  ) {
+    final removed = sel.removedAspects.toSet();
+    return [
+      for (final a in def.aspects)
+        if (!removed.contains(a)) a,
+      ...sel.customAspects,
+    ];
+  }
+
   static Iterable<ResolvedAspect> activeAspects(Character c) sync* {
     for (final o in ownedTransformations(c)) {
       final on = o.def.type == TransformationType.awakening || o.sel.active;
       if (!on) continue;
-      for (final label in o.def.aspects) {
+      for (final label in effectiveAspectLabels(o.def, o.sel)) {
         yield resolveAspect(label);
       }
     }
@@ -584,7 +599,7 @@ abstract final class CharacterCalculator {
     for (final o in ownedTransformations(c)) {
       final on = o.def.type == TransformationType.awakening || o.sel.active;
       if (!on) continue;
-      for (final label in o.def.aspects) {
+      for (final label in effectiveAspectLabels(o.def, o.sel)) {
         final r = resolveAspect(label);
         switch (r.def?.name) {
           case 'Enhanced Save':
@@ -1705,7 +1720,7 @@ abstract final class CharacterCalculator {
   /// Standard Clothing's "does not inflict Apparel Penalties" is treated the
   /// same way.
   static int apparelPenalty(Character c) {
-    final counting = c.apparel
+    final counting = effectiveApparel(c)
         .where((p) => apparelIsActive(p) && _apparelCountsTowardPenalty(p))
         .length;
     if (counting <= 1) return 0;
@@ -1713,12 +1728,75 @@ abstract final class CharacterCalculator {
     return (counting - 1) * perExtra;
   }
 
+  /// The Battle Uniforms currently in effect — one synthesized [ApparelPiece]
+  /// per owned Transformation that carries the "Battle Uniform" Aspect and is
+  /// in effect (an Awakening always, or an active Enhancement/Form). Each is a
+  /// worn, Top-Layer piece with the implicit Stretching Quality plus its
+  /// automatable Qualities. Enhancement-sourced uniforms are returned first, so
+  /// callers can honour the verbatim priority rule ("apply the Grade and
+  /// Category from the non-Transcended Enhancement's Battle Uniform").
+  static List<ApparelPiece> _activeBattleUniforms(Character c) {
+    final enh = <ApparelPiece>[];
+    final other = <ApparelPiece>[];
+    for (final o in ownedTransformations(c)) {
+      final inEffect =
+          o.def.type == TransformationType.awakening || o.sel.active;
+      if (!inEffect) continue;
+      final bu = o.def.battleUniform;
+      if (bu == null) continue;
+      final piece = ApparelPiece(
+        name: '${o.def.name} Battle Uniform',
+        category: bu.category,
+        craftsmanshipGrade: bu.craftsmanshipGrade,
+        worn: true,
+        layer: WornLayer.top,
+        qualities: [
+          ApparelQualitySelection(name: 'Stretching'),
+          for (final q in bu.qualityNames) ApparelQualitySelection(name: q),
+        ],
+      );
+      (o.def.type == TransformationType.enhancement ? enh : other).add(piece);
+    }
+    return [...enh, ...other];
+  }
+
+  /// The Apparel the calculator actually scores. While a Battle Uniform is in
+  /// effect you "lose access to your current Apparel" (Battle Uniform Aspect),
+  /// so the manual [Character.apparel] is replaced by the single active Battle
+  /// Uniform (only one Grade/Category applies at a time — an Enhancement's
+  /// takes priority over a Form's/Transcended Enhancement's). Natural Armor is
+  /// integrated into the body and is kept. When no Battle Uniform is active,
+  /// this is just [Character.apparel].
+  static List<ApparelPiece> effectiveApparel(Character c) {
+    final bus = _activeBattleUniforms(c);
+    if (bus.isEmpty) return c.apparel;
+    return [
+      ...c.apparel.where((p) => p.isNaturalArmor),
+      bus.first,
+    ];
+  }
+
+  /// The Battle Uniform(s) currently in effect, each paired with the name of
+  /// the Transformation granting it — for display. The calculator auto-equips
+  /// the highest-priority one (see [effectiveApparel]); when more than one is
+  /// listed, only the first actually applies its Grade/Category.
+  static Iterable<({String source, BattleUniformDef uniform})>
+      activeBattleUniforms(Character c) sync* {
+    for (final o in ownedTransformations(c)) {
+      final inEffect =
+          o.def.type == TransformationType.awakening || o.sel.active;
+      if (!inEffect) continue;
+      final bu = o.def.battleUniform;
+      if (bu != null) yield (source: o.def.name, uniform: bu);
+    }
+  }
+
   /// Total Damage Reduction granted by worn Armor. CONFIRMED (verbatim: "Armor.
   /// Gain Damage Reduction equal to the Apparel Bonus" while it's the Top Layer;
   /// Sleek Design halves it). Feeds the Damage Calculator.
   static int apparelDamageReduction(Character c) {
     var total = 0;
-    for (final piece in c.apparel) {
+    for (final piece in effectiveApparel(c)) {
       if (!apparelIsActive(piece) || piece.category != ApparelCategory.armor) {
         continue;
       }
@@ -1755,7 +1833,7 @@ abstract final class CharacterCalculator {
       AffectedStat.woundMagic,
     ];
 
-    for (final piece in c.apparel) {
+    for (final piece in effectiveApparel(c)) {
       if (!apparelIsActive(piece)) continue;
       final bonus = apparelBonus(c, piece);
 

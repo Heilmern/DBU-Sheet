@@ -725,10 +725,11 @@ class TransformationsTab extends StatelessWidget {
             const SizedBox(height: 8),
             _stateControls(context, sel, def),
 
-            // --- Aspects ---
-            if (def.aspects.isNotEmpty) _aspectsBlock(context, def),
+            // --- Aspects (catalogue + player-added) ---
+            if (def.aspects.isNotEmpty || sel.customAspects.isNotEmpty)
+              _aspectsBlock(context, sel, def),
 
-            // --- Attribute Modifier Bonus ---
+            // --- Attribute Modifier Bonus (summary) ---
             const SizedBox(height: 8),
             Text(
               'Attribute Modifier Bonus: $ambText',
@@ -736,7 +737,9 @@ class TransformationsTab extends StatelessWidget {
                 color: theme.colorScheme.primary,
               ),
             ),
-            _customAmbEditor(context, sel, def),
+
+            // --- Customise (Attributes & Aspects) ---
+            _customisePanel(context, sel, def),
 
             // --- Traits (situational; applied while this Form/Enhancement
             //     is active) ---
@@ -1317,9 +1320,16 @@ class TransformationsTab extends StatelessWidget {
   /// Form / Perfect Ki Control / Armored) is auto-applied while the
   /// Transformation is in effect — see `CharacterCalculator.aspectTotals`;
   /// the rest is for the player to apply (see `data/aspects.dart`).
-  Widget _aspectsBlock(BuildContext context, TransformationDef def) {
+  Widget _aspectsBlock(
+    BuildContext context,
+    TransformationSelection sel,
+    TransformationDef def,
+  ) {
     final theme = Theme.of(context);
-    final resolved = [for (final a in def.aspects) resolveAspect(a)];
+    final resolved = [
+      for (final a in CharacterCalculator.effectiveAspectLabels(def, sel))
+        resolveAspect(a),
+    ];
 
     Color chipColor(ResolvedAspect r) {
       if (r.def == null) return theme.colorScheme.surfaceContainerHighest;
@@ -1421,6 +1431,178 @@ class TransformationsTab extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// A collapsible "Customise" panel gathering the player-authored overrides
+  /// for one Transformation — its custom Attribute Modifier Bonus and its
+  /// custom Aspects. Both feed the calculator exactly like the catalogue data.
+  Widget _customisePanel(
+    BuildContext context,
+    TransformationSelection sel,
+    TransformationDef def,
+  ) {
+    final theme = Theme.of(context);
+    final count = sel.customAmb.length +
+        sel.customAspects.length +
+        sel.removedAspects.length;
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(left: 4, bottom: 8),
+        dense: true,
+        initiallyExpanded: count > 0,
+        leading: Icon(Icons.tune, size: 18, color: theme.colorScheme.primary),
+        title: Text(
+          count > 0 ? 'Customise ($count)' : 'Customise',
+          style: theme.textTheme.labelMedium
+              ?.copyWith(color: theme.colorScheme.primary),
+        ),
+        subtitle:
+            Text('Attributes & Aspects', style: theme.textTheme.labelSmall),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Attribute Modifier Bonus',
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+          _customAmbEditor(context, sel, def),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Aspects',
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+          _customAspectEditor(context, sel, def),
+        ],
+      ),
+    );
+  }
+
+  /// Player-authored Aspect editor. Lets the player add an Aspect a Trait or
+  /// GM ruling grants that the app can't auto-detect (or an "Aspect of your
+  /// choice") — the added Aspects merge into the effective Aspects and drive
+  /// the same automation as the catalogue ones (Enhanced Save, Raging/Mindful,
+  /// High Speed, Super Saiyan Form Ki multiplier, Armored DR, etc.).
+  Widget _customAspectEditor(
+    BuildContext context,
+    TransformationSelection sel,
+    TransformationDef def,
+  ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Catalogue Aspects — toggle any off to drop its automation.
+          if (def.aspects.isNotEmpty) ...[
+            Text('Catalogue Aspects (tap to disable / enable)',
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(fontStyle: FontStyle.italic)),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final a in def.aspects)
+                  _catalogueAspectChip(context, sel, a),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          // Player-added Aspects.
+          if (sel.customAspects.isNotEmpty) ...[
+            Text('Added Aspects',
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(fontStyle: FontStyle.italic)),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final label in List<String>.from(sel.customAspects))
+                  InputChip(
+                    label: Text(label),
+                    visualDensity: VisualDensity.compact,
+                    labelStyle: theme.textTheme.labelSmall,
+                    backgroundColor: theme.colorScheme.tertiaryContainer,
+                    onDeleted: () =>
+                        _update(() => sel.customAspects.remove(label)),
+                  ),
+              ],
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add Aspect'),
+              onPressed: () => _addCustomAspect(context, sel, def),
+            ),
+          ),
+          if (def.type != TransformationType.awakening && !sel.active)
+            Text(
+              'Applies only while this Transformation is Active.',
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(fontStyle: FontStyle.italic),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// A toggle chip for a catalogue Aspect: selected = active, unselected =
+  /// disabled (added to [TransformationSelection.removedAspects], its label
+  /// struck through and its automation dropped).
+  Widget _catalogueAspectChip(
+    BuildContext context,
+    TransformationSelection sel,
+    String aspect,
+  ) {
+    final theme = Theme.of(context);
+    final disabled = sel.removedAspects.contains(aspect);
+    return FilterChip(
+      selected: !disabled,
+      visualDensity: VisualDensity.compact,
+      showCheckmark: false,
+      label: Text(
+        aspect,
+        style: theme.textTheme.labelSmall?.copyWith(
+          decoration: disabled ? TextDecoration.lineThrough : null,
+          color: disabled ? theme.colorScheme.onSurfaceVariant : null,
+        ),
+      ),
+      onSelected: (on) => _update(() {
+        if (on) {
+          sel.removedAspects.remove(aspect);
+        } else if (!sel.removedAspects.contains(aspect)) {
+          sel.removedAspects.add(aspect);
+        }
+      }),
+    );
+  }
+
+  /// Opens the Aspect picker and appends the chosen Aspect label to this
+  /// Transformation's [TransformationSelection.customAspects] (deduped against
+  /// the catalogue and already-added Aspects, case-insensitively).
+  Future<void> _addCustomAspect(
+    BuildContext context,
+    TransformationSelection sel,
+    TransformationDef def,
+  ) async {
+    final existing = {...def.aspects, ...sel.customAspects}
+        .map((s) => s.toLowerCase())
+        .toSet();
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (_) => _AspectPickerDialog(exclude: existing),
+    );
+    final label = chosen?.trim() ?? '';
+    if (label.isEmpty || existing.contains(label.toLowerCase())) return;
+    _update(() => sel.customAspects.add(label));
   }
 
   /// Player-authored Attribute Modifier Bonus editor. Lets the player pick
@@ -1630,6 +1812,125 @@ class _TransformationPickerDialogState
                           ),
                       ],
                     ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Picks an Aspect to add to a Transformation. Searches the Aspects catalogue
+/// (name + summary) and also allows any free-text label (for parameterized
+/// Aspects like "Enhanced Save (Morale)"). Pops the chosen label, or null on
+/// cancel. Already-present Aspects (via [exclude]) are hidden from the list.
+class _AspectPickerDialog extends StatefulWidget {
+  const _AspectPickerDialog({required this.exclude});
+
+  /// Lower-cased labels already on the Transformation (catalogue + custom).
+  final Set<String> exclude;
+
+  @override
+  State<_AspectPickerDialog> createState() => _AspectPickerDialogState();
+}
+
+class _AspectPickerDialogState extends State<_AspectPickerDialog> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final query = _query.trim();
+    final q = query.toLowerCase();
+    final matches = [
+      for (final a in kDbuAspects)
+        if (!widget.exclude.contains(a.name.toLowerCase()) &&
+            (q.isEmpty ||
+                a.name.toLowerCase().contains(q) ||
+                a.summary.toLowerCase().contains(q)))
+          a,
+    ];
+    final canUseRaw = query.isNotEmpty &&
+        !widget.exclude.contains(q) &&
+        !kDbuAspects.any((a) => a.name.toLowerCase() == q);
+
+    return AlertDialog(
+      title: const Text('Add an Aspect'),
+      content: SizedBox(
+        width: 480,
+        height: 480,
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Search or type a label',
+                hintText: 'e.g. Armored, Enhanced Save (Morale)',
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() {
+                          _searchController.clear();
+                          _query = '';
+                        }),
+                      ),
+              ),
+              onChanged: (v) => setState(() => _query = v),
+              onSubmitted: (v) {
+                if (v.trim().isNotEmpty) Navigator.of(context).pop(v.trim());
+              },
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  if (canUseRaw)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.add),
+                      title: Text('Use "$query"'),
+                      subtitle: Text('Add as a custom Aspect label',
+                          style: theme.textTheme.labelSmall),
+                      onTap: () => Navigator.of(context).pop(query),
+                    ),
+                  for (final a in matches)
+                    ListTile(
+                      dense: true,
+                      title: Text(a.name),
+                      subtitle: Text(
+                        a.summary,
+                        style: theme.textTheme.labelSmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => Navigator.of(context).pop(a.name),
+                    ),
+                  if (matches.isEmpty && !canUseRaw)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: Text('No matching Aspects.')),
+                    ),
+                ],
+              ),
             ),
           ],
         ),

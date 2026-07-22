@@ -2103,7 +2103,7 @@ void main() {
       // 100 TransformationDefs. Every entry is a Form. (+5 on 20 Jul 2026:
       // Barrier Form, Berserk Controlled, Super Saiyan 5, and the
       // previously-missed Legendary [Evolved Stage] + Legendary Oozaru.)
-      expect(kDbuAlternateForms.length, 152);
+      expect(kDbuAlternateForms.length, 153);
       expect(kDbuAlternateForms.every((f) => f.type == TransformationType.form),
           isTrue);
       // Racial "Power" Forms, Evolved Stages, and pinnacle Legendaries.
@@ -2129,7 +2129,7 @@ void main() {
       // Evolved Stages are detected from prerequisiteText; there are 18.
       final evolved =
           kDbuAlternateForms.where((f) => f.isEvolvedStage).toList();
-      expect(evolved.length, 52);
+      expect(evolved.length, 53);
       expect(alternateFormByName('Ascended Super Saiyan')!.isEvolvedStage,
           isTrue);
       expect(alternateFormByName('Super Saiyan')!.isEvolvedStage, isFalse);
@@ -2294,8 +2294,8 @@ void main() {
 
   group('Awakening catalogues (Lesser / Greater / Super)', () {
     test('each catalogue has the expected size and awakeningType', () {
-      expect(kDbuLesserAwakenings.length, 125);
-      expect(kDbuGreaterAwakenings.length, 62);
+      expect(kDbuLesserAwakenings.length, 124);
+      expect(kDbuGreaterAwakenings.length, 63);
       expect(kDbuSuperAwakenings.length, 35);
       expect(
           kDbuLesserAwakenings
@@ -2532,6 +2532,49 @@ void main() {
           basePe2 + 4);
     });
 
+    test('a custom Aspect drives its automation while Active, and round-trips '
+        'through JSON', () {
+      final c = Character.blank('casp')
+        ..race = 'Saiyan'
+        ..powerLevel = 10; // ToP 3
+      final sel = TransformationSelection(name: 'Super Saiyan', active: true);
+      c.transformations.add(sel);
+      int morale() => CharacterCalculator.compute(c)
+          .savingThrows[DbuSavingThrow.morale]!
+          .total;
+      final without = morale();
+      // Add "Enhanced Save (Morale)" — grants +1(T) = +3 to the Morale Save.
+      sel.customAspects.add('Enhanced Save (Morale)');
+      expect(morale(), without + 3);
+      // Not applied while the Form is inactive.
+      sel.active = false;
+      expect(morale(), without);
+      // Survives a JSON round-trip.
+      final revived = Character.fromJson(c.toJson());
+      expect(revived.transformations.single.customAspects,
+          ['Enhanced Save (Morale)']);
+    });
+
+    test('disabling a catalogue Aspect drops its automation', () {
+      final c = Character.blank('rasp')
+        ..race = 'Saiyan'
+        ..powerLevel = 10; // ToP 3
+      // Demon God carries "Enhanced Save (Impulsive/Cognitive/Morale)".
+      final sel = TransformationSelection(name: 'Demon God', active: true);
+      c.transformations.add(sel);
+      int morale() => CharacterCalculator.compute(c)
+          .savingThrows[DbuSavingThrow.morale]!
+          .total;
+      final withAspect = morale();
+      // Disable the Enhanced Save Aspect → the +1(T) Morale bonus is dropped.
+      sel.removedAspects.add('Enhanced Save (Impulsive/Cognitive/Morale)');
+      expect(morale(), withAspect - 3);
+      // Re-enabling restores it, and it round-trips through JSON.
+      final revived = Character.fromJson(c.toJson());
+      expect(revived.transformations.single.removedAspects,
+          ['Enhanced Save (Impulsive/Cognitive/Morale)']);
+    });
+
     test('a Transformation AMB to Force flows into Might, Wound and Surgency, '
         'but NOT Saving Throws (those use the raw Score)', () {
       final c = Character.blank('tr6')
@@ -2624,6 +2667,31 @@ void main() {
       armor.worn = true;
       armor.breakValue = 0; // broken
       expect(CharacterCalculator.apparelDamageReduction(c), 0);
+    });
+
+    test('a Battle Uniform auto-equips while its Transformation is active and '
+        'suppresses manual Apparel', () {
+      final c = Character.blank('bu1')..powerLevel = _plForTop(3); // baseTop 3
+      // Mode Change grants an Armor Battle Uniform (Grade 4 = Standard = 2(bT)).
+      final sel = TransformationSelection(name: 'Mode Change', active: false);
+      c.transformations.add(sel);
+      // Inactive Form → no Battle Uniform, no Damage Reduction.
+      expect(CharacterCalculator.apparelDamageReduction(c), 0);
+      // Active → the Armor Battle Uniform grants DR = Apparel Bonus = 2 x 3.
+      sel.active = true;
+      expect(CharacterCalculator.apparelDamageReduction(c), 6);
+      // A manually-worn piece is suppressed while the Battle Uniform is active
+      // (you "lose access to your current Apparel").
+      c.apparel.add(ApparelPiece(
+        craftsmanshipGrade: 5, // High = 3(bT) → DR 9 if it counted
+        category: ApparelCategory.armor,
+        worn: true,
+        layer: WornLayer.top,
+      ));
+      expect(CharacterCalculator.apparelDamageReduction(c), 6);
+      // Leaving the Form restores access to the manual Armor.
+      sel.active = false;
+      expect(CharacterCalculator.apparelDamageReduction(c), 9);
     });
 
     test('worn Weights reduce all Combat Rolls by the Apparel Bonus', () {
@@ -3498,13 +3566,16 @@ void main() {
 
     test('catalogue integrity: 69 abilities, unique names, valid costs, '
         'advancement/restriction names unique, locked advancements resolve', () {
-      expect(kDbuUniqueAbilities, hasLength(69));
-      // Awakening-granted abilities (Energy Consumption's three) have no TP
-      // cost on the site ("TP Cost: N/A") — everything else costs TP.
+      expect(kDbuUniqueAbilities, hasLength(70));
+      // Trait/Awakening-granted abilities have no TP cost on the site ("TP
+      // Cost: N/A") — everything else costs TP. (Energy Consumption's three,
+      // plus Manipulation Sorcery from the Magical Manipulation Wizarding
+      // Trait.)
       const granted = {
         'Fire and Flames',
         'Over-Empower',
         'Planetary Consumption',
+        'Manipulation Sorcery',
       };
       final seen = <String>{};
       for (final a in kDbuUniqueAbilities) {
@@ -6625,6 +6696,7 @@ void main() {
       expect(kDbuCounterManeuvers, hasLength(8));
       expect(kDbuModifierManeuvers, hasLength(4));
       expect(kDbuSpecialManeuvers, hasLength(32));
+      expect(kDbuGodManeuvers, hasLength(12));
       final names = kDbuAllManeuvers.map((m) => m.name).toList();
       expect(names.toSet().length, names.length,
           reason: 'duplicate maneuver name');

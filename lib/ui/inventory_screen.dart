@@ -132,6 +132,7 @@ class InventoryTab extends StatelessWidget {
       child: Column(
         children: [
           if (needsNaturalArmor) _buildNaturalArmorHint(context),
+          _buildBattleUniformInfo(context),
           if (_c.apparel.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -207,6 +208,57 @@ class InventoryTab extends StatelessWidget {
 
   /// Shown when a Racial/Factor/Custom-Species Trait grants Natural Armor but
   /// the player hasn't created the piece yet — one tap adds it.
+  /// Read-only panel listing the Battle Uniform(s) auto-equipped by the
+  /// character's in-effect Transformations. While one is active the manual
+  /// Apparel below is suppressed — the uniform's Grade/Category feed the
+  /// derived stats. Renders nothing when no Battle Uniform is in effect.
+  Widget _buildBattleUniformInfo(BuildContext context) {
+    final uniforms = CharacterCalculator.activeBattleUniforms(_c).toList();
+    if (uniforms.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.checkroom,
+                  size: 18, color: theme.colorScheme.onTertiaryContainer),
+              const SizedBox(width: 8),
+              Text('Battle Uniform — auto-equipped',
+                  style: theme.textTheme.labelLarge),
+            ],
+          ),
+          const SizedBox(height: 4),
+          for (final u in uniforms)
+            Text(
+              '${u.source}: ${u.uniform.category.displayName}, '
+              'Craftsmanship Grade ${u.uniform.craftsmanshipGrade}',
+              style: theme.textTheme.bodySmall,
+            ),
+          const SizedBox(height: 2),
+          Text(
+            uniforms.length > 1
+                ? 'While a Battle Uniform is in effect you lose access to your '
+                    'manual Apparel. Only the highest-priority uniform '
+                    "(an Enhancement's) applies its Grade/Category."
+                : 'While in effect you lose access to your manual Apparel; the '
+                    'uniform\'s Grade/Category feed the derived stats.',
+            style: theme.textTheme.labelSmall
+                ?.copyWith(fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNaturalArmorHint(BuildContext context) {
     final theme = Theme.of(context);
     return Container(

@@ -71,8 +71,8 @@ const List<BasicItemDef> kDbuBasicItems = [
         'anthropomorphic animal.',
     effects:
         'Spend an Action to consume this Basic Item and, if you meet the Racial '
-        'Requirement, gain the Beast-Man Factor. You must select the Part-Beast '
-        'Factor Trait, replacing a Secondary Racial Trait of your choice.',
+        'Requirement, permanently gain the Beast-Man Factor. You must select the '
+        'Part-Beast Factor Trait, replacing a Secondary Racial Trait of your choice.',
   ),
   BasicItemDef(
     name: 'Animorphaline (Perfect)',

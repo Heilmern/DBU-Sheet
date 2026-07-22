@@ -354,6 +354,7 @@ class ManeuverDef {
     this.minions,
     this.baseManeuver,
     this.isSpecialModifier = false,
+    this.costLabel = 'KP',
     required this.flavor,
     required this.effect,
   });
@@ -372,7 +373,13 @@ class ManeuverDef {
   final String actionCost;
 
   /// Verbatim "–KP Cost:" line ((T)/(bT) tokens annotated live in the UI).
+  /// For God Maneuvers this holds the "–DKP Cost:" value instead (see
+  /// [costLabel]).
   final String kpCost;
+
+  /// Label shown before [kpCost] in the UI — 'KP' for normal Maneuvers,
+  /// 'DKP' for God Maneuvers (which spend Divine Ki Points).
+  final String costLabel;
 
   /// Verbatim "–Exploitable:" line, when the site lists one.
   final String? exploitable;
@@ -1811,13 +1818,205 @@ const List<ManeuverDef> kDbuSpecialManeuvers = [
   ),
 ];
 
-/// Every Maneuver across all five lists.
+/// God Maneuvers (God Ki page, verbatim). Special Maneuvers only available to
+/// those with access to Divine Ki Points — they must be gained through a
+/// Trait, and spend Divine Ki Points (DKP) to use.
+const List<ManeuverDef> kDbuGodManeuvers = [
+  ManeuverDef(
+    name: 'Divine Attack',
+    kind: ManeuverKind.standard,
+    limit: '1/Round',
+    maneuverType: 'Standard Maneuver',
+    actionCost: '1 Action',
+    costLabel: 'DKP',
+    kpCost: 'Variable',
+    flavor: 'You attack with divine might.',
+    effect: 'Make an Attacking Maneuver as if this was the Basic Attack '
+        'Maneuver. The DKP Cost is equal to the KP Cost of your chosen '
+        'Profile, after applying any reductions from effects, and is paid '
+        'instead of it. This Attacking Maneuver has its Damage Category '
+        'increased by 1 category.',
+  ),
+  ManeuverDef(
+    name: 'Divine Breathing',
+    kind: ManeuverKind.instant,
+    limit: '1/Encounter',
+    maneuverType: 'Instant Maneuver',
+    actionCost: 'N/A',
+    costLabel: 'DKP',
+    kpCost: '5(bT)',
+    flavor: 'You recover health with your godly energy.',
+    effect: 'Regain 5d10(bT) Life Points. This is considered a Healing Surge '
+        'for effects, and applies Surgency.',
+  ),
+  ManeuverDef(
+    name: 'Divine Counter',
+    kind: ManeuverKind.counter,
+    limit: '1/Round',
+    maneuverType: 'Counter Maneuver',
+    actionCost: '1 Counter Action',
+    costLabel: 'DKP',
+    kpCost: '2(T)',
+    flavor: 'Repel an enemy’s attack with holy power.',
+    effect: 'If you are targeted by an Opponent’s Attacking Maneuver, use the '
+        'Basic Attack Maneuver against that Opponent as an Out-of-Sequence '
+        'Maneuver. If this Attacking Maneuver knocks your Opponent through a '
+        'Health Threshold or Defeats them, their Attacking Maneuver is '
+        'canceled. They regain any Ki Points and Capacity Rate spent on that '
+        'Attacking Maneuver, but still lose the Action Cost.',
+  ),
+  ManeuverDef(
+    name: 'Divine Flame',
+    kind: ManeuverKind.standard,
+    limit: '1/Round',
+    actionCost: '1 Action',
+    costLabel: 'DKP',
+    kpCost: '2(bT)',
+    flavor: 'Imbue yourself with divine strength.',
+    effect: 'Gain 2 stacks of Power until the end of your next turn and regain '
+        'Ki Points equal to the Divine Ki Points spent on this Maneuver. This '
+        'Maneuver is considered the Power Up Maneuver for any effects.',
+  ),
+  ManeuverDef(
+    name: 'Divine Flex',
+    kind: ManeuverKind.counter,
+    limit: '1/Round',
+    maneuverType: 'Counter Maneuver',
+    actionCost: '1 Counter Action',
+    costLabel: 'DKP',
+    kpCost: '2(bT)',
+    flavor: 'You can shrug off hits with heavenly grace.',
+    effect: 'If you are targeted by an Opponent’s Attacking Maneuver, reduce '
+        'the Damage Category of that Attacking Maneuver by 1 Category. This '
+        'Maneuver is treated as the Direct Hit option of Defend Maneuver for '
+        'any effects and gains its effects.\n'
+        'If you receive 0 Damage from that Attacking Maneuver, while no other '
+        'effect took the Damage (such as the Barrier Bubble Unique Ability or '
+        'a Ki Entity/Refractive Dragon), reduce that Opponent’s Life Points '
+        'by your Soak Value.',
+  ),
+  ManeuverDef(
+    name: 'Divine Movement',
+    kind: ManeuverKind.instant,
+    limit: '1/Round, 3/Encounter',
+    maneuverType: 'Instant Maneuver',
+    actionCost: 'N/A',
+    costLabel: 'DKP',
+    kpCost: '4(bT)',
+    flavor: 'Dart across the battlefield with divine speed.',
+    effect: 'Move to any Square within range of your Boosted Speed. This '
+        'Movement does not trigger the Exploit Maneuver and is considered the '
+        'Movement Maneuver for any of your effects.',
+  ),
+  ManeuverDef(
+    name: 'Divine Pulse',
+    kind: ManeuverKind.standard,
+    limit: '1/Round',
+    maneuverType: 'Standard Maneuver',
+    actionCost: 'Variable (1~2 Actions)',
+    costLabel: 'DKP',
+    kpCost: '1(bT) for each Action Spent',
+    flavor: 'Give your Transformations a spark of godly might.',
+    effect: 'This Maneuver functions as the Transformation Maneuver and gains '
+        'its effects. For each Action spent on this Maneuver, reduce your '
+        'Stress Bonus by 1 for the duration of this Maneuver, but increase the '
+        'Attribute Modifier Bonus (FO/MA) for the Transformation you are '
+        'attempting to enter by 1(T) until you leave that Transformation.',
+  ),
+  ManeuverDef(
+    name: 'Divine Roar',
+    kind: ManeuverKind.standard,
+    limit: '1/Encounter',
+    maneuverType: 'Standard Maneuver',
+    actionCost: '2 Actions',
+    costLabel: 'DKP',
+    kpCost: '4(bT)',
+    flavor: 'You let out a holy war cry, bringing mortals to their knees in '
+        'awe of your might.',
+    effect: 'Make a Might Clash against all Characters within a Destructive '
+        'Sphere AoE (centered on you). If you win, the losing Character(s) '
+        'gain the Guard Down and Impediment Combat Conditions until the end of '
+        'your next turn. If that Opponent is a Minion (except a Special '
+        'Minion), they are Defeated.',
+  ),
+  ManeuverDef(
+    name: 'God Bind',
+    kind: ManeuverKind.standard,
+    limit: '1/Encounter',
+    maneuverType: 'Standard Maneuver',
+    actionCost: '1 Action',
+    costLabel: 'DKP',
+    kpCost: '4(T)',
+    flavor: 'Restrain your enemies with divine force.',
+    effect: 'Target an Opponent within your Melee Range. Make a Might Clash '
+        'against that Opponent. If you win, they gain the Pinned Combat '
+        'Condition. You must spend 2 Actions at the start of each of your '
+        'turns to maintain the God Bind, if you choose not to, then the '
+        'Character Pinned due to the effects of God Bind is freed.\n'
+        'If an Opponent targets you with an Attacking Maneuver while inside of '
+        'your Melee Range, you may use the God Bind Maneuver, targeting them, '
+        'as an Out-of-Sequence Maneuver by spending 1 Counter Action. If they '
+        'lose the Might Clash, their Attacking Maneuver is canceled and they '
+        'lose any Ki Points and Actions spent on it.',
+  ),
+  ManeuverDef(
+    name: 'God Strike',
+    kind: ManeuverKind.standard,
+    limit: '1/Round',
+    maneuverType: 'Standard Maneuver',
+    actionCost: '1 Action',
+    costLabel: 'DKP',
+    kpCost: 'Varies',
+    flavor: 'Infuse your attacks with extra power thanks to your godly skill.',
+    effect: 'Upon gaining access to this God Maneuver, select a Profile. The '
+        'DKP Cost of this Maneuver equals 1/4 (rounded up) of the KP Cost of '
+        'that Profile. When using this Maneuver, use the Basic Attack Maneuver '
+        'as an Out-of-Sequence Maneuver. Apply the selected Profile to that '
+        'Attacking Maneuver.',
+  ),
+  ManeuverDef(
+    name: 'God Finisher',
+    kind: ManeuverKind.standard,
+    limit: '1/Encounter',
+    maneuverType: 'Standard Maneuver',
+    actionCost: '1 Action',
+    costLabel: 'DKP',
+    kpCost: 'Varies',
+    flavor: 'Annihilate your enemies with a holy smite.',
+    effect: 'Upon gaining access to this God Maneuver, create a Signature '
+        'Technique with a total TP Cost of 50 or less (you do not spend any '
+        'Technique Points) and the Required State (God Ki) Disadvantage. You '
+        'may only use this Signature Technique through the God Finisher '
+        'Maneuver, and the God Finisher Maneuver can only use that Signature '
+        'Technique. The God Finisher Maneuver, otherwise, acts exactly as the '
+        'Signature Technique Maneuver, and is considered the Signature '
+        'Technique Maneuver for any effects. The DKP Cost is equal to the KP '
+        'Cost of that Signature Technique, and is paid instead of it.',
+  ),
+  ManeuverDef(
+    name: 'Holy Transformation',
+    kind: ManeuverKind.standard,
+    limit: '1/Encounter',
+    maneuverType: 'Standard Maneuver',
+    actionCost: '1 Action',
+    costLabel: 'DKP',
+    kpCost: '2(T)',
+    flavor: 'Transform with divine ease.',
+    effect: 'Enter a Transformation with the God Ki Aspect. You do not roll a '
+        'Stress Test for entering the Transformation, but any subsequent '
+        'Stress Tests are rolled as usual. This Maneuver is considered the '
+        'Transformation Maneuver for any effects.',
+  ),
+];
+
+/// Every Maneuver across all six lists.
 List<ManeuverDef> get kDbuAllManeuvers => [
       ...kDbuStandardManeuvers,
       ...kDbuInstantManeuvers,
       ...kDbuCounterManeuvers,
       ...kDbuModifierManeuvers,
       ...kDbuSpecialManeuvers,
+      ...kDbuGodManeuvers,
     ];
 
 // ============================================================================

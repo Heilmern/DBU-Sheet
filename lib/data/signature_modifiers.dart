@@ -896,7 +896,7 @@ const List<SigModifierDef> kDbuSignatureAdvantages = [
     category: SigModifierCategory.miscAdv,
     description: 'This technique allows you to lob an object at your foes.',
     tpCostsPerRank: [5],
-    requirement: 'Simple Profile of the Physical Foundation.',
+    requirement: 'Simple or Combination Profile of the Physical Foundation.',
     effect: 'When you use the Throw Maneuver, you may use this Signature '
         'Technique instead (you still follow the typical range rules for the '
         'Throw Maneuver). This also treats the Throw Maneuver as the Signature '
@@ -905,7 +905,9 @@ const List<SigModifierDef> kDbuSignatureAdvantages = [
         'Technique Maneuver, then you cannot use a Signature Technique through '
         'the Throw Maneuver either. You may only use this Signature Technique '
         'through the effects of the Throw Maneuver while wielding a Weapon with '
-        'the Throwing Weapon Quality.',
+        'the Throwing Weapon Quality, and if this Signature Technique is of the '
+        'Combination Profile, only while wielding a Weapon with the Barrage '
+        'Weapon Weapon Quality.',
   ),
   SigModifierDef(
     name: 'Transformation Flare',

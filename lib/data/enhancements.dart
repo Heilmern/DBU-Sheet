@@ -26,6 +26,7 @@ library;
 import 'dbu_rules.dart';
 import 'race_traits.dart';
 import 'transformations.dart';
+import 'apparel.dart' show ApparelCategory;
 
 /// The 14 selectable "Aura Traits" for Sparking Aura's Strong Aura / Powerful
 /// Aura Traits (both let you "select and gain access to an Aura Trait").
@@ -4212,6 +4213,11 @@ const List<TransformationDef> kDbuEnhancements = [
       'Battle Uniform',
       'Natural (LV1)',
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Combat Ready'],
+    ),
     amb: {
       DbuAttribute.personality:
           TransformationAmb(coefficient: 1, tierScaled: true),
@@ -4232,8 +4238,27 @@ const List<TransformationDef> kDbuEnhancements = [
             'Signature Technique Maneuver as an Out-of-Sequence Maneuver. If '
             'you do, you may use your Personality Modifier as the Damage '
             'Attribute for that Attacking Maneuver.\n'
-            'Battle Uniform: Combat Clothing, Craftsmanship Grade 4 — see the '
-            'site for its full apparel profile.',
+            'Battle Uniform: Combat Clothing, Craftsmanship Grade 4.\n'
+            'Accessories: Flowing Fashion; your choice between Helmet, '
+            'Sunglasses, or Champion Belt (decide upon gaining this '
+            'Enhancement Power — you can change which option you pick by '
+            'spending an hour out of a Combat Encounter choosing a different '
+            'option).\n'
+            "Enough Games: You're done holding back, and have decided to show "
+            'your enemy your full power.\n'
+            '–Effects: When you leave the Hero Enhancement Power, you can '
+            'retain this piece of Apparel until you un-equip it (at which '
+            'point it is destroyed) or it is destroyed (this does not include '
+            'the Accessories). If you do, it can be destroyed like any normal '
+            'piece of Apparel, and it loses all Apparel Qualities except '
+            'Combat Ready and Enough Games.\n'
+            "Combat Ready: This set of clothing gives you such wonderful "
+            "freedom of movement, it's like you're wearing nothing at all.\n"
+            '–Apparel Category: All (Except Weights)\n'
+            '–Prerequisites: N/A\n'
+            '–Quality Slots: 1\n'
+            '–Effects: Increase your Strike and Dodge Rolls by 1/2 (rounded '
+            'up) of your Apparel Bonus.',
         automation: [
           // (2) While Hyped (tracked as a 'Hyped' State): +1(T) Combat Rolls
           // and Soak Value.
@@ -4356,6 +4381,13 @@ const List<TransformationDef> kDbuEnhancements = [
       'Battle Uniform',
       'Natural (LV1)',
     ],
+    // Future Hero inherits the Hero Enhancement's Battle Uniform (Combat
+    // Clothing, Craftsmanship Grade 4).
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Combat Ready'],
+    ),
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -7166,13 +7198,25 @@ const List<TransformationDef> kDbuEnhancements = [
             'through the first effect of Power of Evil.\n'
             '(3)-[1/Round]: As an Instant Maneuver, spend a stack of Battle '
             'Born to regain 5(bT) Evil Points.\n'
-            '(4)-[Triggered, 1/Round]: If a Saiyan hits you with a Physical '
-            'Attack that does not possess an AoE, make a Clash (Cognitive) '
-            'against them. If you win, they gain the Compelled Combat '
-            'Condition with the Character that is closest to them as the '
-            'target (if tied, you decide). This effect does not trigger if '
-            'that Saiyan is in the Mindful State or has an active Shield '
-            'Aura.',
+            '(4)-[Triggered, 1/Round]: If a Saiyan (that is not in the '
+            'Mindful State) hits you with a Physical Attack that does not '
+            'possess an AoE, make a Clash (Cognitive) against them. If you '
+            'win, that Character enters the Berserk Special State.\n'
+            'Berserk Special State:\n'
+            '(1)-[Automatic/Start of Turn, Automatic/Berserk]: Target the '
+            'closest Character who is not in the Berserk State. You gain the '
+            'Compelled Combat Condition with that Character as the target '
+            'until the start of your next turn.\n'
+            '(2)-[Passive]: Reduce your Strike Rolls and Dodge Rolls by '
+            '1(bT).\n'
+            '(3)-[Passive]: You cannot use the Signature Technique Maneuver.\n'
+            '(4)-[Passive]: Increase your Wound Rolls and Soak Value by '
+            '2(T).\n'
+            '(5)-[Triggered, 1/Round]: If you use an Attacking Maneuver, you '
+            'may spend 2(bT) Ki Points to apply an Energy Charge to that '
+            'Attacking Maneuver.\n'
+            '(6)-[Triggered/Threshold]: If you succeed at the Steadfast Check '
+            'for this Health Threshold, leave the Berserk State.',
       ),
       TransformationTrait(
         name: 'Aura Expansion',
@@ -7189,12 +7233,23 @@ const List<TransformationDef> kDbuEnhancements = [
             'Attacking Maneuver or treat your Size Category as if it was 1 '
             'larger for the effects of Punching Down for the duration of that '
             'Attacking Maneuver.\n'
-            'Aura Tail [1/Round] (Standard, 1 Action, KP 4(T)): You gain an '
-            'Aura Tail; while you have it, per your Saiyan Heritage Option — '
-            'Tailed: your Tail cannot be lost (regrown if lost), ignore the '
-            '4th effect of Saiyan Heritage, +1(T) Damage Reduction; Tailless: '
-            'you benefit from both the Tailless and Tailed options — see the '
-            'site.',
+            'Aura Tail Special Maneuver:\n'
+            'Aura Tail [1/Round]: Either by coating your tail in energy or '
+            'creating a phantom tail, you gain the strengths of having a tail '
+            'with none of the weaknesses.\n'
+            '–Maneuver Type: Standard Maneuver\n'
+            '–Action Cost: 1 Action\n'
+            '–Minions: N/A\n'
+            '–KP Cost: 4(T)\n'
+            '–Exploitable: N/A\n'
+            '–Effect: You gain an Aura Tail. While you have an Aura Tail, '
+            'depending on your choice for the Option effect of Saiyan '
+            'Heritage, apply the following effects:\n'
+            'Tailed. Your Tail cannot be lost, is temporarily regrown if it '
+            'was lost, and you ignore the 4th effect of Saiyan Heritage. '
+            'Additionally, increase your Damage Reduction by 1(T).\n'
+            'Tailless. You benefit from both the effects of the Tailless and '
+            'Tailed options of Saiyan Heritage.',
       ),
     ],
     burstLimit: TransformationTrait(

@@ -1930,46 +1930,6 @@ const List<TransformationDef> kDbuLesserAwakenings = [
     ],
   ),
   TransformationDef(
-    name: 'Majin Mark',
-    type: TransformationType.awakening,
-    awakeningType: AwakeningType.lesser,
-    origin: TransformationOrigin.mind,
-    racialRequirement: 'Any',
-    tierOfPowerRequirement: 1,
-    maxStacks: 1,
-    amb: {
-      DbuAttribute.force: TransformationAmb(coefficient: 1),
-      DbuAttribute.tenacity: TransformationAmb(coefficient: 1),
-      DbuAttribute.magic: TransformationAmb(coefficient: 1),
-    },
-    traits: [
-      TransformationTrait(
-        name: 'Prince of Destruction',
-        description: 'Bringing out the power given to you by the darkness '
-            'inside, you manifest greater strength.\n'
-            '(1)-[Passive]: Reduce your Cognitive Save by 1(T).\n'
-            '(2)-[Passive]: Ignore Reduced Momentum.\n'
-            '(3)-[Passive]: Increase the Dice Score of your Steadfast Checks '
-            'by 1.\n'
-            '(4)-[Triggered/Start of Turn]: Reduce your Life Points by 4(bT) '
-            'to increase your Combat Rolls by 1(T) until the start of your '
-            'next turn.\n'
-            '(5)-[Triggered/Power, 1/Encounter]: Reduce your Life Points by '
-            '1/4 of your Maximum to increase your Tier of Power by 1 (see — '
-            'Breakthrough) until the end of your next turn.',
-        automation: [
-          // (1) -1(T) Cognitive Save.
-          RaceTraitAutomation(
-            affectedStats: [AffectedStat.cognitiveSave],
-            coefficient: -1,
-            tierScaling: TierScaling.current,
-          ),
-        ],
-      ),
-    ],
-  ),
-
-  TransformationDef(
     name: 'Martial Skill',
     type: TransformationType.awakening,
     awakeningType: AwakeningType.lesser,
@@ -3188,15 +3148,184 @@ const List<TransformationDef> kDbuLesserAwakenings = [
         description: 'A scholar of the arcane, your magical know-how is '
             'second to none.\n'
             '(1)-[Passive]: You may use your Magic Modifier instead of your '
-            'Force Modifier when calculating Surgency.\n'
+            'Force Modifier when calculating Surgency (see — Surges).\n'
             '(2)-[Passive]: Each time you gain a stack of Warlock, gain '
-            'access to a Wizarding Trait of your choice (Baneful Black '
-            'Magic, Elemental Expert, Magic Touch, Magical Manipulation, '
-            'Marvelous Magic, Mighty Magic, Wondrous White Magic — see the '
-            'site).\n'
-            '(3)-[Triggered/Start of Turn, 1/Encounter]: Use a Ki Surge; if '
+            'access to a Wizarding Trait of your choice.\n'
+            '(3)-[Triggered/Start of Turn, 1/Encounter]: Use a Ki Surge. If '
             'you do, increase your Surgency by Z(bT) for the duration of '
             'this Surge.',
+        optionGroups: [
+          RaceTraitOptionGroup(
+            label: 'Wizarding Trait',
+            // One per stack, up to the max of 7 (the full set of Wizarding
+            // Traits).
+            maxChoices: 7,
+            options: [
+              TraitOption(
+                name: 'Baneful Black Magic',
+                description: 'Your combat magic is unrivaled, and you inflict '
+                    'magical damage on your enemies with skill, relaxing in '
+                    'comfort as your opponents fall into the abyss.\n'
+                    '(1)-[Passive]: Increase the Wound Rolls of your Magic '
+                    'Attacks by 2(T).\n'
+                    '(2)-[Triggered, 1/Round]: If you hit an Opponent in the '
+                    'Healthy Health Threshold with a Magic Attack, apply the '
+                    'Damage Attribute an additional time for that Attacking '
+                    'Maneuver.\n'
+                    '(3)-[Triggered, 1/Encounter]: If you use a Magic Attack, '
+                    'you may apply a Destructive Sphere, Line, or Cone AoE to '
+                    'that Attacking Maneuver. If you do, you may spend 1(bT) '
+                    'Ki Points for each Ally caught in that AoE to not target '
+                    'them with that Attacking Maneuver.',
+                automation: [
+                  // (1) +2(T) Magic Attack Wound Rolls.
+                  RaceTraitAutomation(
+                    affectedStats: [AffectedStat.woundMagic],
+                    coefficient: 2,
+                    tierScaling: TierScaling.current,
+                  ),
+                ],
+              ),
+              TraitOption(
+                name: 'Elemental Expert',
+                description: 'You are especially adept in a specific magical '
+                    'combat technique, and you can manipulate that type of '
+                    'spell more effectively than others.\n'
+                    '(1)-[Passive]: You may choose not to target Allies caught '
+                    'in the AoEs for your Attacking Maneuvers of the Profiles '
+                    'with ‘Elemental’ in the name.\n'
+                    '(2)-[Passive]: Any Environmental Qualities applied by the '
+                    'effects of your use of Profiles with ‘Elemental’ in the '
+                    'name last for 3 Combat Rounds instead of until the start '
+                    'of your next turn.\n'
+                    '(3)-[Triggered]: If you use an Attacking Maneuver of a '
+                    'Profile with ‘Elemental’ in the name, you may apply the '
+                    'Compressed Element Disadvantage to that Attacking '
+                    'Maneuver to apply a stack of Power Shot to that Attacking '
+                    'Maneuver.\n'
+                    '(4)-[Triggered, 1/Round]: When using an Attacking '
+                    'Maneuver of a Profile with ‘Elemental’ in the name, you '
+                    'may apply a Cone, Line, or Sphere AoE to that Attacking '
+                    'Maneuver. If it already possessed an AoE, you may instead '
+                    'increase the Magnitude of that AoE by 1.',
+              ),
+              TraitOption(
+                name: 'Magic Touch',
+                description: 'With a touch of your hand, you can turn anyone - '
+                    'or anything - into whatever you desire.\n'
+                    '(1)-[Passive]: Gain access to the Transfiguration '
+                    'Maneuver.\n'
+                    '(2)-[Passive]: Reduce the Ki Point Cost of the '
+                    'Transfiguration Maneuver by 3(T).\n'
+                    '(3)-[Passive]: While in the Healthy Health Threshold, '
+                    'increase your Strike Rolls by 1(T).\n'
+                    '(4)-[Triggered, 1/Round]: If you lose the initial Clash '
+                    'for the effects of the Transfiguration Maneuver, you may '
+                    'use the Basic Attack Maneuver as an Out-of-Sequence '
+                    'Maneuver. If you do, you must target the Character you '
+                    'lost the clash against.',
+              ),
+              TraitOption(
+                name: 'Magical Manipulation',
+                description: 'You possess the ability to manipulate your '
+                    'enemies, turning them into your subordinates.\n'
+                    '(1)-[Passive]: Increase your Cognitive Save by 1(T).\n'
+                    '(2)-[Passive]: Gain access to the Manipulation Sorcery '
+                    'and Mind Control Unique Abilities.',
+                automation: [
+                  // (1) +1(T) Cognitive Save.
+                  RaceTraitAutomation(
+                    affectedStats: [AffectedStat.cognitiveSave],
+                    coefficient: 1,
+                    tierScaling: TierScaling.current,
+                  ),
+                ],
+              ),
+              TraitOption(
+                name: 'Marvelous Magic',
+                description: 'You possess potent knowledge of powerful magic '
+                    'beyond compare, and can invoke it with great ease.\n'
+                    '(1)-[Passive]: Reduce the Technique Point Cost for all '
+                    'Magical Unique Abilities by 2. This effect applies '
+                    'retroactively, meaning you gain Technique Points equal to '
+                    'the reduction if it was not applied previously (you do '
+                    'not gain Technique Points from Unique Abilities gained '
+                    'for free due to effects).\n'
+                    '(2)-[Passive]: Reduce the Technique Point Cost of all '
+                    'Advancements for Magical Unique Abilities by 1. This '
+                    'effect applies retroactively, meaning you gain Technique '
+                    'Points equal to the reduction if it was not applied '
+                    'previously (you do not gain Technique Points from '
+                    'Advancements gained for free due to effects).\n'
+                    '(3)-[Passive]: Upon gaining this Wizarding Trait, select '
+                    'a Magical Unique Ability with a TP Cost of 25 or less '
+                    'that you meet the Prerequisites of. Gain access to that '
+                    'Unique Ability. If the Unique Ability’s TP Cost was below '
+                    '25, you may use any remaining Technique Points to obtain '
+                    'Advancements (that you meet the Prerequisites of) for '
+                    'that Unique Ability.\n'
+                    '(4)-[1/Round]: You may use a Magical Unique Ability that '
+                    'is a Standard Maneuver with an Action Cost of 1 Action as '
+                    'an Instant Maneuver.',
+              ),
+              TraitOption(
+                name: 'Mighty Magic',
+                description: 'Your basic spells are incredibly strong, '
+                    'allowing you to eradicate your enemies with ruthless '
+                    'efficiency.\n'
+                    '(1)-[Passive]: Increase the Strike Rolls for your Magic '
+                    'Attacks of the Simple and Combination Profiles by 1(T).\n'
+                    '(2)-[Triggered, 1/Round]: When making an Attacking '
+                    'Maneuver of the Simple, Combination, or Mega Flare '
+                    'Profile as a Magic Attack, you may apply a Line or Cone '
+                    'AoE to that Attacking Maneuver.\n'
+                    '(3)-[Triggered, 1/Encounter]: If you use a Magic Attack '
+                    'with an AoE that is not of a Profile with ‘Elemental’ in '
+                    'the name, you may apply the Cataclysmic Super Profile to '
+                    'that Attacking Maneuver.\n'
+                    '(4)-[Triggered, 1/Encounter]: If you use an Attacking '
+                    'Maneuver of the Mega Flare Profile (Magic) with a Ki '
+                    'Wager of at least 1/2 of your Max Capacity, you may apply '
+                    'the Complete Annihilation Super Profile to that Attacking '
+                    'Maneuver.',
+              ),
+              TraitOption(
+                name: 'Wondrous White Magic',
+                description: 'You are gifted with an incredible healing touch, '
+                    'allowing you to bring your allies back from the brink of '
+                    'death.\n'
+                    '(1)-[Prerequisite]: You have access to the Healing Hands '
+                    'Unique Ability.\n'
+                    '(2)-[Passive]: Instead of your Magic Modifier, you may '
+                    'apply your Surgency through the effects of the Healing '
+                    'Hands Unique Ability.\n'
+                    '(3)-[Passive]: Instead of targeting a Character within '
+                    'your Melee Range, you may target any Character who is not '
+                    'at Long Range through the effects of the Healing Hands '
+                    'Unique Ability.\n'
+                    '(4)-[Passive]: Increase your Surgency by 2(T).\n'
+                    '(5)-[Triggered, 1/Round]: If an Ally regains Life Points '
+                    'through the effects of your use of the Healing Hands '
+                    'Unique Ability, they may use the Power Up Maneuver or '
+                    'Transformation Maneuver (they decide) as an '
+                    'Out-of-Sequence Maneuver.\n'
+                    '(6)-[Triggered, 1/Encounter]: If an Ally (who is not at '
+                    'Long Range) takes Damage from an Opponent’s Attacking '
+                    'Maneuver, you may use the Healing Hands Unique Ability as '
+                    'an Out-of-Sequence Maneuver. If you do, you must target '
+                    'that Ally with its effects.',
+                automation: [
+                  // (4) +2(T) Surgency.
+                  RaceTraitAutomation(
+                    affectedStats: [AffectedStat.surgency],
+                    coefficient: 2,
+                    tierScaling: TierScaling.current,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   ),
@@ -5224,15 +5353,16 @@ const List<TransformationDef> kDbuLesserAwakenings = [
             '(2)-[Passive]: While in Evil Saiyan, increase your Wound Rolls '
             'and Soak Value by 1(T).\n'
             '(3)-[Triggered, 1/Round]: While in Evil Saiyan, if you take '
-            'Damage from an Opponent, gain 2(bT) Evil Points, then spend '
-            '2(bT) Evil Points to use the Basic Attack Maneuver '
-            'Out-of-Sequence.\n'
+            'Damage from an Opponent’s Attacking Maneuver, you may gain 2(bT) '
+            'Evil Points. Then, you may spend 2(bT) Evil Points to use the '
+            'Basic Attack Maneuver as an Out-of-Sequence Maneuver.\n'
             '(4)-[Triggered/Power, 1/Round]: While in Evil Saiyan, gain '
-            '1(bT) Evil Points per Battle Born stack.\n'
-            '(5)-[Triggered/Power, 1/Encounter]: While in Evil Saiyan with '
-            '6+ Battle Born, spend 10(bT) Evil Points to enter the Surging '
-            'State until the start of your next turn (ignore its 2nd '
-            'effect).',
+            '1(bT) Evil Points for every stack of Battle Born you possess.\n'
+            '(5)-[Triggered/Power, 1/Encounter]: While in Evil Saiyan, if you '
+            'possess 6+ Battle Born stacks, you may spend 10(bT) Evil Points '
+            'to enter the Surging State until the start of your next turn. If '
+            'you enter the Surging State through this effect, ignore the 2nd '
+            'effect of the Surging State.',
         automation: [
           // (2) While in the Evil Saiyan Enhancement: +1(T) Wound Rolls and
           // Soak Value.

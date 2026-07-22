@@ -1899,6 +1899,34 @@ const List<UniqueAbilityDef> kDbuUniqueAbilities = [
     ],
   ),
   UniqueAbilityDef(
+    name: 'Manipulation Sorcery',
+    description: 'You turn an enemy against their own comrades, making them '
+        'work for you.',
+    types: {UniqueAbilityType.magical},
+    // Granted (not purchased) by the Magical Manipulation Wizarding Trait —
+    // "TP Cost: N/A" on the site, so baseTpCost is 0.
+    prerequisites: 'Magical Manipulation Wizardry Trait',
+    baseTpCost: 0,
+    kpCostText: '12(T)',
+    kpPerTier: 12,
+    maneuverType: 'Standard',
+    actionCost: '3 Actions',
+    minions: 'Non-Minion',
+    passiveBonus: 'N/A',
+    effect: 'Target an Opponent who does not possess the Pure Good Z-Soul. '
+        'Make a Clash (Cognitive vs Cognitive/Morale) against them. If you '
+        'win, they gain the Majin Mark Awakening or Karmic Empowerment '
+        'Awakening (you decide) as a Level 1 Temporary Awakening and become '
+        'your Ally.\n'
+        'If you are Defeated or your Ki Points reach 0, the targets of '
+        'Manipulation Sorcery become free from your control and lose the '
+        'Awakening they gained from this effect.\n'
+        'You can only target a Character with this Unique Ability once. Even '
+        'if you are in a different Combat Encounter, if you have targeted a '
+        'Character with this Unique Ability previously, you cannot use it '
+        'against them again.',
+  ),
+  UniqueAbilityDef(
     name: 'Mind Control',
     description: "You take over and suppress an enemy's mind, allowing you to "
         'control their body.',

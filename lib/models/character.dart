@@ -1030,10 +1030,14 @@ class TransformationSelection {
     Map<String, Set<String>>? optionChoices,
     Map<DbuAttribute, int>? customAmb,
     Map<DbuAttribute, int>? flatAmb,
+    List<String>? customAspects,
+    List<String>? removedAspects,
     this.notes = '',
   })  : optionChoices = optionChoices ?? {},
         customAmb = customAmb ?? {},
-        flatAmb = flatAmb ?? {};
+        flatAmb = flatAmb ?? {},
+        customAspects = customAspects ?? [],
+        removedAspects = removedAspects ?? [];
 
   /// The Transformation's name (matches a `TransformationDef.name`).
   String name;
@@ -1095,6 +1099,21 @@ class TransformationSelection {
   /// `CharacterCalculator.transformationModifierBonus`.
   final Map<DbuAttribute, int> flatAmb;
 
+  /// Player-added Aspect labels for this Transformation, on top of the
+  /// catalogue's fixed `TransformationDef.aspects`. Lets a player apply an
+  /// Aspect a Trait/ruling grants that the app can't auto-detect (e.g. a
+  /// "gains the X Aspect" effect, or a Graded/"Aspect of your choice"). Merged
+  /// into the effective Aspects the same way the catalogue ones are (always for
+  /// Awakenings; while Active for Enhancements/Forms) — see
+  /// `CharacterCalculator.activeAspects`/`aspectTotals`.
+  final List<String> customAspects;
+
+  /// Catalogue Aspect labels (from `TransformationDef.aspects`) the player has
+  /// disabled for this Transformation — dropped from the effective Aspects, so
+  /// their automation stops applying. Lets a player remove an Aspect a Trait or
+  /// ruling strips. See `CharacterCalculator.effectiveAspectLabels`.
+  final List<String> removedAspects;
+
   String notes;
 
   Map<String, dynamic> toJson() => {
@@ -1110,6 +1129,8 @@ class TransformationSelection {
             optionChoices.map((k, v) => MapEntry(k, v.toList())),
         'customAmb': customAmb.map((k, v) => MapEntry(k.name, v)),
         'flatAmb': flatAmb.map((k, v) => MapEntry(k.name, v)),
+        if (customAspects.isNotEmpty) 'customAspects': customAspects,
+        if (removedAspects.isNotEmpty) 'removedAspects': removedAspects,
         'notes': notes,
       };
 
@@ -1132,6 +1153,12 @@ class TransformationSelection {
         ),
         customAmb: _ambFromJson(json['customAmb']),
         flatAmb: _ambFromJson(json['flatAmb']),
+        customAspects: ((json['customAspects'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
+        removedAspects: ((json['removedAspects'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
         notes: json['notes'] as String? ?? '',
       );
 
