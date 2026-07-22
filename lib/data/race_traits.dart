@@ -345,6 +345,78 @@ class GrantedResource {
   final String description;
 }
 
+/// Whether a granted flesh-Trait comes from the Bestial Traits catalogue or
+/// the Monstrous Traits catalogue (both live in `beast_traits.dart`).
+enum BeastTraitKind {
+  bestial('Bestial Trait'),
+  monstrous('Monstrous Trait');
+
+  const BeastTraitKind(this.displayName);
+  final String displayName;
+}
+
+/// A "gain N Bestial/Monstrous Trait(s)" effect on a Trait or Option. Rendered
+/// as an inline multi-select against the relevant catalogue; the player's
+/// picks are stored in `Character.beastTraitChoices` (keyed by the grant's
+/// stable key — see `CharacterCalculator.beastTraitGrantKey`) and their clean
+/// additive effects are auto-applied exactly like a Racial Trait's.
+class BeastTraitGrant {
+  const BeastTraitGrant({
+    required this.kind,
+    this.count = 1,
+    this.restrictedTo = const [],
+    this.restrictedToTraitPicks,
+    this.fixed = const [],
+    this.label,
+    this.twinned = false,
+    this.condition,
+  });
+
+  final BeastTraitKind kind;
+
+  /// If set, the choices are limited to the beast Traits the player already
+  /// picked for the named Trait's grant(s) — a cross-Trait dependency (e.g.
+  /// "Beyond a Demon God": "select a Bestial Trait you selected for the 1st
+  /// effect of True Power of a Demon God"). Resolved live from every
+  /// selection's picks via `CharacterCalculator.beastPicksForTrait`; takes
+  /// precedence over [restrictedTo].
+  final String? restrictedToTraitPicks;
+
+  /// A computable gate — this grant's selected Trait(s) contribute their
+  /// automation ONLY while the condition is met (e.g. Bestial Transfiguration's
+  /// access "while you are in a Form or Enhancement"). The picker still renders
+  /// so the choice persists; only the effect is suppressed while unmet.
+  /// Supports the Form/Enhancement-presence conditions (see
+  /// `CharacterCalculator.beastGrantConditionMet`); other conditions are
+  /// treated as always-met.
+  final TraitCondition? condition;
+
+  /// Custom Species only: this grant is a `[Twinned]` effect — it applies only
+  /// when the Trait is one of the character's 2 **Primary** (Twinned) Custom
+  /// Species Traits. `RaceTraitDef.baseOnly()` strips Twinned grants from a
+  /// Secondary Trait's copy. Ignored for official Traits.
+  final bool twinned;
+
+  /// How many Traits the player selects for this grant.
+  final int count;
+
+  /// If non-empty, the choices are limited to these catalogue names (e.g. Neko
+  /// Majin's Feline Build — "Bestial Build, Land-Based Beast, Claws, or
+  /// Fangs"). Empty = the whole catalogue for [kind].
+  final List<String> restrictedTo;
+
+  /// Specific catalogue names granted with NO choice (e.g. Android's Extension
+  /// Feature — "You possess the Extension Attack Monstrous Trait"). These are
+  /// always active while the grant is, and shown read-only.
+  final List<String> fixed;
+
+  /// Optional override for the picker's heading (defaults to a sentence built
+  /// from [count]/[kind]).
+  final String? label;
+
+  bool get isFixed => count == 0 && fixed.isNotEmpty;
+}
+
 /// A single Character-Creation choice offered by a Racial Trait (`[Option]`
 /// tag = pick 1, `[Multi-Option/N]` = pick up to N — see
 /// [RaceTraitOptionGroup.maxChoices]).
@@ -357,6 +429,7 @@ class TraitOption {
     this.ambPerTierBonus = const {},
     this.ambFlatBonus = const {},
     this.optionGroups = const [],
+    this.beastGrants = const [],
   });
 
   final String name;
@@ -392,6 +465,11 @@ class TraitOption {
   /// Option's own `automation`/`ambPerTierBonus` apply. Choices are keyed
   /// `"<parentKey>::<thisOptionName>::<nestedGroupLabel>"`.
   final List<RaceTraitOptionGroup> optionGroups;
+
+  /// Bestial/Monstrous Trait grants that apply ONLY while this Option is the
+  /// chosen one (e.g. Arcosian's Bestial Evolution — "Select and gain a
+  /// Bestial Trait"). See `BeastTraitGrant`.
+  final List<BeastTraitGrant> beastGrants;
 }
 
 /// One Character-Creation choice point within a Racial Trait. A single
@@ -454,10 +532,28 @@ class RaceTraitDef {
     this.trailingText = '',
     this.grantedResources = const [],
     this.dependentChoice,
+    this.subrace = '',
+    this.beastGrants = const [],
   });
 
   /// Which Race this Trait belongs to (matches `RaceDef.name`).
   final String race;
+
+  /// If non-empty, this Trait is granted by (and only active with) the named
+  /// **Subrace** of [race] — see `kDbuSubraces` / `subraceTraitsFor`. Five
+  /// Races have Subraces on the site (Namekian, Demon, Glass Tribe,
+  /// Neo-Tuffle, Yardrat); picking one grants exactly this extra Racial Trait.
+  /// Base (non-Subrace) Traits leave this `''` and are returned by
+  /// `raceTraitsFor`; Subrace Traits are filtered out of that list and only
+  /// merged into `CharacterCalculator.activeRaceTraits` when the character's
+  /// `Character.subrace` matches.
+  final String subrace;
+
+  /// Bestial/Monstrous Traits this Trait grants access to — rendered as an
+  /// inline picker on the Trait's card (see `beast_traits.dart`,
+  /// `Character.beastTraitChoices`). Unconditional grants from the Trait
+  /// itself; per-Option grants live on `TraitOption.beastGrants` instead.
+  final List<BeastTraitGrant> beastGrants;
   final RaceTraitTier tier;
   final TraitCategory category;
   final String name;
@@ -523,6 +619,8 @@ class RaceTraitDef {
       trailingText: _stripTwinnedLines(trailingText),
       grantedResources: grantedResources,
       dependentChoice: dependentChoice,
+      subrace: subrace,
+      beastGrants: beastGrants.where((g) => !g.twinned).toList(),
     );
   }
 }
@@ -604,6 +702,7 @@ const List<TraitOption> kArcosianEvolutionTraits = [
     name: 'Bestial Evolution',
     description: '(1)-[Passive]: Select and gain a Bestial Trait of your '
         'choice while you have this Evolution Trait.',
+    beastGrants: [BeastTraitGrant(kind: BeastTraitKind.bestial)],
   ),
   TraitOption(
     name: 'Bio-Suit',
@@ -927,6 +1026,13 @@ const List<RaceTraitDef> kDbuRaceTraits = [
             name: 'Extension Feature',
             description: '[Passive]: You possess the Extension Attack '
                 'Monstrous Trait.',
+            beastGrants: [
+              BeastTraitGrant(
+                kind: BeastTraitKind.monstrous,
+                count: 0,
+                fixed: ['Extension Attack'],
+              ),
+            ],
           ),
           TraitOption(
             name: 'Magical Machine',
@@ -3060,6 +3166,22 @@ const List<RaceTraitDef> kDbuRaceTraits = [
         "Signature Technique Maneuver as an Out-of-Sequence Maneuver. "
         "If you do, your Attacking Maneuver must be a Copied "
         "Technique.",
+    automation: [
+      // (2) +2 Perception Skill Checks (flat).
+      RaceTraitAutomation(
+        affectedStats: [AffectedStat.skillPerception],
+        coefficient: 2,
+      ),
+    ],
+    beastGrants: [
+      // (1) "gain two Bestial Traits from: Bestial Build, Land-Based Beast,
+      // Claws, or Fangs."
+      BeastTraitGrant(
+        kind: BeastTraitKind.bestial,
+        count: 2,
+        restrictedTo: ['Bestial Build', 'Land-Based Beast', 'Claws', 'Fangs'],
+      ),
+    ],
   ),
   RaceTraitDef(
     race: 'Neko Majin',
@@ -3453,6 +3575,10 @@ const List<RaceTraitDef> kDbuRaceTraits = [
         "you may exit your Ball Form and return to normal.\n"
         "(5)-[Option]: At Character Creation, choose one of the "
         "following effects:",
+    beastGrants: [
+      // (1) "Gain 1 Bestial Trait."
+      BeastTraitGrant(kind: BeastTraitKind.bestial),
+    ],
     optionGroups: [
       RaceTraitOptionGroup(
         label: 'Option',
@@ -4120,6 +4246,673 @@ const List<RaceTraitDef> kJanembaRealityWarpingTraits = [
 
 /// All Primary + Secondary Racial Traits for [raceName] (empty for Custom
 /// Species or an unrecognized name — Custom Species instead uses freeform
-/// selection, see `Character.customRaceTraits`).
+/// selection, see `Character.customRaceTraits`). Subrace-granted Traits are
+/// NOT included here (they live in `kDbuSubraceTraits` and are merged in by
+/// `CharacterCalculator.activeRaceTraits` only for the chosen Subrace).
 List<RaceTraitDef> raceTraitsFor(String raceName) =>
     kDbuRaceTraits.where((t) => t.race == raceName).toList(growable: false);
+
+// ===========================================================================
+// SUBRACES
+// ---------------------------------------------------------------------------
+// Five Races have a "Subrace" section on their page (Namekian, Demon, Glass
+// Tribe, Neo-Tuffle, Yardrat). Choosing a Subrace grants exactly one extra
+// Racial Trait (transcribed verbatim below, automated where the effect is a
+// clean additive bonus — same convention as every other Racial Trait). The
+// player's pick lives in `Character.subrace`; the Trait is merged into
+// `activeRaceTraits` (so its automation, Options and the beast-Trait picker on
+// Phantom's Fallen Idol all apply just like a native Trait).
+// ===========================================================================
+
+/// One selectable Subrace — its name (as it appears on the site) and a short
+/// one-line blurb for the dropdown. The actual granted Trait(s) live in
+/// [kDbuSubraceTraits], matched by `race` + `subrace`.
+class SubraceDef {
+  const SubraceDef({
+    required this.race,
+    required this.name,
+    required this.blurb,
+  });
+
+  final String race;
+  final String name;
+  final String blurb;
+}
+
+const List<SubraceDef> kDbuSubraces = [
+  SubraceDef(
+    race: 'Namekian',
+    name: 'Warrior Clan',
+    blurb: 'Bred for battle — front-line protectors of their people.',
+  ),
+  SubraceDef(
+    race: 'Namekian',
+    name: 'Dragon Clan',
+    blurb: 'Greater magical prowess and healing — support from the rear.',
+  ),
+  SubraceDef(
+    race: 'Demon',
+    name: 'Demon Person',
+    blurb: 'Citizens of the Demon Realm who wield magic effortlessly.',
+  ),
+  SubraceDef(
+    race: 'Demon',
+    name: 'Makyan',
+    blurb: 'Tied to the Makyo Star — ever stronger as it draws near.',
+  ),
+  SubraceDef(
+    race: 'Demon',
+    name: 'Phantom',
+    blurb: 'Monstrous juggernauts — unstoppable beasts of the Demon Realm.',
+  ),
+  SubraceDef(
+    race: 'Glass Tribe',
+    name: 'Glass User',
+    blurb: 'Shape the battlefield with glass — heal and protect your Allies.',
+  ),
+  SubraceDef(
+    race: 'Glass Tribe',
+    name: 'Glass Warrior',
+    blurb: 'Embed glass shards in foes to enhance your abilities.',
+  ),
+  SubraceDef(
+    race: 'Neo-Tuffle',
+    name: 'Hatred Embodiment',
+    blurb: 'Grow stronger the longer the fight — powered by hatred.',
+  ),
+  SubraceDef(
+    race: 'Neo-Tuffle',
+    name: 'Parasite',
+    blurb: 'Liquefy and possess other beings to take control.',
+  ),
+  SubraceDef(
+    race: 'Yardrat',
+    name: 'Tall Yardrat',
+    blurb: 'The battle-ready Yardrats who stand at the forefront.',
+  ),
+  SubraceDef(
+    race: 'Yardrat',
+    name: 'Bulbous Yardrat',
+    blurb: 'Masters of combat support who fight through their Allies.',
+  ),
+];
+
+/// The Subraces available to [raceName] (empty if the Race has none).
+List<SubraceDef> subracesFor(String raceName) =>
+    kDbuSubraces.where((s) => s.race == raceName).toList(growable: false);
+
+/// Whether [raceName] has any Subraces to choose from.
+bool raceHasSubraces(String raceName) =>
+    kDbuSubraces.any((s) => s.race == raceName);
+
+/// The extra Racial Trait(s) granted by [subrace] of [raceName] — empty when
+/// [subrace] is blank or unrecognized.
+List<RaceTraitDef> subraceTraitsFor(String raceName, String subrace) =>
+    subrace.isEmpty
+        ? const []
+        : kDbuSubraceTraits
+            .where((t) => t.race == raceName && t.subrace == subrace)
+            .toList(growable: false);
+
+/// The eleven Subrace Traits (one per Subrace), verbatim from each Race's
+/// page. Clean additive effects are automated; every other effect is shown as
+/// text for the player to apply. Phantom's Fallen Idol carries a
+/// `BeastTraitGrant` (its 2nd effect grants a Monstrous + a Bestial Trait).
+const List<RaceTraitDef> kDbuSubraceTraits = [
+  // ---------------------------------------------------------- Namekian ---
+  RaceTraitDef(
+    race: 'Namekian',
+    subrace: 'Warrior Clan',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.mind,
+    name: 'Refined Combat',
+    description:
+        "Literally bred for battle, Warriors train from birth to protect "
+        "their brethren from any threats to their people and their planet.\n"
+        "(1)-[Passive]: Increase your Soak Value and Wound Rolls against "
+        "Studied Opponents by 1(T).\n"
+        "(2)-[Passive]: Increase your Surgency by 1/2 (rounded up) of your "
+        "Insight Modifier.\n"
+        "(3)-[Multi-Option/2]: At Character Creation, choose two of the "
+        "following effects:",
+    automation: [
+      // (2) +1/2 (rounded up) Insight Modifier to Surgency.
+      RaceTraitAutomation(
+        affectedStats: [AffectedStat.surgency],
+        coefficient: 1,
+        kind: TraitMagnitudeKind.fractionOfAttribute,
+        attribute: DbuAttribute.insight,
+        fractionDenominator: 2,
+        roundUp: true,
+      ),
+    ],
+    optionGroups: [
+      RaceTraitOptionGroup(
+        label: 'Choose 2',
+        maxChoices: 2,
+        options: [
+          TraitOption(
+            name: 'Hand to Hand',
+            description: '[Triggered, 1/Round]: When you hit a Studied '
+                'Opponent with a Physical Attack, you may increase the Wound '
+                'Roll by 1/2 of your Surgency. If you do, that Opponent stops '
+                'being Studied after you complete this Attacking Maneuver.',
+          ),
+          TraitOption(
+            name: 'Blaster',
+            description: '[Triggered, 1/Round]: When you hit a Studied '
+                'Opponent with an Energy Attack, you may increase the Wound '
+                'Roll by 1/2 of your Surgency. If you do, that Opponent stops '
+                'being Studied after you complete this Attacking Maneuver.',
+          ),
+          TraitOption(
+            name: 'Grappler',
+            description: '[Triggered, 1/Round]: If you successfully initiate '
+                'a Grapple with a Studied Opponent, you may use the Launch '
+                'Maneuver or Pin Maneuver as an Out-of-Sequence Maneuver. If '
+                'you do, that Opponent stops being Studied after you complete '
+                'that Maneuver.',
+          ),
+          TraitOption(
+            name: 'Defender',
+            description: '[Triggered, 1/Round]: When you are hit by an attack '
+                'from a Studied Opponent, you may increase your Soak Value by '
+                '1/2 of your Surgency for the duration of that Attacking '
+                'Maneuver and reduce the Damage Category of that Attacking '
+                'Maneuver by 1. If you do, that Opponent stops being Studied '
+                'after you complete that Maneuver.',
+          ),
+          TraitOption(
+            name: 'Fleet-Footed',
+            description: '[Triggered, 1/Round]: When you are targeted by an '
+                'Attacking Maneuver from a Studied Opponent, you may increase '
+                'your Defense Value by 1/2 of your Surgency for the duration '
+                'of that Attacking Maneuver. If you do, that Opponent stops '
+                'being Studied after you complete that Maneuver.',
+          ),
+          TraitOption(
+            name: 'Protector',
+            description: '[Triggered, 1/Round]: When a Studied Ally is hit by '
+                'an Attacking Maneuver, you may use the Intervene Maneuver '
+                'without spending a Counter Action.',
+          ),
+          TraitOption(
+            name: 'Trusted Ally',
+            description: '[Triggered, 1/Round]: When you target an Ally with '
+                'the Empower Maneuver, they become Studied until the end of '
+                'their next turn. If they were already Studied, they may use '
+                'the Power Up Maneuver or Transformation Maneuver as an '
+                'Out-of-Sequence Maneuver instead.',
+          ),
+          TraitOption(
+            name: 'Power Channeler',
+            description: '[Triggered, 1/Round]: If you target a Studied '
+                'Opponent with the Signature Technique Maneuver, you may gain '
+                'a free Energy Charge on that Attacking Maneuver that counts '
+                'towards the required amount of Energy Charges necessary for '
+                'the Mandatory Charge Disadvantage. If you do, that Opponent '
+                'stops being Studied after you complete this Attacking '
+                'Maneuver.',
+          ),
+        ],
+      ),
+    ],
+  ),
+  RaceTraitDef(
+    race: 'Namekian',
+    subrace: 'Dragon Clan',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.mind,
+    name: 'Spirit of Namek',
+    description:
+        "Known for their greater magical prowess and their healing powers, "
+        "Dragon Clan Namekians focus on supporting their Warrior brethren "
+        "from the rear.\n"
+        "(1)-[Passive]: Gain the Healing Hands Unique Ability.\n"
+        "(2)-[Passive]: Increase the Soak Value and Wound Rolls of your "
+        "Studied Allies by 1(T).\n"
+        "(3)-[Passive]: You may use your Magic Modifier instead of your Force "
+        "Modifier when calculating Surgency.\n"
+        "(4)-[Multi-Option/2]: At Character Creation, choose two of the "
+        "following effects:",
+    optionGroups: [
+      RaceTraitOptionGroup(
+        label: 'Choose 2',
+        maxChoices: 2,
+        options: [
+          TraitOption(
+            name: 'Caster',
+            description: '[Triggered, 1/Round]: When you hit a Studied '
+                'Opponent with a Magical Attack, you may increase the Wound '
+                'Roll by 1/2 of your Surgency. If you do, that Opponent stops '
+                'being Studied after you complete this Attacking Maneuver.',
+          ),
+          TraitOption(
+            name: 'Supporter',
+            description: '[Triggered, 1/Round]: When a Studied Ally hits an '
+                'Opponent with an Attacking Maneuver, you may increase the '
+                'Wound Roll by 1/2 of your Surgency. If you do, that Ally '
+                'stops being Studied after they complete this Attacking '
+                'Maneuver.',
+          ),
+          TraitOption(
+            name: 'Debuffer',
+            description: '[1/Round]: As an Instant Maneuver, you can target a '
+                'Studied Opponent. Make a Clash (Cognitive) against them. If '
+                'you win, they suffer from the Impediment Combat Condition '
+                'until the end of this turn.',
+          ),
+          TraitOption(
+            name: 'Healer',
+            description: '[Triggered]: Increase the amount of Life Points '
+                'regained from your use of Healing Hands by your Surgency. '
+                'Additionally, if you use Healing Hands on a Studied Ally, '
+                'they may either: regain Ki Points equal to 1/2 of the Life '
+                'Points they gained, OR stop suffering from a Combat '
+                'Condition (except Suffocating).',
+          ),
+          TraitOption(
+            name: 'Life Burn',
+            description: '[Triggered/Power, 1/Encounter]: You may reduce your '
+                'Maximum Life Points and your Life Points by 1/4 of your '
+                'Maximum Life Points. If you do, increase your Combat Rolls '
+                'by 2(T) until you fail a Steadfast Check.',
+          ),
+          TraitOption(
+            name: 'Magician',
+            description: '[Passive]: Reduce the Technique Point Cost of any '
+                'Magical Unique Abilities by 3 and reduce their Ki Point Cost '
+                'by 2(T).',
+          ),
+          TraitOption(
+            name: 'Bestower',
+            description: '[Passive]: Gain access to the Magical Enhancement '
+                'Unique Ability and the Unleash Dormant Power Advancement. '
+                'Additionally, when selecting a character to become Studied '
+                'through the second effect of Intelligent Fighter, you may '
+                'select an additional character to be Studied, but they must '
+                'be an Ally.',
+          ),
+          TraitOption(
+            name: 'Poko Priest',
+            description: '[1/Round]: As a Standard Action with an Action Cost '
+                'of 2 and a Ki Point Cost of 5(bT), create a Minion. This '
+                'Minion is of the Namekian Race and must possess the Dark '
+                'Vassal Factor. In addition, that Minion gains 2(bT) '
+                'Attribute Points to spend at Character Creation.',
+          ),
+        ],
+      ),
+    ],
+  ),
+
+  // ------------------------------------------------------------- Demon ---
+  RaceTraitDef(
+    race: 'Demon',
+    subrace: 'Demon Person',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Denizen of the Demon Realm',
+    description:
+        "Magical in nature themselves, the citizens of the Demon Realm wield "
+        "magic effortlessly against their foes.\n"
+        "(1)-[Passive]: Increase the Dice Score of your Pressure Checks by 1 "
+        "while at least 1 Opponent is suffering from a Combat Condition that "
+        "you inflicted.\n"
+        "(2)-[Passive]: At Character Creation, select any Magical Unique "
+        "Ability with a TP Cost of 30 or less. You must still meet any "
+        "Prerequisites, except those of a listed Attribute Score and if the "
+        "listed Skill Ranks required are 2 or less. You gain access to that "
+        "Unique Ability while you possess this Trait.\n"
+        "(3)-[Option]: At Character Creation, choose one of the following "
+        "effects:",
+    optionGroups: [
+      RaceTraitOptionGroup(
+        label: 'Option',
+        options: [
+          TraitOption(
+            name: 'Demon Warrior',
+            description: '[Passive]: You gain the Weapon Specialist Talent, '
+                'and when creating any type of Signature Technique, you may '
+                'add the Weapon Assisted Advantage to that Signature '
+                'Technique without spending Technique Points.',
+          ),
+          TraitOption(
+            name: 'Demon Mage',
+            description: '[Passive]: Reduce the Technique Point Cost of any '
+                'Magical Unique Abilities by 3 and reduce their Ki Point Cost '
+                'by 2(T).',
+          ),
+          TraitOption(
+            name: 'Demon Face',
+            description: '[Passive]: If Scholarship and/or Personality have '
+                'the highest Attribute Score among your Attributes, increase '
+                'all of your Combat Rolls and Initiative Rolls by 1(bT).',
+          ),
+          TraitOption(
+            name: 'Elemental Demon',
+            description: '[Passive]: Upon gaining this effect, select a '
+                "Profile with 'Elemental' in the name – it becomes a Favored "
+                'Element.',
+          ),
+          TraitOption(
+            name: 'Gigantic Demon',
+            description: '[Passive]: Increase your Racial Life Modifier by 4 '
+                'and your base Size Category becomes Gigantic. If any other '
+                'effect from a Factor (except Megath) would change your base '
+                'Size Category, ignore it.',
+            automation: [
+              // +4 Racial Life Modifier (the base-Size change stays manual —
+              // it depends on your chosen base Size, which the sheet can't
+              // infer a delta for).
+              RaceTraitAutomation(
+                affectedStats: [AffectedStat.racialLifeModifier],
+                coefficient: 4,
+              ),
+            ],
+          ),
+          TraitOption(
+            name: 'Transforming Demon',
+            description: '[Passive]: Gain access to the Super Demon Alternate '
+                'Form. Additionally, increase your Stress Bonus by 1. Double '
+                'this bonus if your base Tier of Power is 5+.',
+          ),
+        ],
+      ),
+    ],
+  ),
+  RaceTraitDef(
+    race: 'Demon',
+    subrace: 'Makyan',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Demons of the Makyo Star',
+    description:
+        "Intrinsically tied to the power imbued in the Makyo Star, Makyans "
+        "are a varied but powerful group that only grows stronger as the "
+        "Makyo Star draws near.\n"
+        "(1)-[Passive]: While you possess 2+ stacks of Demonic Power, "
+        "increase your Combat Rolls by 1(T).\n"
+        "(2)-[Addendum]: Please refer to the 'Makyo Star' text box below.\n"
+        "(3)-[Triggered]: Each time you gain a stack(s) of Demonic Power, "
+        "regain Ki Points equal to 1/4 (rounded up) of your Might for each "
+        "stack of Demonic Power gained.\n"
+        "(4)-[Triggered]: If you would make a Pressure Check, you may reduce "
+        "your Dice Score for that Pressure Check by 2. If you use this effect "
+        "and still succeed at that Pressure Check, gain an additional stack "
+        "of Demonic Power.\n"
+        "(5)-[Triggered/Power, 1/Round, 3/Encounter]: Gain a stack of "
+        "Demonic Power.",
+    trailingText:
+        "Makyo Star: The Makyo Star is the home planet for the Makyans. When "
+        "upon the Makyo Star or even when it is nearby, they gain an immense "
+        "amount of power.\n"
+        "When a Makyan is on or near to the Makyo Star, they gain access to "
+        "the Makyo Star Awakening as a Level 2 Temporary Awakening. Unlike "
+        "typical Temporary Awakenings that Characters lose access to at the "
+        "end of the Combat Encounter, the Makyo Star Awakening remains until "
+        "they are too far away from the Makyo Star to gain its effects.\n"
+        "The degree of proximity to the Makyo Star to gain its effects, and "
+        "the current position of the Makyo Star, are both decided by your "
+        "ARC.",
+  ),
+  RaceTraitDef(
+    race: 'Demon',
+    subrace: 'Phantom',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Fallen Idol',
+    description:
+        "Beasts of monstrous proportions, these demons are known far and "
+        "wide as unstoppable juggernauts that few can match.\n"
+        "(1)-[Passive]: At Character Creation, your base Size Category may be "
+        "anything between the Small Size Category and the Gigantic Size "
+        "Category.\n"
+        "(2)-[Passive]: Select and gain access to a Monstrous Trait and a "
+        "Bestial Trait.\n"
+        "(3)-[Passive]: For each stack of Demonic Power, increase your Soak "
+        "Value by 1(T) and the Dice Score of your Steadfast Checks by 1.\n"
+        "(4)-[Triggered, 1/Round]: If you succeed a Pressure Check while you "
+        "possess the Impediment, Guard Down, Broken, and/or Impaired Combat "
+        "Condition(s) you may make a Clash (Cognitive) against an Opponent "
+        "who is not at Long Range. If you win, you lose a stack of one of "
+        "those listed Combat Conditions and that Opponent gains that stack of "
+        "your selected Combat Condition until the end of your turn.",
+    automation: [
+      // (3) +1(T) Soak Value per stack of Demonic Power (the +1 Steadfast
+      // Dice Score per stack isn't a channel the sheet computes).
+      RaceTraitAutomation(
+        affectedStats: [AffectedStat.soak],
+        coefficient: 1,
+        tierScaling: TierScaling.current,
+        kind: TraitMagnitudeKind.perNamedResourceStack,
+        resourceName: 'Demonic Power',
+      ),
+    ],
+    beastGrants: [
+      // (2) "Select and gain access to a Monstrous Trait and a Bestial Trait."
+      BeastTraitGrant(kind: BeastTraitKind.monstrous),
+      BeastTraitGrant(kind: BeastTraitKind.bestial),
+    ],
+  ),
+
+  // ------------------------------------------------------- Glass Tribe ---
+  RaceTraitDef(
+    race: 'Glass Tribe',
+    subrace: 'Glass User',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.mind,
+    name: 'Glass Mastery',
+    description:
+        "By covering the battlefield and even your comrades with glass, you "
+        "shape the flow of battle, healing and protecting your Allies as "
+        "well as yourself.\n"
+        "(1)-[Passive]: Increase your Might and Corporeal Saves by 1(T) while "
+        "in the Healthy Health Threshold.\n"
+        "(2)-[Passive]: Increase your Damage Reduction and Surgency by 1(T) "
+        "and 2(T) respectively while occupying a Square with the Glass "
+        "Environmental Quality and all adjacent Squares either possess the "
+        "Glass Environmental Quality or are occupied by a Feature with the "
+        "Glass Feature Quality.\n"
+        "(3)-[Passive]: You gain access to the Float Mirror Special "
+        "Maneuver.\n"
+        "(4)-[Triggered]: If you target an Ally with the effects of the "
+        "Glassification Special Maneuver and you win the Clash, instead of "
+        "applying stacks of Slowed, that Ally regains Life Points and Ki "
+        "Points equal to 1/2 of your Might for each time they were "
+        "targeted.\n"
+        "(5)-[Triggered/Start of Turn]: If every Square within a Large Sphere "
+        "AoE (centered on you) has the Glass Environmental Quality or is "
+        "occupied by a Feature with the Glass Feature Quality, regain 3(bT) "
+        "Life and Ki Points.\n"
+        "(6)-[Triggered/Start of Combat Encounter]: If you are in the Healthy "
+        "Health Threshold, use the Glassification Maneuver as an "
+        "Out-of-Sequence Maneuver as if you spent 3 Actions for its effects. "
+        "You do not have to pay the Ki Point Cost for this use of the "
+        "Glassification Maneuver if you only target Squares through its "
+        "effects.",
+    trailingText:
+        "Float Mirror [1/Encounter]: You redirect the force of an attack, "
+        "absorbing the attack and firing it back at the opponent.\n"
+        "– Maneuver Type: Counter Maneuver\n"
+        "– Action Cost: 1 Counter Action\n"
+        "– Minions: N/A\n"
+        "– KP Cost: 8(T)\n"
+        "– Effect: If you and/or any Allies are targeted by an Attacking "
+        "Maneuver while all targets of that Attacking Maneuver are occupying "
+        "a Square with the Glass Environmental Quality and are within a "
+        "Destructive Sphere AoE (centered on you), you may use this Counter "
+        "Maneuver.\n"
+        "Make a Might Clash against the attacking Character, but increase "
+        "their Dice Score by 1(T) for every Energy Charge or rank of Power "
+        "Shot applied to their Attacking Maneuver. If you win, that Attacking "
+        "Maneuver misses all of its targets, is no longer an Absolute Attack "
+        "if it would be otherwise, and cannot apply the effects of the Homing "
+        "Advantage.\n"
+        "Then, if that Attacking Maneuver was of the Energy Foundation or the "
+        "Elemental (Light) Profile, you may roll Strike against an Opponent "
+        "of your choice using the Profile of the initial Attacking Maneuver. "
+        "If they are hit, the original attacking Character rolls the Wound "
+        "Roll for their initial Attacking Maneuver instead as an Urgent Roll, "
+        "including any Ki Wagers and Energy Charges included on that Attacking "
+        "Maneuver. Damage calculation occurs as usual from this point.",
+  ),
+  RaceTraitDef(
+    race: 'Glass Tribe',
+    subrace: 'Glass Warrior',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.mind,
+    name: 'Glass Shards',
+    description:
+        "By leaving shards of glass embedded in your foes, you are able to "
+        "enhance your other abilities by manipulating the shards of glass "
+        "your enemies carry.\n"
+        "(1)-[Triggered, Ruling]: If you hit Opponent(s) with an Attacking "
+        "Maneuver of the Glass Profile, they become a 'Shard Carrier' until "
+        "the start of your next turn.\n"
+        "(2)-[Passive]: All Attacking Maneuvers you make that do not possess "
+        "an AoE and only target a Shard Carrier gain the Homing Advantage.\n"
+        "(3)-[Passive]: Increase the Dice Score of any Clash that uses your "
+        "Might or Saving Throws against a Shard Carrier by 1(T).\n"
+        "(4)-[Passive]: You may target a Shard Carrier with Glassification "
+        "even if they are not within your Melee Range, regardless of their "
+        "actual position on the Battlefield.\n"
+        "(5)-[1/Round]: As an Instant Maneuver, select a Shard Carrier. Use "
+        "the Basic Attack Maneuver as an Out-of-Sequence Maneuver. If you do, "
+        "you must select the Glass Profile for that Attacking Maneuver and "
+        "that Attacking Maneuver must include your selected Shard Carrier as "
+        "a target. After concluding that Attacking Maneuver, that Character "
+        "stops being a Shard Carrier.\n"
+        "(6)-[1/Round]: As an Instant Maneuver, select a Shard Carrier. Make "
+        "a Clash (Corporeal vs Corporeal/Impulsive) against that Character. "
+        "If you win, reduce their Life Points by your Might. Then, regardless "
+        "of if you win or lose, every Square within a Minor Sphere AoE "
+        "(centered on that Character) gains the Glass Environmental Quality. "
+        "After concluding this effect, that Character stops being a Shard "
+        "Carrier.\n"
+        "(7)-[Triggered, 1/Round]: If you use an Attacking Maneuver of the "
+        "Glass Profile that does not possess an AoE and only targets a Shard "
+        "Carrier, you may apply an Energy Charge to that Attacking Maneuver. "
+        "After concluding that Attacking Maneuver, that Character stops being "
+        "a Shard Carrier.",
+  ),
+
+  // -------------------------------------------------------- Neo-Tuffle ---
+  RaceTraitDef(
+    race: 'Neo-Tuffle',
+    subrace: 'Hatred Embodiment',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Hate Empowerment',
+    description:
+        "Empowered by the hatred you feel for those who destroyed your "
+        "predecessors, you grow stronger as the fight wears on.\n"
+        "(1)-[Triggered, 1/Round]: If you spend 2+ Revenge Points on a single "
+        "Attacking Maneuver that targets your Inferior, you may add an Energy "
+        "Charge to that Attacking Maneuver.\n"
+        "(2)-[Triggered]: Each time you spend Revenge Points, for every 2 "
+        "Revenge Points spent, increase your Soak Value by 1(T) until the "
+        "start of your next turn. The bonus to your Soak Value from this "
+        "effect cannot exceed 4(T).\n"
+        "(3)-[Triggered]: Gain 1 Revenge Point when you use the Power Up or "
+        "Energy Charge Maneuver.\n"
+        "(4)-[1/Round]: You may spend 2 Revenge Points to make a Basic Attack "
+        "Maneuver as an Instant Maneuver. If you do, you must target your "
+        "Inferior with this Attacking Maneuver.",
+  ),
+  RaceTraitDef(
+    race: 'Neo-Tuffle',
+    subrace: 'Parasite',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Parasitic Biology',
+    description:
+        "Able to liquefy into a smaller form and enter another being's body, "
+        "you possess the power to take control over that being.\n"
+        "(1)-[Passive]: You gain access to the Liquid Form Maneuver. While in "
+        "Liquid Form, you have access to the Internal Attack Maneuver and the "
+        "Possess Maneuver.\n"
+        "(2)-[Passive]: When using the Possess Maneuver, you can only target "
+        "a willing Character. To target an unwilling Character they must be; "
+        "a character of a larger Size Category who is below the Bruised "
+        "Health Threshold, OR a Character of a larger Size Category that has "
+        "been damaged by one of your Attacking Maneuvers this Combat Round.\n"
+        "(3)-[Triggered]: Each time you hit your Inferior with an Attacking "
+        "Maneuver, reduce their Ki Points by 2(bT). If you spent Revenge "
+        "Points on that Attacking Maneuver, increase the reduction by 1(bT) "
+        "for every Revenge Point spent.\n"
+        "(4)-[Triggered]: If you are hit by an Attacking Maneuver, regain "
+        "3(bT) Ki Points for each Revenge Point you gained as a result of "
+        "that Attacking Maneuver.\n"
+        "(5)-[Triggered, 1/Round]: If you knock your Inferior through a "
+        "Health Threshold with an Attacking Maneuver, and they fail the "
+        "Steadfast Check for that Health Threshold, reduce their Combat Rolls "
+        "by 1(bT) and their Stress Bonus by 1 while they suffer the Health "
+        "Threshold Penalties for that Health Threshold.",
+  ),
+
+  // ----------------------------------------------------------- Yardrat ---
+  RaceTraitDef(
+    race: 'Yardrat',
+    subrace: 'Tall Yardrat',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Spiritual Warrior',
+    description:
+        "More prepared for battle than their brethren, these Yardrats stand "
+        "at the forefront of the battlefield, supported by those lesser "
+        "suited to combat.\n"
+        "(1)-[Passive]: Increase your Racial Life Modifier by 3.\n"
+        "(2)-[Triggered]: When you apply the 3rd effect of Power of the Weak, "
+        "increase your Soak Value by 1(T) for every 2(bT) Ki Points spent "
+        "through that effect. This increase lasts for the duration of that "
+        "Attacking Maneuver.\n"
+        "(3)-[Triggered]: If your Bonded Ally targets an Opponent with an "
+        "Attacking Maneuver, you may spend a Counter Action to use the Basic "
+        "Attack Maneuver as an Out-of-Sequence Maneuver. If you do, you must "
+        "target the same Opponent with this Attacking Maneuver.\n"
+        "(4)-[Triggered, 1/Round]: If you use the Empower Maneuver to give Ki "
+        "Points to an Ally, gain 1 Counter Action.\n"
+        "(5)-[Triggered, 1/Round]: If you use the Basic Attack Maneuver, you "
+        "do not have to pay the Ki Point Cost for this Attacking Maneuver. "
+        "You still have to pay any Ki Points spent through a Ki Wager or "
+        "other effects.\n"
+        "(6)-[Triggered/Defeated]: If you have a Bonded Ally, they may use "
+        "the Empower Maneuver as an Out-of-Sequence Maneuver as if they spent "
+        "2 Actions. Instead of regaining Ki Points through this use of the "
+        "Empower Maneuver, you regain Life Points equal to the amount of Ki "
+        "Points spent.",
+    automation: [
+      // (1) +3 Racial Life Modifier.
+      RaceTraitAutomation(
+        affectedStats: [AffectedStat.racialLifeModifier],
+        coefficient: 3,
+      ),
+    ],
+  ),
+  RaceTraitDef(
+    race: 'Yardrat',
+    subrace: 'Bulbous Yardrat',
+    tier: RaceTraitTier.primary,
+    category: TraitCategory.body,
+    name: 'Spiritual Pacifist',
+    description:
+        "The true masters of combat support, these Yardrats prefer to avoid "
+        "combat, only offering support to those who fight on their behalf.\n"
+        "(1)-[Passive]: Your base Size Category is Small.\n"
+        "(2)-[Passive]: Your Bonded Ally has their Combat Rolls increased by "
+        "1(T).\n"
+        "(3)-[Triggered, 1/Round]: If you are hit by an Attacking Maneuver, "
+        "your Bonded Ally may use the Intervene Maneuver without spending a "
+        "Counter Action.\n"
+        "(4)-[Triggered, 1/Round]: If you target an Ally with the Empower "
+        "Maneuver, you may transfer a number of Power Stacks you possess up "
+        "to the amount of Actions spent on the Empower Maneuver to that Ally. "
+        "These Power stacks last until the end of their next turn.\n"
+        "(5)-[Triggered, 1/Round]: If you give Ki Points to an Ally through "
+        "the Empower Maneuver, they may regain Life Points equal to 1/4 "
+        "(rounded up) of the amount of Ki Points they gained.\n"
+        "(6)-[Triggered/Defeated]: You may use the Empower Maneuver as an "
+        "Out-of-Sequence Maneuver as if you spent 9,001 Actions.",
+  ),
+];

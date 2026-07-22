@@ -49,6 +49,7 @@ library;
 import 'dbu_rules.dart';
 import 'race_traits.dart';
 import 'transformations.dart';
+import 'apparel.dart' show ApparelCategory;
 
 /// Shared Attribute Modifier Bonus for the racial "Power" Forms and other
 /// `Variant (Power Boost)` Forms — AG/FO/TE/IN/MA +1(T), no SC/PE.
@@ -810,18 +811,44 @@ const List<TransformationDef> kDbuAlternateForms = [
                     'Aspect and has its AMB (FO/MA) increased by 1(T). '
                     '-[Passive]: While your Life Points are below the Bruised '
                     'Health Threshold, your Max Capacity is increased by 1/4. '
-                    '-[Permanent, Option]: Select and gain one of: Powerful '
-                    'Genes [Passive]: Gain the Bio-Android Option effect of '
-                    'Natural Power. Heroic Finish [Triggered, 1/Round]: If you '
-                    'use a Signature Technique that does not possess an AoE, '
-                    'apply your highest Attribute Modifier to the Wound Roll of '
-                    'that Attacking Maneuver. Lovely Fixation [Triggered/Start '
-                    'of Combat Round]: Choose an Opponent; you can only target '
-                    'that Opponent with Attacking Maneuvers this Combat Round, '
-                    'but you may move towards them or Basic Attack them '
-                    'Out-of-Sequence. Evolving Monster [Permanent, Passive]: '
-                    'Gain a Monster Trait and treat this Transformation as '
-                    'Monster Form for any effects.',
+                    '-[Permanent, Option]: Select and gain one of the effects '
+                    'below:',
+                optionGroups: [
+                  RaceTraitOptionGroup(
+                    label: 'Peak Effect',
+                    options: [
+                      TraitOption(
+                        name: 'Powerful Genes',
+                        description: '[Passive]: Gain the Bio-Android Option '
+                            'effect of Natural Power.',
+                      ),
+                      TraitOption(
+                        name: 'Heroic Finish',
+                        description: '[Triggered, 1/Round]: If you use a '
+                            'Signature Technique that does not possess an AoE, '
+                            'apply your highest Attribute Modifier to the Wound '
+                            'Roll of that Attacking Maneuver.',
+                      ),
+                      TraitOption(
+                        name: 'Lovely Fixation',
+                        description: '[Triggered/Start of Combat Round]: Choose '
+                            'an Opponent; you can only target that Opponent '
+                            'with Attacking Maneuvers this Combat Round, but '
+                            'you may move towards them or Basic Attack them '
+                            'Out-of-Sequence.',
+                      ),
+                      TraitOption(
+                        name: 'Evolving Monster',
+                        description: '[Permanent, Passive]: Gain a Monster '
+                            'Trait and treat this Transformation as Monster '
+                            'Form for any effects.',
+                        beastGrants: [
+                          BeastTraitGrant(kind: BeastTraitKind.monstrous),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
               TraitOption(
                 name: 'Bio-Tension (Earthling)',
@@ -1617,6 +1644,10 @@ const List<TransformationDef> kDbuAlternateForms = [
               ),
               TraitOption(
                 name: "Fallen Idol's Superiority (Phantom Subrace)",
+                // (2) Select and gain access to up to 2 Bestial Traits.
+                beastGrants: [
+                  BeastTraitGrant(kind: BeastTraitKind.bestial, count: 2),
+                ],
                 description: 'Unbreakable and unfathomable, your monstrous '
                     'intensity shatters the battlefield. (1)-[Prerequisite]: '
                     'You are of the Phantom Subrace. (2)-[Permanent, Passive]: '
@@ -2612,6 +2643,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Difficult (LV1)",
       "Long Transformation (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.armor,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Durable'],
+    ),
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -4043,6 +4079,17 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "Buried for 3 Years (Percentage of Power)",
+        // (3) "select 2 Bestial Traits OR 1 Monstrous Trait" — pick one set;
+        // leave the other on None.
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.bestial,
+              count: 2,
+              label: 'Select 2 Bestial Traits (OR the 1 Monstrous below)'),
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous,
+              label: 'OR select 1 Monstrous Trait (instead of the 2 Bestial)'),
+        ],
         description: "After reverting to a larval form, you must go "
             "underground. There, your form matures. (AG/FO/TE/MA AMB is set by "
             "your Holding Back stacks; IN is -1(T).)\n"
@@ -4864,6 +4911,10 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "Monstrous Ascension",
+        beastGrants: [
+          BeastTraitGrant(kind: BeastTraitKind.monstrous),
+          BeastTraitGrant(kind: BeastTraitKind.bestial),
+        ],
         description: "Your transformation into your monstrous persona has many "
             "benefits, allowing your strength to grow in many unexpected "
             "ways.\n"
@@ -4940,6 +4991,8 @@ const List<TransformationDef> kDbuAlternateForms = [
       ),
       TransformationTrait(
         name: "Unstoppable Monster",
+        // (2) Select and gain access to a Monstrous Trait.
+        beastGrants: [BeastTraitGrant(kind: BeastTraitKind.monstrous)],
         description: "Thanks to your total mastery over your monstrous self, "
             "you've become impossible to defeat.\n"
             "(1)-[Permanent]: Monster Form gains the Armored Aspect.\n"
@@ -5098,6 +5151,8 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "Unleashed Genetics",
+        // (4) Select a Bestial Trait (accessible while in this Transformation).
+        beastGrants: [BeastTraitGrant(kind: BeastTraitKind.bestial)],
         description: "T\n"
             "(1)-[Permanent, Passive]: Upon gaining access to this "
             "Transformation, select 2 Factor Traits from the Genetic Splicing "
@@ -5897,6 +5952,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Battle Uniform",
       "Draining (LV2)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+      qualityNames: ['Divine Apparel', 'Enchanted'],
+    ),
     amb: _legendary4Amb,
     traits: [
       TransformationTrait(
@@ -6065,6 +6125,10 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "True Power of a Demon God",
+        // (1) Select 2 Bestial Traits (accessible while in this Transformation).
+        beastGrants: [
+          BeastTraitGrant(kind: BeastTraitKind.bestial, count: 2),
+        ],
         description: "Your divinely demonic power manifests your true inner "
             "self.\n"
             "(1)-[Permanent, Passive]: Upon gaining access to this Evolved "
@@ -6116,6 +6180,16 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "Beyond a Demon God",
+        // (1) Select one of the Bestial Traits you picked for True Power of a
+        // Demon God — the picker draws from those live selections.
+        beastGrants: [
+          BeastTraitGrant(
+            kind: BeastTraitKind.bestial,
+            restrictedToTraitPicks: 'True Power of a Demon God',
+            label: 'Select a Bestial Trait from your True Power of a Demon God '
+                'picks',
+          ),
+        ],
         description: "You have ascended beyond even your true demonic "
             "strength, becoming an unholy abomination of pure power.\n"
             "(1)-[Permanent, Passive]: Upon gaining access to this Evolved "
@@ -7146,8 +7220,9 @@ const List<TransformationDef> kDbuAlternateForms = [
                 description: '(1)-[Permanent]: Super Form gains the Super '
                     'Saiyan Form, Glowing, and Light Dependent Aspects. '
                     '(2)-[Mastery, Passive]: Increase the Dice Score for your '
-                    'Duel Clashes by 1(T). (3)-[Mastery, Triggered/Transform]: '
-                    'Use a Ki Surge as an Out-of-Sequence Maneuver.',
+                    'Duel Clashes by 1(T). (3)-[Mastery, Triggered/Transform, '
+                    '1/Encounter]: Use a Ki Surge as an Out-of-Sequence '
+                    'Maneuver.',
               ),
               TraitOption(
                 name: 'Survival Form',
@@ -7242,6 +7317,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Difficult (LV1)",
       "Long Transformation (LV2)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.standardClothing,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Durable'],
+    ),
     amb: {
       DbuAttribute.agility: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -7471,6 +7551,11 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "Super Love",
+        // (1) Gain access to the Winged Beast Bestial Trait.
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.bestial, count: 0, fixed: ['Winged Beast']),
+        ],
         description: "Your pure love has granted you the ability to fly, "
             "ascending to the heavens.\n"
             "(1)-[Passive]: Gain access to the Winged Beast Bestial Trait "
@@ -9352,6 +9437,8 @@ const List<TransformationDef> kDbuAlternateForms = [
     traits: [
       TransformationTrait(
         name: "Ultimate Assimilation",
+        // (3) Select a Bestial Trait (accessible while in this Transformation).
+        beastGrants: [BeastTraitGrant(kind: BeastTraitKind.bestial)],
         description: "With an explosion of power, you awaken the dormant "
             "pieces of those you've absorbed in the past, unleashing the "
             "powers you've stolen once more.\n"
@@ -10310,6 +10397,10 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Dedicated",
       "Difficult (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+    ),
     amb: _legendary6Amb,
     traits: [
       TransformationTrait(
@@ -10370,6 +10461,7 @@ const List<TransformationDef> kDbuAlternateForms = [
               ),
               TraitOption(
                 name: "King's Wild Side",
+                beastGrants: [BeastTraitGrant(kind: BeastTraitKind.bestial)],
                 description: '[Permanent, Passive]: Upon gaining access to '
                     'this effect, select a Bestial Trait and gain access to '
                     'it while you have this effect. Additionally, increase '
@@ -10493,6 +10585,10 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Draining (LV2)",
       "Difficult (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+    ),
     amb: _legendary6Amb,
     traits: [
       TransformationTrait(
@@ -11016,6 +11112,11 @@ const List<TransformationDef> kDbuAlternateForms = [
       "Battle Uniform",
       "Difficult (LV1)",
     ],
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.combatClothing,
+      craftsmanshipGrade: 5,
+      qualityNames: ['Combat Ready', 'Divine Apparel'],
+    ),
     amb: _legendary4Amb,
     traits: [
       TransformationTrait(
@@ -11522,7 +11623,7 @@ const List<TransformationDef> kDbuAlternateForms = [
     prerequisiteText: "Evolved Stage: Generic. Original Form is Mastered. Tier "
         "of Power Requirement: +1 higher than Original Form. Stress Test "
         "Requirement: +2.",
-    aspects: ["Draining (LV1)", "Peaked"],
+    aspects: ["Pinnacle (LV2)", "Draining (LV1)", "Peaked"],
     amb: {
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -11539,6 +11640,39 @@ const List<TransformationDef> kDbuAlternateForms = [
             "Attacking Maneuver that has a Ki Wager equal to or exceeding 1/4 "
             "of your Max Capacity, apply an Energy Charge to that Attacking "
             "Maneuver.",
+      ),
+    ],
+  ),
+
+  // ============================================================== Power Stressed ===
+  TransformationDef(
+    name: "Power Stressed",
+    type: TransformationType.form,
+    formType: FormType.alternate,
+    racialRequirement: "Any",
+    prerequisiteText: "Evolved Stage: Generic. Tier of Power Requirement: Same "
+        "as Original Form. Stress Test Requirement: Same as Original Form.",
+    aspects: [
+      "Pinnacle (LV2)",
+      "Bulky",
+      "Draining (LV2)",
+      "Exhausting",
+      "Peaked",
+      "Weakening",
+    ],
+    amb: {
+      DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
+    },
+    traits: [
+      TransformationTrait(
+        name: "Stressed by Power",
+        description: "Your body is overwhelmed and distorted by the power "
+            "you've flooded into it.\n"
+            "(1)-[Passive]: If your Original Form is Mastered, reduce the "
+            "Muscle Penalty by 1(bT).\n"
+            "(2)-[Passive]: Increase the Ki Point Cost of all your Attacking "
+            "Maneuvers by 2(T).",
       ),
     ],
   ),
@@ -12188,6 +12322,13 @@ const List<TransformationDef> kDbuAlternateForms = [
         "the Original Form does not have a Battle Uniform. Tier of Power "
         "Requirement: Equal to Original Form. Stress Test Requirement: +5.",
     aspects: ["Battle Uniform"],
+    // (3) "The Battle Uniform of this Transformation is the same as that of
+    // Formation." — Standard Clothing, Craftsmanship Grade 4.
+    battleUniform: BattleUniformDef(
+      category: ApparelCategory.standardClothing,
+      craftsmanshipGrade: 4,
+      qualityNames: ['Durable'],
+    ),
     amb: {
       DbuAttribute.force: TransformationAmb(coefficient: 1, tierScaled: true),
       DbuAttribute.magic: TransformationAmb(coefficient: 1, tierScaled: true),
@@ -12698,15 +12839,18 @@ const List<TransformationDef> kDbuAlternateForms = [
         name: "Power Redefined",
         description: "You redistribute your intense power, bringing it to heel "
             "under your control.\n"
-            "(1)-[Passive]: Reduce your Muscle Penalty by 1(bT).\n"
-            "(2)-[Passive]: Increase the maximum number of Battle Born stacks "
+            "(1)-[Permanent]: Condensed Legend is considered to be the "
+            "Legendary Evolved Stage for all of your effects, except the 1st "
+            "effect of Legendary Saiyan.\n"
+            "(2)-[Passive]: Reduce your Muscle Penalty by 1(bT).\n"
+            "(3)-[Passive]: Increase the maximum number of Battle Born stacks "
             "for your Strike and Dodge Rolls by 1.\n"
-            "(3)-[Passive]: While you possess 4+ stacks of Battle Born, "
+            "(4)-[Passive]: While you possess 4+ stacks of Battle Born, "
             "increase your Combat Rolls and Might by 1(T).\n"
-            "(4)-[Passive]: Your Ki Points may exceed your Maximum Ki Points.\n"
-            "(5)-[Triggered/Transform]: This Transformation gains the Growth "
+            "(5)-[Passive]: Your Ki Points may exceed your Maximum Ki Points.\n"
+            "(6)-[Triggered/Transform]: This Transformation gains the Growth "
             "(LV1) Aspect until you leave this Transformation.\n"
-            "(6)-[Triggered/Power]: Regain Ki Points equal to your Might.",
+            "(7)-[Triggered/Power]: Regain Ki Points equal to your Might.",
       ),
       TransformationTrait(
         name: "Sparks of Super Saiyan (Legendary Trait)",

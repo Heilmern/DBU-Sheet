@@ -49,6 +49,7 @@ class FactorTraitDef {
     this.excludedRaces = const [],
     this.mustReplaceTraitName,
     this.dependentChoice,
+    this.beastGrants = const [],
   });
 
   final String name;
@@ -57,6 +58,12 @@ class FactorTraitDef {
   final List<RaceTraitOptionGroup> optionGroups;
   final List<RaceTraitAutomation> automation;
   final List<GrantedResource> grantedResources;
+
+  /// Bestial/Monstrous Trait grants this Factor Trait provides — surfaced as
+  /// inline pickers once the Factor Trait is applied (it becomes a
+  /// `RaceTraitDef` via [toRaceTraitDef], carrying these through). See
+  /// `BeastTraitGrant`.
+  final List<BeastTraitGrant> beastGrants;
 
   /// CONFIRMED (verbatim, racial-factors page): "If a Factor Trait has a
   /// Racial Trait listed in brackets, it means that it must replace that
@@ -109,6 +116,7 @@ class FactorTraitDef {
       optionGroups: optionGroups,
       grantedResources: grantedResources,
       dependentChoice: dependentChoice,
+      beastGrants: beastGrants,
     );
   }
 }
@@ -604,6 +612,9 @@ const List<FactorDef> kDbuFactors = [
             '(2)-[Passive]: Increase the Dice Score of your Perception '
             'Skill Checks by 2 and reduce the Critical Target of your '
             'Strike and Dodge Rolls by 1.',
+        beastGrants: [
+          BeastTraitGrant(kind: BeastTraitKind.bestial, count: 2),
+        ],
       ),
       FactorTraitDef(
         name: 'Were-Beast',
@@ -632,6 +643,14 @@ const List<FactorDef> kDbuFactors = [
             'either regain access to your Normal Trait until the end '
             'of the Combat Round, OR gain access to your Were-Traits '
             'until the end of this Combat Round.',
+        beastGrants: [
+          // (1) Select 2 Bestial Traits (your "Were-Traits").
+          BeastTraitGrant(
+            kind: BeastTraitKind.bestial,
+            count: 2,
+            label: 'Were-Traits — select 2 Bestial Traits',
+          ),
+        ],
       ),
     ],
   ),
@@ -949,6 +968,10 @@ const List<FactorDef> kDbuFactors = [
             'Combat Roll or Soak Value. Increase your choice by 1(T).\n'
             '(3)-[Passive]: You gain access to 1 Monstrous Trait and 1 '
             'Bestial Trait.',
+        beastGrants: [
+          BeastTraitGrant(kind: BeastTraitKind.monstrous),
+          BeastTraitGrant(kind: BeastTraitKind.bestial),
+        ],
       ),
       FactorTraitDef(
         name: 'Devil',
@@ -964,6 +987,18 @@ const List<FactorDef> kDbuFactors = [
             'Trait, you may select any Unique Ability regardless of '
             'the TP Cost (follow the usual restrictions for Unique '
             'Monstrosity).',
+        beastGrants: [
+          BeastTraitGrant(
+            kind: BeastTraitKind.bestial,
+            count: 0,
+            fixed: ['Winged Beast'],
+          ),
+          BeastTraitGrant(
+            kind: BeastTraitKind.monstrous,
+            count: 0,
+            fixed: ['Unique Monstrosity'],
+          ),
+        ],
       ),
       FactorTraitDef(
         name: 'Fairy',
@@ -984,6 +1019,14 @@ const List<FactorDef> kDbuFactors = [
             '(6)-[Triggered, 1/Round]: If you make a Clash that uses '
             'your Saving Throws, increase the Dice Score of that Clash '
             'by 1(T).',
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.bestial, count: 0, fixed: ['Winged Beast']),
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous,
+              count: 0,
+              fixed: ['Unique Monstrosity']),
+        ],
       ),
       FactorTraitDef(
         name: 'Genie',
@@ -1002,6 +1045,12 @@ const List<FactorDef> kDbuFactors = [
             "to any means, you may use a Surge as an Out-of-Sequence "
             "Maneuver but only apply 1/4 (rounded up) of your "
             "Surgency.",
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous,
+              count: 0,
+              fixed: ['Unique Monstrosity']),
+        ],
       ),
       FactorTraitDef(
         name: 'Ghost',
@@ -1021,6 +1070,12 @@ const List<FactorDef> kDbuFactors = [
             '(for your Damage Calculation).\n'
             '(5)-[Triggered/Incorporeal, 1/Encounter]: Use a Healing '
             'Surge as an Out-of-Sequence Maneuver.',
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous,
+              count: 0,
+              fixed: ['Spectral Monster']),
+        ],
       ),
       FactorTraitDef(
         name: 'Goblin',
@@ -1040,6 +1095,12 @@ const List<FactorDef> kDbuFactors = [
             'Attacking Maneuver. If you do, and trigger the 3rd effect '
             'of Unrelenting, double your Surgency for the duration of '
             'the Healing Surge used through its effects.',
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous,
+              count: 0,
+              fixed: ['Unrelenting']),
+        ],
       ),
       FactorTraitDef(
         name: 'Mummy',
@@ -1055,6 +1116,13 @@ const List<FactorDef> kDbuFactors = [
             '(4)-[Triggered/Defeated]: Make a Steadfast Check. If you '
             'succeed, enter the Undying State until the end of your '
             'next turn.',
+        beastGrants: [
+          BeastTraitGrant(
+            kind: BeastTraitKind.monstrous,
+            count: 0,
+            fixed: ['Extension Attack'],
+          ),
+        ],
       ),
       FactorTraitDef(
         name: 'Plant Monster',
@@ -1085,6 +1153,14 @@ const List<FactorDef> kDbuFactors = [
             'effects of Multi-Profile.\n'
             '(7)-[Triggered, 1/Encounter]: If you gain a stack of '
             'Sunlight, gain a stack of Sunlight.',
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.bestial, count: 0, fixed: ['Arboreal']),
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous,
+              count: 0,
+              fixed: ['Elemental Assault']),
+        ],
       ),
       FactorTraitDef(
         name: 'Troll',
@@ -1101,6 +1177,12 @@ const List<FactorDef> kDbuFactors = [
             'until the end of your next turn. If you were already in '
             'the Feral State, you may enter the Surging State until '
             'the start of your next turn instead.',
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.bestial, count: 0, fixed: ['Bestial Build']),
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous, count: 0, fixed: ['Bloodlust']),
+        ],
       ),
       FactorTraitDef(
         name: 'Vampire',
@@ -1123,6 +1205,12 @@ const List<FactorDef> kDbuFactors = [
             '(6)-[Triggered, 1/Round]: If you deal Damage with an '
             'Attacking Maneuver, you may use the Bite Special Maneuver '
             'as an Out-of-Sequence Maneuver.',
+        beastGrants: [
+          BeastTraitGrant(
+              kind: BeastTraitKind.monstrous, count: 0, fixed: ['Feast']),
+          BeastTraitGrant(
+              kind: BeastTraitKind.bestial, count: 0, fixed: ['Fangs']),
+        ],
       ),
     ],
   ),
@@ -2352,6 +2440,13 @@ const List<FactorDef> kDbuFactors = [
                 name: 'Extension Feature',
                 description: '[Passive]: You possess the Extension '
                     'Attack Monstrous Trait.',
+                beastGrants: [
+                  BeastTraitGrant(
+                    kind: BeastTraitKind.monstrous,
+                    count: 0,
+                    fixed: ['Extension Attack'],
+                  ),
+                ],
               ),
             ],
           ),
@@ -2710,6 +2805,9 @@ const List<FactorDef> kDbuFactors = [
             'effects of the Unify Maneuver. If a target is in their '
             'Ball Form and is Defeated, they do not need to be '
             'willing for the effects of the Unify Maneuver.',
+        beastGrants: [
+          BeastTraitGrant(kind: BeastTraitKind.bestial),
+        ],
       ),
       FactorTraitDef(
         name: 'Genetic Focus: Shinjin',
@@ -3221,6 +3319,15 @@ const List<FactorDef> kDbuFactors = [
             ],
           ),
         ],
+        beastGrants: [
+          // (1) Select up to 2 Bestial Traits (each reduces your Racial Life
+          // Modifier by 1 — apply that RLM cost manually).
+          BeastTraitGrant(
+            kind: BeastTraitKind.bestial,
+            count: 2,
+            label: 'Gain up to 2 Bestial Traits (each −1 Racial Life Modifier)',
+          ),
+        ],
       ),
     ],
   ),
@@ -3297,6 +3404,13 @@ const List<FactorDef> kDbuFactors = [
             '(6)-[Triggered, 1/Encounter]: Target an Opponent. Make '
             'a Clash (Cognitive/Morale) against that Opponent. If you '
             'win, they enter the Sleeping Combat Condition.',
+        beastGrants: [
+          BeastTraitGrant(
+            kind: BeastTraitKind.bestial,
+            count: 0,
+            fixed: ['Bestial Build', 'Land-Based Beast'],
+          ),
+        ],
       ),
     ],
   ),

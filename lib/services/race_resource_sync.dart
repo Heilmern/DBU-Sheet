@@ -50,6 +50,24 @@ void ensureRaceGrantedResources(Character c) {
     }
   }
 
+  // Bestial/Monstrous Traits the character has selected grant their own
+  // stacking Resources too (Bloodlust, Plate, Sunlight, Light Stack…). Their
+  // Option picks live in the same `raceTraitOptionChoices` map keyed by the
+  // beast Trait's name, so collect those Options' Resources as well.
+  for (final bt in CharacterCalculator.selectedBeastTraits(c)) {
+    collect(bt.grantedResources);
+    for (final group in bt.optionGroups) {
+      final chosen =
+          c.raceTraitOptionChoices['${bt.name}::${group.label}'] ??
+              const <String>{};
+      for (final option in group.options) {
+        if (chosen.contains(option.name)) {
+          collect(option.grantedResources);
+        }
+      }
+    }
+  }
+
   for (final entry in granted.entries) {
     final exists = c.resources.any(
       (r) => r.name.trim().toLowerCase() == entry.key.toLowerCase(),

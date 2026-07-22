@@ -1028,12 +1028,18 @@ class TransformationSelection {
     this.transcended = false,
     this.parentForm = '',
     Map<String, Set<String>>? optionChoices,
+    Map<String, List<String>>? beastTraitChoices,
     Map<DbuAttribute, int>? customAmb,
     Map<DbuAttribute, int>? flatAmb,
+    List<String>? customAspects,
+    List<String>? removedAspects,
     this.notes = '',
   })  : optionChoices = optionChoices ?? {},
+        beastTraitChoices = beastTraitChoices ?? {},
         customAmb = customAmb ?? {},
-        flatAmb = flatAmb ?? {};
+        flatAmb = flatAmb ?? {},
+        customAspects = customAspects ?? [],
+        removedAspects = removedAspects ?? [];
 
   /// The Transformation's name (matches a `TransformationDef.name`).
   String name;
@@ -1078,6 +1084,15 @@ class TransformationSelection {
   /// `Character.raceTraitOptionChoices`).
   final Map<String, Set<String>> optionChoices;
 
+  /// Bestial/Monstrous Traits selected for this Transformation's beast-Trait
+  /// grants (a Trait/Option that "grants a Bestial Trait while in this
+  /// Transformation"). Keyed by `CharacterCalculator.beastTraitGrantKey`;
+  /// value is the ordered list of chosen catalogue names. Kept per-selection
+  /// (rather than on `Character.beastTraitChoices`) so the picks apply ONLY
+  /// while this Transformation is in effect and never collide across
+  /// Transformations. See `data/beast_traits.dart`.
+  final Map<String, List<String>> beastTraitChoices;
+
   /// Player-authored Attribute Modifier Bonus for this Transformation, on top
   /// of (or in place of) the catalogue's fixed `TransformationDef.amb` table.
   /// Lets a player pick which Attribute(s) a bonus lands on and enter the
@@ -1095,6 +1110,21 @@ class TransformationSelection {
   /// `CharacterCalculator.transformationModifierBonus`.
   final Map<DbuAttribute, int> flatAmb;
 
+  /// Player-added Aspect labels for this Transformation, on top of the
+  /// catalogue's fixed `TransformationDef.aspects`. Lets a player apply an
+  /// Aspect a Trait/ruling grants that the app can't auto-detect (e.g. a
+  /// "gains the X Aspect" effect, or a Graded/"Aspect of your choice"). Merged
+  /// into the effective Aspects the same way the catalogue ones are (always for
+  /// Awakenings; while Active for Enhancements/Forms) — see
+  /// `CharacterCalculator.activeAspects`/`aspectTotals`.
+  final List<String> customAspects;
+
+  /// Catalogue Aspect labels (from `TransformationDef.aspects`) the player has
+  /// disabled for this Transformation — dropped from the effective Aspects, so
+  /// their automation stops applying. Lets a player remove an Aspect a Trait or
+  /// ruling strips. See `CharacterCalculator.effectiveAspectLabels`.
+  final List<String> removedAspects;
+
   String notes;
 
   Map<String, dynamic> toJson() => {
@@ -1108,8 +1138,12 @@ class TransformationSelection {
         if (parentForm.isNotEmpty) 'parentForm': parentForm,
         'optionChoices':
             optionChoices.map((k, v) => MapEntry(k, v.toList())),
+        if (beastTraitChoices.isNotEmpty)
+          'beastTraitChoices': beastTraitChoices,
         'customAmb': customAmb.map((k, v) => MapEntry(k.name, v)),
         'flatAmb': flatAmb.map((k, v) => MapEntry(k.name, v)),
+        if (customAspects.isNotEmpty) 'customAspects': customAspects,
+        if (removedAspects.isNotEmpty) 'removedAspects': removedAspects,
         'notes': notes,
       };
 
@@ -1130,8 +1164,21 @@ class TransformationSelection {
             ((v as List?) ?? const []).whereType<String>().toSet(),
           ),
         ),
+        beastTraitChoices:
+            ((json['beastTraitChoices'] as Map?) ?? const {}).map(
+          (k, v) => MapEntry(
+            k as String,
+            ((v as List?) ?? const []).whereType<String>().toList(),
+          ),
+        ),
         customAmb: _ambFromJson(json['customAmb']),
         flatAmb: _ambFromJson(json['flatAmb']),
+        customAspects: ((json['customAspects'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
+        removedAspects: ((json['removedAspects'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
         notes: json['notes'] as String? ?? '',
       );
 
@@ -1194,6 +1241,7 @@ class Character {
     this.name = '',
     this.player = '',
     this.race = 'Custom Species',
+    this.subrace = '',
     this.subspecies = '',
     this.age = '',
     this.gender = '',
@@ -1227,6 +1275,7 @@ class Character {
     Set<String>? inactiveRaceTraitNames,
     List<String>? extraRaceTraits,
     Map<String, Set<String>>? raceTraitOptionChoices,
+    Map<String, List<String>>? beastTraitChoices,
     List<FactorSelection>? factorSelections,
     List<TrackedEntry>? factorTraits,
     List<TrackedEntry>? customRaceTraits,
@@ -1257,6 +1306,7 @@ class Character {
         inactiveRaceTraitNames = inactiveRaceTraitNames ?? {},
         extraRaceTraits = extraRaceTraits ?? [],
         raceTraitOptionChoices = raceTraitOptionChoices ?? {},
+        beastTraitChoices = beastTraitChoices ?? {},
         factorSelections = factorSelections ?? [],
         factorTraits = factorTraits ?? [],
         customRaceTraits = customRaceTraits ?? [],
@@ -1285,6 +1335,13 @@ class Character {
   String name;
   String player;
   String race;
+
+  /// The chosen **Subrace** for Races that have them (Namekian, Demon, Glass
+  /// Tribe, Neo-Tuffle, Yardrat — see `kDbuSubraces`). Blank for Races with no
+  /// Subraces or when none is chosen. Picking one grants that Subrace's extra
+  /// Racial Trait (merged into `CharacterCalculator.activeRaceTraits`).
+  String subrace;
+
   String subspecies;
   String age;
   String gender;
@@ -1400,6 +1457,15 @@ class Character {
   /// Option and a separate Multi-Option/2); value is the set of chosen
   /// `TraitOption.name`s, sized to that group's `maxChoices`.
   final Map<String, Set<String>> raceTraitOptionChoices;
+
+  /// Bestial/Monstrous Traits the player has selected for each "gain a
+  /// Bestial/Monstrous Trait" grant on a Trait/Option/Factor/Subrace (see
+  /// `BeastTraitGrant` in `data/race_traits.dart` and the catalogue in
+  /// `data/beast_traits.dart`). Keyed by the grant's stable key (see
+  /// `CharacterCalculator.beastTraitGrantKey`); value is the ordered list of
+  /// chosen catalogue names, sized to that grant's `count`. Each selected
+  /// Trait's clean additive effects are auto-applied like a Racial Trait's.
+  final Map<String, List<String>> beastTraitChoices;
 
   /// Racial Traits currently swapped out for a compatible Racial Factor's
   /// Factor Trait — see [FactorSelection]. Structured alternative to
@@ -1607,6 +1673,7 @@ class Character {
         'name': name,
         'player': player,
         'race': race,
+        if (subrace.isNotEmpty) 'subrace': subrace,
         'subspecies': subspecies,
         'age': age,
         'gender': gender,
@@ -1642,6 +1709,8 @@ class Character {
         'extraRaceTraits': extraRaceTraits,
         'raceTraitOptionChoices': raceTraitOptionChoices
             .map((k, v) => MapEntry(k, v.toList())),
+        if (beastTraitChoices.isNotEmpty)
+          'beastTraitChoices': beastTraitChoices,
         'factorSelections':
             factorSelections.map((f) => f.toJson()).toList(),
         'factorTraits': factorTraits.map((r) => r.toJson()).toList(),
@@ -1715,6 +1784,7 @@ class Character {
       name: json['name'] as String? ?? '',
       player: json['player'] as String? ?? '',
       race: json['race'] as String? ?? 'Custom Species',
+      subrace: json['subrace'] as String? ?? '',
       subspecies: json['subspecies'] as String? ?? '',
       age: json['age'] as String? ?? '',
       gender: json['gender'] as String? ?? '',
@@ -1769,6 +1839,13 @@ class Character {
         (k, v) => MapEntry(
           k as String,
           ((v as List?) ?? const []).whereType<String>().toSet(),
+        ),
+      ),
+      beastTraitChoices:
+          ((json['beastTraitChoices'] as Map?) ?? const {}).map(
+        (k, v) => MapEntry(
+          k as String,
+          ((v as List?) ?? const []).whereType<String>().toList(),
         ),
       ),
       factorSelections: ((json['factorSelections'] as List?) ?? const [])

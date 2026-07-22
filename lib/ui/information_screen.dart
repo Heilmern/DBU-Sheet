@@ -28,6 +28,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../data/beast_traits.dart';
 import '../data/custom_species_traits.dart';
 import '../data/dbu_rules.dart';
 import '../data/factor_traits.dart';
@@ -253,9 +254,75 @@ class InformationTab extends StatelessWidget {
               _traitCard(context, trait, trailingAction: const SizedBox.shrink())
           else
             for (final trait in traits) _traitTile(context, trait),
+          if (!janemba && raceHasSubraces(_c.race))
+            ..._subraceSection(context),
         ],
       ),
     );
+  }
+
+  // ==========================================================================
+  // 2a. SUBRACE (Namekian, Demon, Glass Tribe, Neo-Tuffle, Yardrat)
+  // ==========================================================================
+  /// The Subrace picker + the chosen Subrace's granted Trait, shown at the
+  /// bottom of the Racial Traits section for the five Races that have
+  /// Subraces. The Trait is a full `RaceTraitDef` so its automation, Options
+  /// and any beast-Trait grant (Phantom's Fallen Idol) all apply natively.
+  List<Widget> _subraceSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final subs = subracesFor(_c.race);
+    final current = subs.any((s) => s.name == _c.subrace) ? _c.subrace : '';
+    final blurb = subs
+        .cast<SubraceDef?>()
+        .firstWhere((s) => s?.name == current, orElse: () => null)
+        ?.blurb;
+    return [
+      const Divider(height: 24),
+      Row(
+        children: [
+          Icon(Icons.hub_outlined, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text('Subrace', style: theme.textTheme.titleSmall),
+        ],
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 2, bottom: 6),
+        child: Text(
+          'This Race has Subraces — choose one to gain its extra Racial Trait.',
+          style: theme.textTheme.labelSmall
+              ?.copyWith(fontStyle: FontStyle.italic),
+        ),
+      ),
+      DropdownButtonFormField<String>(
+        initialValue: current,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Subrace',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        items: [
+          const DropdownMenuItem(
+              value: '', child: Text('— Choose a Subrace —')),
+          for (final s in subs)
+            DropdownMenuItem(value: s.name, child: Text(s.name)),
+        ],
+        onChanged: (v) => _update(() => _c.subrace = v ?? ''),
+      ),
+      if (blurb != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(blurb, style: theme.textTheme.bodySmall),
+        ),
+      const SizedBox(height: 4),
+      for (final trait in subraceTraitsFor(_c.race, _c.subrace))
+        _traitCard(
+          context,
+          trait,
+          tierLabel: 'Subrace',
+          trailingAction: const SizedBox.shrink(),
+        ),
+    ];
   }
 
   // ==========================================================================
@@ -605,6 +672,7 @@ class InformationTab extends StatelessWidget {
               for (final group in trait.optionGroups)
                 _optionGroupPicker(context, trait, group),
             ],
+            if (!swappedOut) ..._beastGrantPickers(context, trait),
             if (trait.trailingText.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(trait.trailingText, style: theme.textTheme.bodySmall),
@@ -824,6 +892,164 @@ class InformationTab extends StatelessWidget {
                   style: theme.textTheme.labelSmall
                       ?.copyWith(fontStyle: FontStyle.italic),
                 ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  // --- Bestial / Monstrous Trait grants -------------------------------------
+
+  /// The chosen `TraitOption`s for [trait] (top-level groups only — beast
+  /// grants never live on a nested Option), read from
+  /// `Character.raceTraitOptionChoices`.
+  List<TraitOption> _chosenOptionsOfTrait(RaceTraitDef trait) {
+    final result = <TraitOption>[];
+    for (final group in trait.optionGroups) {
+      final chosen =
+          _c.raceTraitOptionChoices['${trait.name}::${group.label}'] ??
+              const <String>{};
+      for (final option in group.options) {
+        if (chosen.contains(option.name)) result.add(option);
+      }
+    }
+    return result;
+  }
+
+  /// Inline pickers for every Bestial/Monstrous Trait this Trait grants — both
+  /// the Trait's own `beastGrants` and those of any currently-chosen Option.
+  List<Widget> _beastGrantPickers(BuildContext context, RaceTraitDef trait) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < trait.beastGrants.length; i++) {
+      widgets.add(
+          _beastGrantPicker(context, trait.name, '', i, trait.beastGrants[i]));
+    }
+    for (final option in _chosenOptionsOfTrait(trait)) {
+      for (var i = 0; i < option.beastGrants.length; i++) {
+        widgets.add(_beastGrantPicker(
+            context, trait.name, option.name, i, option.beastGrants[i]));
+      }
+    }
+    return widgets;
+  }
+
+  /// One "gain N Bestial/Monstrous Trait(s)" grant: heading + the Bestial
+  /// Limit reminder + [count] catalogue dropdowns (or read-only fixed grants),
+  /// followed by the full card of every currently-selected beast Trait (so its
+  /// own sub-Options — Thick Hide, Savage… — and automation apply).
+  Widget _beastGrantPicker(
+    BuildContext context,
+    String sourceName,
+    String optionName,
+    int index,
+    BeastTraitGrant grant,
+  ) {
+    final theme = Theme.of(context);
+    final key = CharacterCalculator.beastTraitGrantKey(
+        sourceName, optionName, index, grant.kind);
+    final catalogue = grant.restrictedTo.isNotEmpty
+        ? grant.restrictedTo
+        : beastTraitsFor(grant.kind).map((t) => t.name).toList();
+    final picks = List<String>.from(_c.beastTraitChoices[key] ?? const []);
+    final heading = grant.label ??
+        (grant.isFixed
+            ? 'Grants ${grant.kind.displayName}'
+            : 'Gain ${grant.count} ${grant.kind.displayName}'
+                '${grant.count == 1 ? '' : 's'}'
+                '${grant.restrictedTo.isEmpty ? '' : ' (limited list)'}');
+
+    // One dropdown per slot; exclude names already chosen in sibling slots so
+    // a grant can't pick the same Trait twice.
+    Widget slot(int i) {
+      final current = i < picks.length ? picks[i] : null;
+      final taken = <String>{
+        for (var j = 0; j < picks.length; j++)
+          if (j != i && picks[j].isNotEmpty) picks[j],
+      };
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: DropdownButtonFormField<String>(
+          initialValue: current,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: grant.count > 1
+                ? '${grant.kind.displayName} ${i + 1}'
+                : grant.kind.displayName,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          items: [
+            const DropdownMenuItem(value: '', child: Text('— None —')),
+            for (final name in catalogue)
+              if (name == current || !taken.contains(name))
+                DropdownMenuItem(value: name, child: Text(name)),
+          ],
+          onChanged: (value) => _update(() {
+            final list = List<String>.from(_c.beastTraitChoices[key] ?? const []);
+            while (list.length <= i) {
+              list.add('');
+            }
+            list[i] = value ?? '';
+            list.removeWhere((e) => e.isEmpty);
+            if (list.isEmpty) {
+              _c.beastTraitChoices.remove(key);
+            } else {
+              _c.beastTraitChoices[key] = list;
+            }
+          }),
+        ),
+      );
+    }
+
+    final selectedNames = <String>[
+      ...grant.fixed,
+      ...picks.where((p) => p.isNotEmpty),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pets_outlined,
+                  size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(heading,
+                    style: theme.textTheme.labelMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          if (grant.kind == BeastTraitKind.bestial)
+            Text(
+              'Bestial Limit: you cannot benefit from more than '
+              '$kBestialTraitLimit Bestial Traits at once.',
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(fontStyle: FontStyle.italic),
+            ),
+          if (grant.fixed.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('Granted: ${grant.fixed.join(', ')}',
+                  style: theme.textTheme.labelSmall),
+            ),
+          if (!grant.isFixed)
+            for (var i = 0; i < grant.count; i++) slot(i),
+          for (final name in selectedNames)
+            if (beastTraitByName(grant.kind, name) != null)
+              _traitCard(
+                context,
+                beastTraitByName(grant.kind, name)!,
+                tierLabel: grant.kind.displayName,
+                trailingAction: const SizedBox.shrink(),
               ),
         ],
       ),

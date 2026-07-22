@@ -126,6 +126,7 @@ import '../data/apparel.dart';
 import '../data/aspects.dart';
 import '../data/awakenings.dart';
 import '../data/custom_species_traits.dart';
+import '../data/beast_traits.dart';
 import '../data/dbu_rules.dart';
 import '../data/enhancements.dart';
 import '../data/factor_traits.dart';
@@ -539,11 +540,26 @@ abstract final class CharacterCalculator {
   /// Every Aspect label carried by a Transformation currently in effect
   /// (Awakenings always; Enhancements/Forms while ACTIVE), resolved against
   /// the Aspects catalogue.
+  /// The effective Aspect labels for one owned Transformation: its catalogue
+  /// Aspects minus any the player disabled ([TransformationSelection.
+  /// removedAspects]), plus any the player added ([customAspects]).
+  static List<String> effectiveAspectLabels(
+    TransformationDef def,
+    TransformationSelection sel,
+  ) {
+    final removed = sel.removedAspects.toSet();
+    return [
+      for (final a in def.aspects)
+        if (!removed.contains(a)) a,
+      ...sel.customAspects,
+    ];
+  }
+
   static Iterable<ResolvedAspect> activeAspects(Character c) sync* {
     for (final o in ownedTransformations(c)) {
       final on = o.def.type == TransformationType.awakening || o.sel.active;
       if (!on) continue;
-      for (final label in o.def.aspects) {
+      for (final label in effectiveAspectLabels(o.def, o.sel)) {
         yield resolveAspect(label);
       }
     }
@@ -584,7 +600,7 @@ abstract final class CharacterCalculator {
     for (final o in ownedTransformations(c)) {
       final on = o.def.type == TransformationType.awakening || o.sel.active;
       if (!on) continue;
-      for (final label in o.def.aspects) {
+      for (final label in effectiveAspectLabels(o.def, o.sel)) {
         final r = resolveAspect(label);
         switch (r.def?.name) {
           case 'Enhanced Save':
@@ -935,9 +951,45 @@ abstract final class CharacterCalculator {
   static int maxLife(Character c) {
     final pl = c.powerLevel;
     final rlm = racialLifeModifier(c) +
-        customBuffChannel(c, AffectedStat.racialLifeModifier);
+        customBuffChannel(c, AffectedStat.racialLifeModifier) +
+        raceTraitRacialLifeModifier(c);
     final tenacity = effectiveScore(c, DbuAttribute.tenacity);
     return 60 + 12 * (pl - 1) + rlm * pl + 2 * tenacity * pl;
+  }
+
+  /// The flat Racial-Life-Modifier bonus contributed by active Racial/Subrace/
+  /// Factor Traits, their chosen Options, and selected Bestial/Monstrous Traits
+  /// (e.g. Bestial Build's "+2 Racial Life Modifier", Tall Yardrat's "+3",
+  /// Gigantic Demon's "+4"). Computed life-independently — every
+  /// `AffectedStat.racialLifeModifier` entry is a flat, unconditional bonus, so
+  /// this avoids the Max-Life recursion that `raceTraitTotals` (which needs
+  /// current/Max Life) would introduce.
+  static int raceTraitRacialLifeModifier(Character c) {
+    var sum = 0;
+    bool isRlm(RaceTraitAutomation a) =>
+        a.condition == null &&
+        a.kind == TraitMagnitudeKind.flat &&
+        a.tierScaling == TierScaling.none &&
+        a.affectedStats.contains(AffectedStat.racialLifeModifier);
+    void scan(RaceTraitDef t) {
+      for (final a in t.automation) {
+        if (isRlm(a)) sum += a.coefficient;
+      }
+      for (final opt in _chosenOptionsOf(
+          t.optionGroups, t.name, c.raceTraitOptionChoices)) {
+        for (final a in opt.automation) {
+          if (isRlm(a)) sum += a.coefficient;
+        }
+      }
+    }
+
+    for (final t in activeRaceTraits(c)) {
+      scan(t);
+    }
+    for (final t in selectedBeastTraits(c)) {
+      scan(t);
+    }
+    return sum;
   }
 
   /// Max Ki Pool = 50 + 12×(PL-1), DOUBLED while in an active Form (Ki
@@ -1705,7 +1757,7 @@ abstract final class CharacterCalculator {
   /// Standard Clothing's "does not inflict Apparel Penalties" is treated the
   /// same way.
   static int apparelPenalty(Character c) {
-    final counting = c.apparel
+    final counting = effectiveApparel(c)
         .where((p) => apparelIsActive(p) && _apparelCountsTowardPenalty(p))
         .length;
     if (counting <= 1) return 0;
@@ -1713,12 +1765,75 @@ abstract final class CharacterCalculator {
     return (counting - 1) * perExtra;
   }
 
+  /// The Battle Uniforms currently in effect — one synthesized [ApparelPiece]
+  /// per owned Transformation that carries the "Battle Uniform" Aspect and is
+  /// in effect (an Awakening always, or an active Enhancement/Form). Each is a
+  /// worn, Top-Layer piece with the implicit Stretching Quality plus its
+  /// automatable Qualities. Enhancement-sourced uniforms are returned first, so
+  /// callers can honour the verbatim priority rule ("apply the Grade and
+  /// Category from the non-Transcended Enhancement's Battle Uniform").
+  static List<ApparelPiece> _activeBattleUniforms(Character c) {
+    final enh = <ApparelPiece>[];
+    final other = <ApparelPiece>[];
+    for (final o in ownedTransformations(c)) {
+      final inEffect =
+          o.def.type == TransformationType.awakening || o.sel.active;
+      if (!inEffect) continue;
+      final bu = o.def.battleUniform;
+      if (bu == null) continue;
+      final piece = ApparelPiece(
+        name: '${o.def.name} Battle Uniform',
+        category: bu.category,
+        craftsmanshipGrade: bu.craftsmanshipGrade,
+        worn: true,
+        layer: WornLayer.top,
+        qualities: [
+          ApparelQualitySelection(name: 'Stretching'),
+          for (final q in bu.qualityNames) ApparelQualitySelection(name: q),
+        ],
+      );
+      (o.def.type == TransformationType.enhancement ? enh : other).add(piece);
+    }
+    return [...enh, ...other];
+  }
+
+  /// The Apparel the calculator actually scores. While a Battle Uniform is in
+  /// effect you "lose access to your current Apparel" (Battle Uniform Aspect),
+  /// so the manual [Character.apparel] is replaced by the single active Battle
+  /// Uniform (only one Grade/Category applies at a time — an Enhancement's
+  /// takes priority over a Form's/Transcended Enhancement's). Natural Armor is
+  /// integrated into the body and is kept. When no Battle Uniform is active,
+  /// this is just [Character.apparel].
+  static List<ApparelPiece> effectiveApparel(Character c) {
+    final bus = _activeBattleUniforms(c);
+    if (bus.isEmpty) return c.apparel;
+    return [
+      ...c.apparel.where((p) => p.isNaturalArmor),
+      bus.first,
+    ];
+  }
+
+  /// The Battle Uniform(s) currently in effect, each paired with the name of
+  /// the Transformation granting it — for display. The calculator auto-equips
+  /// the highest-priority one (see [effectiveApparel]); when more than one is
+  /// listed, only the first actually applies its Grade/Category.
+  static Iterable<({String source, BattleUniformDef uniform})>
+      activeBattleUniforms(Character c) sync* {
+    for (final o in ownedTransformations(c)) {
+      final inEffect =
+          o.def.type == TransformationType.awakening || o.sel.active;
+      if (!inEffect) continue;
+      final bu = o.def.battleUniform;
+      if (bu != null) yield (source: o.def.name, uniform: bu);
+    }
+  }
+
   /// Total Damage Reduction granted by worn Armor. CONFIRMED (verbatim: "Armor.
   /// Gain Damage Reduction equal to the Apparel Bonus" while it's the Top Layer;
   /// Sleek Design halves it). Feeds the Damage Calculator.
   static int apparelDamageReduction(Character c) {
     var total = 0;
-    for (final piece in c.apparel) {
+    for (final piece in effectiveApparel(c)) {
       if (!apparelIsActive(piece) || piece.category != ApparelCategory.armor) {
         continue;
       }
@@ -1755,7 +1870,7 @@ abstract final class CharacterCalculator {
       AffectedStat.woundMagic,
     ];
 
-    for (final piece in c.apparel) {
+    for (final piece in effectiveApparel(c)) {
       if (!apparelIsActive(piece)) continue;
       final bonus = apparelBonus(c, piece);
 
@@ -3031,6 +3146,12 @@ abstract final class CharacterCalculator {
         result.add(trait);
       }
     }
+    // The chosen Subrace (Namekian, Demon, Glass Tribe, Neo-Tuffle, Yardrat)
+    // grants exactly one extra Racial Trait — merged in so its automation,
+    // Options and the Fallen Idol beast-Trait picker all apply natively.
+    for (final trait in subraceTraitsFor(c.race, c.subrace)) {
+      if (!result.any((r) => r.name == trait.name)) result.add(trait);
+    }
     // Traits adopted from other Races apply exactly like native ones (their
     // automation, Options and reminders all flow from this list). A name
     // already present natively wins — no double-apply.
@@ -3251,7 +3372,155 @@ abstract final class CharacterCalculator {
       raceTraitEffect(c, trait, currentLife: currentLife, maxLife: maxLife)
           .forEach((stat, v) => totals[stat] = (totals[stat] ?? 0) + v);
     }
+    // Bestial/Monstrous Traits gained through any active grant apply their
+    // clean additive effects exactly like a Racial Trait (each catalogue entry
+    // IS a `RaceTraitDef`).
+    for (final bt in selectedBeastTraits(c)) {
+      raceTraitEffect(c, bt, currentLife: currentLife, maxLife: maxLife)
+          .forEach((stat, v) => totals[stat] = (totals[stat] ?? 0) + v);
+    }
     return totals;
+  }
+
+  // ==========================================================================
+  // Bestial / Monstrous Traits (see `data/beast_traits.dart`)
+  // ==========================================================================
+
+  /// A single active "gain N Bestial/Monstrous Trait(s)" grant, paired with the
+  /// stable key its player-selected picks are stored under in
+  /// `Character.beastTraitChoices`.
+  static String beastTraitGrantKey(
+    String source,
+    String optionName,
+    int index,
+    BeastTraitKind kind,
+  ) =>
+      '$source::${optionName.isEmpty ? '_' : optionName}::${kind.name}#$index';
+
+  /// Every currently-active beast-Trait grant on this character — from an
+  /// active Racial/Subrace/Factor Trait itself (`RaceTraitDef.beastGrants`) or
+  /// from a CHOSEN Option of one (`TraitOption.beastGrants`). Each is paired
+  /// with the storage key returned by [beastTraitGrantKey].
+  static List<({String key, BeastTraitGrant grant})> activeBeastGrants(
+      Character c) {
+    final out = <({String key, BeastTraitGrant grant})>[];
+    for (final trait in activeRaceTraits(c)) {
+      for (var i = 0; i < trait.beastGrants.length; i++) {
+        final g = trait.beastGrants[i];
+        out.add((key: beastTraitGrantKey(trait.name, '', i, g.kind), grant: g));
+      }
+      for (final opt in _chosenOptionsOf(
+          trait.optionGroups, trait.name, c.raceTraitOptionChoices)) {
+        for (var i = 0; i < opt.beastGrants.length; i++) {
+          final g = opt.beastGrants[i];
+          out.add((
+            key: beastTraitGrantKey(trait.name, opt.name, i, g.kind),
+            grant: g,
+          ));
+        }
+      }
+    }
+    return out;
+  }
+
+  /// The resolved Bestial/Monstrous Trait defs the character currently has
+  /// (fixed grants + the player's picks across every active grant), de-duped by
+  /// kind + name so overlapping grants never double-apply. Covers BOTH the
+  /// always-on trait pipeline (Racial/Subrace/Factor grants) and
+  /// Transformation-gated grants (only while the Transformation is in effect).
+  static List<RaceTraitDef> selectedBeastTraits(Character c) {
+    final seen = <String>{};
+    final out = <RaceTraitDef>[];
+    void add(BeastTraitKind kind, String name) {
+      final def = beastTraitByName(kind, name);
+      if (def == null) return;
+      if (seen.add('${kind.name}:$name')) out.add(def);
+    }
+
+    void resolve(BeastTraitGrant g, Map<String, List<String>> store, String key) {
+      // A gated grant (e.g. "while in a Form or Enhancement") contributes no
+      // effect while its condition is unmet — but the player's pick is kept.
+      if (!beastGrantConditionMet(c, g)) return;
+      for (final name in g.fixed) {
+        add(g.kind, name);
+      }
+      for (final name in (store[key] ?? const <String>[]).take(g.count)) {
+        add(g.kind, name);
+      }
+    }
+
+    for (final g in activeBeastGrants(c)) {
+      resolve(g.grant, c.beastTraitChoices, g.key);
+    }
+
+    // Transformation-gated grants — only while the Transformation is in effect
+    // (Forms/Enhancements active, Awakening Stacks reached). Stored per
+    // selection so two Transformations never share picks.
+    for (final ie in transformationTraitsInEffect(c)) {
+      final trait = ie.trait;
+      final store = ie.sel.beastTraitChoices;
+      for (var i = 0; i < trait.beastGrants.length; i++) {
+        final g = trait.beastGrants[i];
+        resolve(g, store, beastTraitGrantKey(trait.name, '', i, g.kind));
+      }
+      for (final opt in chosenTraitOptions(trait, ie.sel.optionChoices)) {
+        for (var i = 0; i < opt.beastGrants.length; i++) {
+          final g = opt.beastGrants[i];
+          resolve(
+              g, store, beastTraitGrantKey(trait.name, opt.name, i, g.kind));
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Whether a beast-Trait grant's gating condition is currently met. Only the
+  /// Form/Enhancement-presence conditions are meaningful for a grant; every
+  /// other condition (and no condition) is treated as met. Deliberately
+  /// life-independent so it's safe to call from `maxLife` via
+  /// `raceTraitRacialLifeModifier`.
+  static bool beastGrantConditionMet(Character c, BeastTraitGrant g) {
+    switch (g.condition) {
+      case null:
+        return true;
+      case TraitCondition.whileInForm:
+        return hasActiveForm(c);
+      case TraitCondition.whileNotInForm:
+        return !hasActiveForm(c);
+      case TraitCondition.whileInFormOrEnhancement:
+        return ownedTransformations(c).any((o) =>
+            o.sel.active &&
+            (o.def.type == TransformationType.form ||
+                o.def.type == TransformationType.enhancement) &&
+            !o.def.isNullStage);
+      default:
+        return true;
+    }
+  }
+
+  /// Every distinct Bestial/Monstrous Trait the player has picked for the named
+  /// Trait's grant(s), across BOTH the always-on choices
+  /// (`Character.beastTraitChoices`) and every Transformation selection
+  /// (`TransformationSelection.beastTraitChoices`). Used to populate a
+  /// cross-Trait-restricted grant's picker (see
+  /// `BeastTraitGrant.restrictedToTraitPicks`). Keys for a Trait's grants all
+  /// start `'<traitName>::'` (see `beastTraitGrantKey`).
+  static List<String> beastPicksForTrait(Character c, String traitName) {
+    final prefix = '$traitName::';
+    final out = <String>{};
+    void scan(Map<String, List<String>> store) {
+      store.forEach((key, picks) {
+        if (key.startsWith(prefix)) {
+          out.addAll(picks.where((p) => p.isNotEmpty));
+        }
+      });
+    }
+
+    scan(c.beastTraitChoices);
+    for (final sel in c.transformations) {
+      scan(sel.beastTraitChoices);
+    }
+    return out.toList();
   }
 
   /// Per-stat contribution of a SINGLE Racial Trait (used by the Information

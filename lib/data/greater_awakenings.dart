@@ -736,6 +736,11 @@ const List<TransformationDef> kDbuGreaterAwakenings = [
             tierScaling: TierScaling.current,
           ),
         ],
+        // (4) Select and gain 1 Bestial Trait and 1 Monstrous Trait.
+        beastGrants: [
+          BeastTraitGrant(kind: BeastTraitKind.bestial),
+          BeastTraitGrant(kind: BeastTraitKind.monstrous),
+        ],
       ),
     ],
   ),
@@ -1313,6 +1318,51 @@ const List<TransformationDef> kDbuGreaterAwakenings = [
             affectedStats: [AffectedStat.maxLife],
             coefficient: 2,
             kind: TraitMagnitudeKind.perPowerLevel,
+          ),
+        ],
+      ),
+    ],
+  ),
+  TransformationDef(
+    name: 'Majin Mark',
+    type: TransformationType.awakening,
+    awakeningType: AwakeningType.greater,
+    origin: TransformationOrigin.mind,
+    racialRequirement: 'Any',
+    tierOfPowerRequirement: 1,
+    maxStacks: 1,
+    amb: {
+      DbuAttribute.agility: TransformationAmb(coefficient: 1),
+      DbuAttribute.force: TransformationAmb(coefficient: 1),
+      DbuAttribute.tenacity: TransformationAmb(coefficient: 1),
+      DbuAttribute.insight: TransformationAmb(coefficient: 1),
+      DbuAttribute.magic: TransformationAmb(coefficient: 1),
+    },
+    traits: [
+      TransformationTrait(
+        name: 'Prince of Destruction',
+        description: 'Bringing out the power given to you by the darkness '
+            'inside, you manifest greater strength.\n'
+            '(1)-[Passive]: Reduce your Cognitive Save by 1(bT).\n'
+            '(2)-[Passive]: Ignore Reduced Momentum.\n'
+            '(3)-[Passive]: Increase the Dice Score of your Steadfast Checks '
+            'by 1.\n'
+            '(4)-[Passive]: For each Health Threshold you are below, increase '
+            'your Soak Value by 1(T).\n'
+            '(5)-[Passive]: While below the Injured Health Threshold, increase '
+            'your Stress Bonus by 1 and your Wound Rolls by 2(T).\n'
+            '(6)-[Triggered/Start of Turn]: Reduce your Life Points by 4(bT) '
+            'to increase your Combat Rolls by 1(T) until the start of your '
+            'next turn.\n'
+            '(7)-[Triggered/Power, 1/Encounter]: Reduce your Life Points by '
+            '1/5 of your Maximum Life Points to increase your Tier of Power by '
+            '1 (see — Breakthrough) until the end of your next turn.',
+        automation: [
+          // (1) -1(bT) Cognitive Save.
+          RaceTraitAutomation(
+            affectedStats: [AffectedStat.cognitiveSave],
+            coefficient: -1,
+            tierScaling: TierScaling.base,
           ),
         ],
       ),

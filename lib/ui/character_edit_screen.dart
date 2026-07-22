@@ -39,6 +39,7 @@ import 'package:flutter/services.dart';
 import '../data/custom_buff_targets.dart';
 import '../data/dbu_rules.dart';
 import '../data/homebrew_registry.dart';
+import '../data/race_traits.dart';
 import '../models/character.dart';
 import '../services/character_calculator.dart';
 import '../services/progression_talent_sync.dart';
@@ -472,14 +473,28 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
               Expanded(child: _raceDropdown()),
               const SizedBox(width: 12),
               Expanded(
-                child: _textField(
-                  label: 'Subspecies',
-                  value: _c.subspecies,
-                  onChanged: (v) => _update(() => _c.subspecies = v),
-                ),
+                child: raceHasSubraces(_c.race)
+                    ? _subraceDropdown()
+                    : _textField(
+                        label: 'Subspecies',
+                        value: _c.subspecies,
+                        onChanged: (v) => _update(() => _c.subspecies = v),
+                      ),
               ),
             ],
           ),
+          // When the Race has Subraces the Subrace picker takes the second
+          // slot above; keep the free-text Subspecies field available on its
+          // own row so both can be set.
+          if (raceHasSubraces(_c.race))
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _textField(
+                label: 'Subspecies',
+                value: _c.subspecies,
+                onChanged: (v) => _update(() => _c.subspecies = v),
+              ),
+            ),
           Row(
             children: [
               Expanded(child: _sizeDropdown()),
@@ -532,7 +547,38 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
       items: names
           .map((n) => DropdownMenuItem(value: n, child: Text(n)))
           .toList(),
-      onChanged: (v) => _update(() => _c.race = v ?? _c.race),
+      onChanged: (v) => _update(() {
+        if (v == null || v == _c.race) return;
+        _c.race = v;
+        // A Subrace belongs to a specific Race — clear it when the Race
+        // changes so a stale pick can't linger (and grant its Trait).
+        if (!subracesFor(v).any((s) => s.name == _c.subrace)) {
+          _c.subrace = '';
+        }
+      }),
+    );
+  }
+
+  /// Subrace picker — shown in the identity Row for the five Races that have
+  /// Subraces (Namekian, Demon, Glass Tribe, Neo-Tuffle, Yardrat). Picking one
+  /// grants that Subrace's extra Racial Trait (see the Information tab).
+  Widget _subraceDropdown() {
+    final subs = subracesFor(_c.race);
+    final current = subs.any((s) => s.name == _c.subrace) ? _c.subrace : '';
+    return DropdownButtonFormField<String>(
+      initialValue: current,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Subrace',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('— Choose a Subrace —')),
+        for (final s in subs)
+          DropdownMenuItem(value: s.name, child: Text(s.name)),
+      ],
+      onChanged: (v) => _update(() => _c.subrace = v ?? ''),
     );
   }
 

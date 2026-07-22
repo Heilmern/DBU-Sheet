@@ -710,6 +710,10 @@ const List<RaceTraitDef> kDbuCustomSpeciesTraits = [
         'Trait, you are considered to have the Monster Factor even if you do '
         'not meet any Prerequisites).\n'
         '(2)-[Passive, Twinned]: Gain 1 Monstrous Trait.',
+    beastGrants: [
+      // (2) [Twinned] — only when taken as a Primary Custom Species Trait.
+      BeastTraitGrant(kind: BeastTraitKind.monstrous, twinned: true),
+    ],
   ),
   RaceTraitDef(
     race: 'Custom Species',

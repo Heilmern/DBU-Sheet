@@ -31,6 +31,7 @@ import 'package:dbu_sheet/data/forms.dart';
 import 'package:dbu_sheet/data/greater_awakenings.dart';
 import 'package:dbu_sheet/data/homebrew_registry.dart';
 import 'package:dbu_sheet/data/super_awakenings.dart';
+import 'package:dbu_sheet/data/beast_traits.dart';
 import 'package:dbu_sheet/data/race_traits.dart';
 import 'package:dbu_sheet/data/talents.dart';
 import 'package:dbu_sheet/data/transformations.dart';
@@ -2103,7 +2104,7 @@ void main() {
       // 100 TransformationDefs. Every entry is a Form. (+5 on 20 Jul 2026:
       // Barrier Form, Berserk Controlled, Super Saiyan 5, and the
       // previously-missed Legendary [Evolved Stage] + Legendary Oozaru.)
-      expect(kDbuAlternateForms.length, 152);
+      expect(kDbuAlternateForms.length, 153);
       expect(kDbuAlternateForms.every((f) => f.type == TransformationType.form),
           isTrue);
       // Racial "Power" Forms, Evolved Stages, and pinnacle Legendaries.
@@ -2129,7 +2130,7 @@ void main() {
       // Evolved Stages are detected from prerequisiteText; there are 18.
       final evolved =
           kDbuAlternateForms.where((f) => f.isEvolvedStage).toList();
-      expect(evolved.length, 52);
+      expect(evolved.length, 53);
       expect(alternateFormByName('Ascended Super Saiyan')!.isEvolvedStage,
           isTrue);
       expect(alternateFormByName('Super Saiyan')!.isEvolvedStage, isFalse);
@@ -2294,8 +2295,8 @@ void main() {
 
   group('Awakening catalogues (Lesser / Greater / Super)', () {
     test('each catalogue has the expected size and awakeningType', () {
-      expect(kDbuLesserAwakenings.length, 125);
-      expect(kDbuGreaterAwakenings.length, 62);
+      expect(kDbuLesserAwakenings.length, 124);
+      expect(kDbuGreaterAwakenings.length, 63);
       expect(kDbuSuperAwakenings.length, 35);
       expect(
           kDbuLesserAwakenings
@@ -2532,6 +2533,49 @@ void main() {
           basePe2 + 4);
     });
 
+    test('a custom Aspect drives its automation while Active, and round-trips '
+        'through JSON', () {
+      final c = Character.blank('casp')
+        ..race = 'Saiyan'
+        ..powerLevel = 10; // ToP 3
+      final sel = TransformationSelection(name: 'Super Saiyan', active: true);
+      c.transformations.add(sel);
+      int morale() => CharacterCalculator.compute(c)
+          .savingThrows[DbuSavingThrow.morale]!
+          .total;
+      final without = morale();
+      // Add "Enhanced Save (Morale)" — grants +1(T) = +3 to the Morale Save.
+      sel.customAspects.add('Enhanced Save (Morale)');
+      expect(morale(), without + 3);
+      // Not applied while the Form is inactive.
+      sel.active = false;
+      expect(morale(), without);
+      // Survives a JSON round-trip.
+      final revived = Character.fromJson(c.toJson());
+      expect(revived.transformations.single.customAspects,
+          ['Enhanced Save (Morale)']);
+    });
+
+    test('disabling a catalogue Aspect drops its automation', () {
+      final c = Character.blank('rasp')
+        ..race = 'Saiyan'
+        ..powerLevel = 10; // ToP 3
+      // Demon God carries "Enhanced Save (Impulsive/Cognitive/Morale)".
+      final sel = TransformationSelection(name: 'Demon God', active: true);
+      c.transformations.add(sel);
+      int morale() => CharacterCalculator.compute(c)
+          .savingThrows[DbuSavingThrow.morale]!
+          .total;
+      final withAspect = morale();
+      // Disable the Enhanced Save Aspect → the +1(T) Morale bonus is dropped.
+      sel.removedAspects.add('Enhanced Save (Impulsive/Cognitive/Morale)');
+      expect(morale(), withAspect - 3);
+      // Re-enabling restores it, and it round-trips through JSON.
+      final revived = Character.fromJson(c.toJson());
+      expect(revived.transformations.single.removedAspects,
+          ['Enhanced Save (Impulsive/Cognitive/Morale)']);
+    });
+
     test('a Transformation AMB to Force flows into Might, Wound and Surgency, '
         'but NOT Saving Throws (those use the raw Score)', () {
       final c = Character.blank('tr6')
@@ -2624,6 +2668,31 @@ void main() {
       armor.worn = true;
       armor.breakValue = 0; // broken
       expect(CharacterCalculator.apparelDamageReduction(c), 0);
+    });
+
+    test('a Battle Uniform auto-equips while its Transformation is active and '
+        'suppresses manual Apparel', () {
+      final c = Character.blank('bu1')..powerLevel = _plForTop(3); // baseTop 3
+      // Mode Change grants an Armor Battle Uniform (Grade 4 = Standard = 2(bT)).
+      final sel = TransformationSelection(name: 'Mode Change', active: false);
+      c.transformations.add(sel);
+      // Inactive Form → no Battle Uniform, no Damage Reduction.
+      expect(CharacterCalculator.apparelDamageReduction(c), 0);
+      // Active → the Armor Battle Uniform grants DR = Apparel Bonus = 2 x 3.
+      sel.active = true;
+      expect(CharacterCalculator.apparelDamageReduction(c), 6);
+      // A manually-worn piece is suppressed while the Battle Uniform is active
+      // (you "lose access to your current Apparel").
+      c.apparel.add(ApparelPiece(
+        craftsmanshipGrade: 5, // High = 3(bT) → DR 9 if it counted
+        category: ApparelCategory.armor,
+        worn: true,
+        layer: WornLayer.top,
+      ));
+      expect(CharacterCalculator.apparelDamageReduction(c), 6);
+      // Leaving the Form restores access to the manual Armor.
+      sel.active = false;
+      expect(CharacterCalculator.apparelDamageReduction(c), 9);
     });
 
     test('worn Weights reduce all Combat Rolls by the Apparel Bonus', () {
@@ -3498,13 +3567,16 @@ void main() {
 
     test('catalogue integrity: 69 abilities, unique names, valid costs, '
         'advancement/restriction names unique, locked advancements resolve', () {
-      expect(kDbuUniqueAbilities, hasLength(69));
-      // Awakening-granted abilities (Energy Consumption's three) have no TP
-      // cost on the site ("TP Cost: N/A") — everything else costs TP.
+      expect(kDbuUniqueAbilities, hasLength(70));
+      // Trait/Awakening-granted abilities have no TP cost on the site ("TP
+      // Cost: N/A") — everything else costs TP. (Energy Consumption's three,
+      // plus Manipulation Sorcery from the Magical Manipulation Wizarding
+      // Trait.)
       const granted = {
         'Fire and Flames',
         'Over-Empower',
         'Planetary Consumption',
+        'Manipulation Sorcery',
       };
       final seen = <String>{};
       for (final a in kDbuUniqueAbilities) {
@@ -6625,6 +6697,7 @@ void main() {
       expect(kDbuCounterManeuvers, hasLength(8));
       expect(kDbuModifierManeuvers, hasLength(4));
       expect(kDbuSpecialManeuvers, hasLength(32));
+      expect(kDbuGodManeuvers, hasLength(12));
       final names = kDbuAllManeuvers.map((m) => m.name).toList();
       expect(names.toSet().length, names.length,
           reason: 'duplicate maneuver name');
@@ -7206,6 +7279,215 @@ void main() {
           hasLength(1));
       expect(c.talents.where((t) => t.name.toLowerCase() == 'quick learner'),
           hasLength(1));
+    });
+  });
+
+  group('Subraces (Namekian, Demon, Glass Tribe, Neo-Tuffle, Yardrat)', () {
+    test('the five Races each expose their Subraces; others expose none', () {
+      expect(raceHasSubraces('Namekian'), isTrue);
+      expect(raceHasSubraces('Demon'), isTrue);
+      expect(raceHasSubraces('Glass Tribe'), isTrue);
+      expect(raceHasSubraces('Neo-Tuffle'), isTrue);
+      expect(raceHasSubraces('Yardrat'), isTrue);
+      expect(raceHasSubraces('Saiyan'), isFalse);
+      expect(subracesFor('Namekian').map((s) => s.name),
+          containsAll(<String>['Warrior Clan', 'Dragon Clan']));
+      expect(subracesFor('Demon').map((s) => s.name),
+          containsAll(<String>['Demon Person', 'Makyan', 'Phantom']));
+    });
+
+    test('base raceTraitsFor excludes Subrace Traits; they join '
+        'activeRaceTraits only for the chosen Subrace', () {
+      final c = Character.blank('nam')..race = 'Namekian';
+      // No Subrace-tagged Trait leaks into the base catalogue.
+      expect(raceTraitsFor('Namekian').any((t) => t.subrace.isNotEmpty),
+          isFalse);
+      // Nothing merged until a Subrace is chosen.
+      expect(CharacterCalculator.activeRaceTraits(c)
+          .any((t) => t.name == 'Refined Combat'), isFalse);
+      c.subrace = 'Warrior Clan';
+      expect(CharacterCalculator.activeRaceTraits(c)
+          .any((t) => t.name == 'Refined Combat'), isTrue);
+      // Switching Subraces swaps the granted Trait.
+      c.subrace = 'Dragon Clan';
+      final names = CharacterCalculator.activeRaceTraits(c).map((t) => t.name);
+      expect(names, contains('Spirit of Namek'));
+      expect(names, isNot(contains('Refined Combat')));
+    });
+
+    test('Tall Yardrat grants +3 Racial Life Modifier through Max Life', () {
+      final c = Character.blank('yar')
+        ..race = 'Yardrat'
+        ..powerLevel = 3
+        ..setTestScore(DbuAttribute.tenacity, 4);
+      final before = CharacterCalculator.maxLife(c);
+      c.subrace = 'Tall Yardrat';
+      // +3 RLM × Power Level (3) = +9 Max Life.
+      expect(CharacterCalculator.maxLife(c), before + 3 * c.powerLevel);
+    });
+
+    test('Refined Combat automates +1/2 (round up) Insight Mod to Surgency',
+        () {
+      final c = Character.blank('nam2')
+        ..race = 'Namekian'
+        ..subrace = 'Warrior Clan'
+        ..setTestScore(DbuAttribute.insight, 6);
+      final mod = CharacterCalculator.effectiveModifier(c, DbuAttribute.insight);
+      final totals = CharacterCalculator.raceTraitTotals(c,
+          currentLife: 100, maxLife: 100);
+      // +1/2 of the Insight Modifier, rounded up.
+      expect(totals[AffectedStat.surgency], (mod + 1) ~/ 2);
+      expect(totals[AffectedStat.surgency], greaterThan(0));
+    });
+  });
+
+  group('Bestial / Monstrous Traits (catalogue + grants + automation)', () {
+    test('the catalogues are populated and looked up by kind + name', () {
+      expect(kBestialTraits, isNotEmpty);
+      expect(kMonstrousTraits, isNotEmpty);
+      expect(beastTraitByName(BeastTraitKind.bestial, 'Grippy Grabbers'),
+          isNotNull);
+      expect(beastTraitByName(BeastTraitKind.monstrous, 'Unrelenting'),
+          isNotNull);
+      // Kinds don't cross over.
+      expect(beastTraitByName(BeastTraitKind.bestial, 'Unrelenting'), isNull);
+    });
+
+    test('a chosen Bestial Trait applies its automation like a Racial Trait',
+        () {
+      // Shadow Dragon's Personified Dragon Ball grants 1 Bestial Trait.
+      final c = Character.blank('sd')..race = 'Shadow Dragon';
+      final grants = CharacterCalculator.activeBeastGrants(c);
+      expect(grants, isNotEmpty);
+      final key = grants.first.key;
+      c.beastTraitChoices[key] = ['Grippy Grabbers'];
+      // Grippy Grabbers (2): +1(T) Wound for Physical and Energy Attacks.
+      final totals = CharacterCalculator.raceTraitTotals(c,
+          currentLife: 100, maxLife: 100);
+      final t = CharacterCalculator.tierOfPower(c);
+      expect(totals[AffectedStat.woundPhysical], t);
+      expect(totals[AffectedStat.woundEnergy], t);
+    });
+
+    test('a fixed grant (Android Extension Feature) auto-applies its Trait',
+        () {
+      final c = Character.blank('and')..race = 'Android';
+      // Choose the Extension Feature Multi-Option on Technological Being.
+      c.raceTraitOptionChoices['Technological Being::Multi-Option'] = {
+        'Extension Feature'
+      };
+      final selected =
+          CharacterCalculator.selectedBeastTraits(c).map((t) => t.name);
+      expect(selected, contains('Extension Attack'));
+    });
+
+    test('a beast Trait sub-Option (Bestial Build → Thick Hide) automates', () {
+      // Neko Majin Feline Build grants 2 Bestial Traits (restricted list).
+      final c = Character.blank('nk')..race = 'Neko Majin';
+      final grant = CharacterCalculator.activeBeastGrants(c).firstWhere(
+          (g) => g.grant.restrictedTo.contains('Bestial Build'));
+      c.beastTraitChoices[grant.key] = ['Bestial Build'];
+      c.raceTraitOptionChoices['Bestial Build::Option'] = {'Thick Hide'};
+      final totals = CharacterCalculator.raceTraitTotals(c,
+          currentLife: 100, maxLife: 100);
+      final t = CharacterCalculator.tierOfPower(c);
+      // Thick Hide: +2(T) Soak, +1(T) Corporeal Save; Trait (1): +2 RLM.
+      expect(totals[AffectedStat.soak], 2 * t);
+      expect(totals[AffectedStat.corporealSave], t);
+      expect(CharacterCalculator.raceTraitRacialLifeModifier(c), 2);
+    });
+
+    test('subrace + beast picks survive a JSON round-trip', () {
+      final c = Character.blank('rt')
+        ..race = 'Demon'
+        ..subrace = 'Phantom';
+      final grant = CharacterCalculator.activeBeastGrants(c)
+          .firstWhere((g) => g.grant.kind == BeastTraitKind.bestial);
+      c.beastTraitChoices[grant.key] = ['Claws'];
+      final restored = Character.fromJson(jsonDecode(jsonEncode(c.toJson())));
+      expect(restored.subrace, 'Phantom');
+      expect(restored.beastTraitChoices[grant.key], ['Claws']);
+    });
+
+    test('an always-in-effect Awakening grant applies once owned', () {
+      // Monstrous Evolution (Greater Awakening) grants 1 Bestial + 1 Monstrous
+      // Trait unconditionally (Awakenings are always in effect).
+      final c = Character.blank('me')..race = 'Saiyan';
+      // Def is 'Dark Evolution'; its Trait 'Monstrous Evolution' carries the
+      // grant (keyed by Trait name).
+      c.transformations.add(TransformationSelection(
+        name: 'Dark Evolution',
+        stacks: 1,
+      ));
+      final key = CharacterCalculator.beastTraitGrantKey(
+          'Monstrous Evolution', '', 0, BeastTraitKind.bestial);
+      c.transformations.first.beastTraitChoices[key] = ['Ravaging Charger'];
+      // Ravaging Charger is Monstrous, not Bestial → wrong-kind pick ignored.
+      expect(CharacterCalculator.selectedBeastTraits(c)
+          .any((t) => t.name == 'Ravaging Charger'), isFalse);
+      c.transformations.first.beastTraitChoices[key] = ['Grippy Grabbers'];
+      expect(CharacterCalculator.selectedBeastTraits(c)
+          .any((t) => t.name == 'Grippy Grabbers'), isTrue);
+    });
+
+    test('a condition-gated grant (Bestial Transfiguration) applies only '
+        'while in a Form/Enhancement', () {
+      final c = Character.blank('bt')..race = 'Saiyan';
+      c.transformations
+          .add(TransformationSelection(name: 'Bestial Transfiguration'));
+      final key = CharacterCalculator.beastTraitGrantKey(
+          'Reawakened Beast', '', 0, BeastTraitKind.bestial);
+      c.transformations.first.beastTraitChoices[key] = ['Grippy Grabbers'];
+      // Not in a Form/Enhancement → effect suppressed (pick retained).
+      expect(CharacterCalculator.selectedBeastTraits(c)
+          .any((t) => t.name == 'Grippy Grabbers'), isFalse);
+      // Enter a Form → it now applies.
+      c.transformations
+          .add(TransformationSelection(name: 'Monster Form', active: true));
+      expect(CharacterCalculator.selectedBeastTraits(c)
+          .any((t) => t.name == 'Grippy Grabbers'), isTrue);
+    });
+
+    test('a dependent grant restricts to the referenced Trait\'s picks', () {
+      // Beyond a Demon God draws its choices from True Power of a Demon God.
+      final c = Character.blank('dg')..race = 'Demon';
+      final sel = TransformationSelection(name: 'True Demon God', active: true);
+      final tpKey = CharacterCalculator.beastTraitGrantKey(
+          'True Power of a Demon God', '', 0, BeastTraitKind.bestial);
+      sel.beastTraitChoices[tpKey] = ['Claws', 'Fangs'];
+      c.transformations.add(sel);
+      expect(
+          CharacterCalculator.beastPicksForTrait(
+              c, 'True Power of a Demon God'),
+          containsAll(<String>['Claws', 'Fangs']));
+      // Nothing picked for a different Trait → empty restriction list.
+      expect(CharacterCalculator.beastPicksForTrait(c, 'Nonexistent'), isEmpty);
+    });
+
+    test('a Form-gated grant is inactive until the Form is Active', () {
+      // Monster Form → Monstrous Ascension grants a Monstrous + a Bestial
+      // Trait, but a Form's situational Traits only apply while Active.
+      final c = Character.blank('mf')..race = 'Bio Android';
+      final sel = TransformationSelection(name: 'Monster Form', active: false);
+      c.transformations.add(sel);
+      final key = CharacterCalculator.beastTraitGrantKey(
+          'Monstrous Ascension', '', 1, BeastTraitKind.bestial);
+      sel.beastTraitChoices[key] = ['Claws'];
+      expect(CharacterCalculator.selectedBeastTraits(c)
+          .any((t) => t.name == 'Claws'), isFalse); // Form inactive
+      sel.active = true;
+      expect(CharacterCalculator.selectedBeastTraits(c)
+          .any((t) => t.name == 'Claws'), isTrue); // Form active
+    });
+
+    test('per-selection beast picks survive a JSON round-trip', () {
+      final c = Character.blank('trt')..race = 'Saiyan';
+      final sel = TransformationSelection(name: 'Bestial Transfiguration');
+      sel.beastTraitChoices['k'] = ['Claws', 'Fangs'];
+      c.transformations.add(sel);
+      final restored = Character.fromJson(jsonDecode(jsonEncode(c.toJson())));
+      expect(restored.transformations.first.beastTraitChoices['k'],
+          ['Claws', 'Fangs']);
     });
   });
 }

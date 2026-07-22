@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/changelog.dart';
 import '../data/homebrew_registry.dart';
@@ -23,6 +24,7 @@ import '../services/character_repository.dart';
 import '../services/file_transfer_service.dart';
 import '../services/homebrew_repository.dart';
 import '../services/import_export_service.dart';
+import '../services/update_service.dart';
 import 'changelog_screen.dart';
 import 'character_edit_screen.dart';
 import 'widgets/multi_select_dialog.dart';
@@ -54,10 +56,16 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
   /// True while the initial load from storage is in flight.
   bool _loading = true;
 
+  /// Guards against overlapping update checks (the launch check and a rapid
+  /// button tap, or repeated taps).
+  bool _checkingForUpdate = false;
+
   @override
   void initState() {
     super.initState();
     _refresh();
+    // Quietly check once on launch; only surfaces UI if an update exists.
+    _checkForUpdates(silent: true);
   }
 
   /// Reloads the roster from storage and repaints.
@@ -73,6 +81,116 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
         _selectedId = null;
       }
     });
+  }
+
+  /// Checks GitHub Releases for a newer build.
+  ///
+  /// When [silent] (the on-launch check), it stays invisible unless an update
+  /// is available — no "you're up to date" / error noise. A manual tap
+  /// ([silent] false) always gives feedback so the user knows the check ran.
+  Future<void> _checkForUpdates({bool silent = false}) async {
+    if (_checkingForUpdate) return;
+    _checkingForUpdate = true;
+
+    final messenger = ScaffoldMessenger.of(context);
+    if (!silent) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Checking for updates…')),
+      );
+    }
+
+    final result = await const UpdateService().check();
+    if (!mounted) {
+      _checkingForUpdate = false;
+      return;
+    }
+
+    switch (result.status) {
+      case UpdateStatus.updateAvailable:
+        await _showUpdateDialog(result);
+      case UpdateStatus.upToDate:
+        if (!silent) {
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text("You're on the latest version (v$currentVersion)."),
+              ),
+            );
+        }
+      case UpdateStatus.error:
+        if (!silent) {
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text("Couldn't check for updates. Try again later."),
+              ),
+            );
+        }
+    }
+
+    _checkingForUpdate = false;
+  }
+
+  /// Shows the "update available" dialog with release notes and a link out to
+  /// the GitHub release page for downloading.
+  Future<void> _showUpdateDialog(UpdateCheck result) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Update available — v${result.latestVersion}'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("You're running v$currentVersion."),
+                if (result.notes != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    result.releaseName ?? "What's new",
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(result.notes!),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: result.releaseUrl == null
+                ? null
+                : () async {
+                    final ok = await launchUrl(
+                      Uri.parse(result.releaseUrl!),
+                      mode: LaunchMode.externalApplication,
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (!ok && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not open the download page.'),
+                        ),
+                      );
+                    }
+                  },
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Generates a reasonably-unique id for a new character.
@@ -475,6 +593,11 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ChangelogScreen()),
             ),
+          ),
+          IconButton(
+            tooltip: 'Check for updates',
+            icon: const Icon(Icons.update),
+            onPressed: () => _checkForUpdates(),
           ),
         ],
       ),

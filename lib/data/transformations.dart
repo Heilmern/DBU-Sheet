@@ -49,6 +49,7 @@ library;
 
 import 'dbu_rules.dart';
 import 'race_traits.dart';
+import 'apparel.dart';
 
 /// The three Transformation Types (verbatim): "Awakenings ... permanent
 /// boosts ... Enhancements ... amplify their power temporarily ... Forms ...
@@ -207,6 +208,7 @@ class TransformationTrait {
     this.ambBonus = const {},
     this.distributableAmb = const [],
     this.wagerWoundEffect,
+    this.beastGrants = const [],
   });
 
   final String name;
@@ -246,6 +248,14 @@ class TransformationTrait {
   /// Attack Reference while this Trait is in effect (see [WagerWoundEffect]).
   final WagerWoundEffect? wagerWoundEffect;
 
+  /// Bestial/Monstrous Trait grants provided by this Transformation Trait —
+  /// e.g. "select a Bestial Trait. While in this Transformation, you have
+  /// access to that Bestial Trait." Rendered as an inline picker on the
+  /// Transformations tab; picks live in `TransformationSelection.beastTraitChoices`
+  /// and apply ONLY while the Transformation is in effect. Per-Option grants
+  /// live on `TraitOption.beastGrants`. See `BeastTraitGrant`.
+  final List<BeastTraitGrant> beastGrants;
+
   bool get hasOptions => optionGroups.isNotEmpty;
 
   bool get isAutomated =>
@@ -258,6 +268,35 @@ class TransformationTrait {
 /// A single Transformation (one page of the Transformation Catalog). A Form
 /// Stage is its own `TransformationDef` (sharing a `transformationLine`),
 /// mirroring the rules: "A Stage ... each being their own Transformation."
+/// A Battle Uniform — the special Apparel a Transformation with the "Battle
+/// Uniform" Aspect auto-equips while it is in effect. Per the Aspect (verbatim),
+/// entering the Transformation makes you "lose access to your current Apparel"
+/// and equips the uniform described at the bottom of the Transformation, which
+/// always has the Stretching Quality. Its [category] + [craftsmanshipGrade]
+/// drive the Apparel Bonus the calculator applies (Combat Clothing → Defense
+/// Value, Armor → Damage Reduction, etc.); [qualityNames] lists its automatable
+/// catalogue Qualities (the implicit Stretching is added by the calculator, and
+/// any Battle-Uniform-unique Special Qualities remain reference text in the
+/// Transformation's Trait descriptions).
+class BattleUniformDef {
+  const BattleUniformDef({
+    required this.category,
+    required this.craftsmanshipGrade,
+    this.qualityNames = const [],
+  });
+
+  final ApparelCategory category;
+
+  /// Craftsmanship Grade 1–5 (a "High Grade" uniform is Grade 5 → High Apparel
+  /// Grade). Drives the Apparel Bonus via the Craftsmanship Grade table.
+  final int craftsmanshipGrade;
+
+  /// Names of the uniform's Qualities that resolve to automated Apparel Quality
+  /// catalogue entries (e.g. Combat Ready, Divine Apparel). Unknown names are
+  /// ignored by the resolver.
+  final List<String> qualityNames;
+}
+
 class TransformationDef {
   const TransformationDef({
     required this.name,
@@ -286,6 +325,9 @@ class TransformationDef {
     this.formType,
     this.transformationLine,
     this.stage,
+    // The Battle Uniform this Transformation auto-equips (Battle Uniform
+    // Aspect), if any.
+    this.battleUniform,
   });
 
   final String name;
@@ -379,6 +421,12 @@ class TransformationDef {
 
   /// This Form's Stage number within its line (1, 2, 3...; 0 = Null Stage).
   final int? stage;
+
+  /// The Battle Uniform this Transformation auto-equips while in effect (only
+  /// set on Transformations that carry the "Battle Uniform" Aspect). Null for
+  /// everything else. See [BattleUniformDef] and
+  /// `CharacterCalculator.effectiveApparel`.
+  final BattleUniformDef? battleUniform;
 
   /// True if this Form is an Evolved Stage of another Form (its
   /// `Evolved Stage Type: Generic/Unique (X)` page). Detected from
