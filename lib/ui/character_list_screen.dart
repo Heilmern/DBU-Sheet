@@ -587,17 +587,40 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             icon: const Icon(Icons.download),
             onPressed: _importCharacter,
           ),
-          IconButton(
-            tooltip: "What's new (v$currentVersion)",
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ChangelogScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Check for updates',
-            icon: const Icon(Icons.update),
-            onPressed: () => _checkForUpdates(),
+          // The two least-used actions live in an overflow menu so the five
+          // icons don't crowd out the AppBar title on a phone.
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (value) {
+              switch (value) {
+                case 'whatsnew':
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ChangelogScreen()),
+                  );
+                case 'updates':
+                  _checkForUpdates();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'whatsnew',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.history),
+                  title: Text("What's new (v$currentVersion)"),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'updates',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.update),
+                  title: Text('Check for updates'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -685,7 +708,7 @@ class _CharacterTile extends StatelessWidget {
     final theme = Theme.of(context);
     final subtitleParts = [
       character.race,
-      if (character.subspecies.trim().isNotEmpty) character.subspecies,
+      if (character.subrace.trim().isNotEmpty) character.subrace,
       'PL ${character.powerLevel}',
       'ToP $tierOfPower',
     ];
@@ -730,20 +753,50 @@ class _CharacterTile extends StatelessWidget {
                 Text('Life', style: theme.textTheme.labelSmall),
               ],
             ),
-            IconButton(
-              tooltip: 'Edit',
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: onEdit,
-            ),
-            IconButton(
-              tooltip: 'Export / share',
-              icon: const Icon(Icons.ios_share),
-              onPressed: onExport,
-            ),
-            IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: onDelete,
+            // One overflow menu instead of three inline icons — side by side
+            // they starved the name + subtitle into a tall multi-line stack on
+            // a phone.
+            PopupMenuButton<String>(
+              tooltip: 'Actions',
+              onSelected: (value) {
+                switch (value) {
+                  case 'edit':
+                    onEdit();
+                  case 'export':
+                    onExport();
+                  case 'delete':
+                    onDelete();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Edit'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'export',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.ios_share),
+                    title: Text('Export / share'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.delete_outline),
+                    title: Text('Delete'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

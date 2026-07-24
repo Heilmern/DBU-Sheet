@@ -244,29 +244,28 @@ class _ReferencesTabState extends State<ReferencesTab> {
             ],
           ),
           const SizedBox(height: 10),
-          // Extra Profile + Energy Charges + Wager.
+          // Extra Profile on its own row, then Energy Charges + Wager share a
+          // row: three-across starved the two number fields to unreadable
+          // slivers on a phone.
+          DropdownButtonFormField<String>(
+            initialValue:
+                signatureProfileByName(_extraProfile) == null ? '' : _extraProfile,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Extra Profile',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('None')),
+              for (final p in kDbuSignatureProfiles)
+                DropdownMenuItem(value: p.name, child: Text(p.name)),
+            ],
+            onChanged: (v) => setState(() => _extraProfile = v ?? ''),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<String>(
-                  initialValue:
-                      signatureProfileByName(_extraProfile) == null ? '' : _extraProfile,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Extra Profile',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: '', child: Text('None')),
-                    for (final p in kDbuSignatureProfiles)
-                      DropdownMenuItem(value: p.name, child: Text(p.name)),
-                  ],
-                  onChanged: (v) => setState(() => _extraProfile = v ?? ''),
-                ),
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: _NumberField(
                   label: 'Energy Charges',
@@ -343,7 +342,7 @@ class _ReferencesTabState extends State<ReferencesTab> {
             children: [
               Expanded(
                 child: _NumberField(
-                  label: 'Target Size (± categories)',
+                  label: 'Target Size ±',
                   value: _targetSizeRelative,
                   min: -6,
                   onChanged: (v) => setState(() => _targetSizeRelative = v),
@@ -373,21 +372,23 @@ class _ReferencesTabState extends State<ReferencesTab> {
             children: [
               Expanded(
                 child: _NumberField(
-                  label: "Target's Range (sq.)",
+                  label: 'Range (sq.)',
                   value: _targetRange,
                   onChanged: (v) => setState(() => _targetRange = v),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     FilterChip(
                       label: const Text("In Target's Melee"),
                       selected: _inMelee,
                       onSelected: (v) => setState(() => _inMelee = v),
                     ),
-                    const SizedBox(width: 8),
                     if (_targetRange >= 9)
                       Text('Long Range: Strike −2(bT) applied',
                           style: theme.textTheme.labelSmall
@@ -592,7 +593,7 @@ class _ReferencesTabState extends State<ReferencesTab> {
               _copyButton(context, line.expression),
               if (showMisc && onMisc != null)
                 SizedBox(
-                  width: 104,
+                  width: 116,
                   child: _NumberField(
                     label: 'Misc',
                     value: misc,
@@ -602,18 +603,23 @@ class _ReferencesTabState extends State<ReferencesTab> {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
-          // On a Critical Result — the same roll plus the Critical Dice.
-          Row(
-            children: [
-              Expanded(
-                child: Text('On a Critical: ${line.criticalExpression}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant)),
-              ),
-              _copyButton(context, line.criticalExpression, dense: true),
-            ],
-          ),
+          // On a Critical Result you add ONLY the Critical Dice to this roll —
+          // show just that delta, not the whole roll again.
+          if (line.criticalDiceExpression.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                      'On a Critical, add +${line.criticalDiceExpression}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ),
+                _copyButton(context, '+${line.criticalDiceExpression}',
+                    dense: true),
+              ],
+            ),
+          ],
           if (chargeNote && ref.energyCharges > 0)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -849,13 +855,22 @@ class _NumberFieldState extends State<_NumberField> {
         labelText: widget.label,
         border: const OutlineInputBorder(),
         isDense: true,
+        // Tight icon slots: the default prefix/suffix reserve ~48px each
+        // (96px total), which starved the number and label to slivers in the
+        // narrow columns these fields sit in on a phone.
+        prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         prefixIcon: IconButton(
           visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           icon: const Icon(Icons.remove, size: 18),
           onPressed: () => _set(widget.value - 1),
         ),
         suffixIcon: IconButton(
           visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           icon: const Icon(Icons.add, size: 18),
           onPressed: () => _set(widget.value + 1),
         ),

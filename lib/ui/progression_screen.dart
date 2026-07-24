@@ -514,6 +514,7 @@ class _ProgressionTabState extends State<ProgressionTab> {
     required ValueChanged<ProgressionGrantKind> onChanged,
   }) {
     return DropdownButtonFormField<ProgressionGrantKind>(
+      isExpanded: true,
       initialValue: value,
       decoration: const InputDecoration(
         labelText: 'Redeem as…',
@@ -699,77 +700,84 @@ class _ProgressionTabState extends State<ProgressionTab> {
     return Padding(
       key: ValueKey(skillKey),
       padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
+      // Skill + Ranks + remove on one line; for Encompassing skills the
+      // specialty picker gets its own full-width line below — squeezed beside
+      // the skill dropdown it collapsed to an unreadable sliver on a phone.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 3,
-            child: DropdownButtonFormField<SkillDef>(
-              initialValue: skill,
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<SkillDef>(
+                  isExpanded: true,
+                  initialValue: skill,
+                  isDense: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    // Exclude Skills already fully used by other rows, so a
+                    // switch can never collide onto an existing key.
+                    for (final s in kDbuSkills)
+                      if (s == skill || freeSpecialty(s) != null)
+                        DropdownMenuItem(value: s, child: Text(s.name)),
+                  ],
+                  onChanged: (newSkill) {
+                    if (newSkill == null || newSkill == skill) return;
+                    final spec = freeSpecialty(newSkill) ??
+                        (newSkill.isEncompassing
+                            ? newSkill.specialties.first
+                            : SkillProgress.normalKey);
+                    onRename(skillKey, '${newSkill.name}::$spec');
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 80,
+                child: _numberField(
+                  label: 'Ranks',
+                  value: ranks,
+                  min: 0,
+                  max: maxRank,
+                  onChanged: (v) => onSet(skillKey, v),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Remove',
+                icon: const Icon(Icons.close),
+                onPressed: () => onSet(skillKey, 0),
+              ),
+            ],
+          ),
+          if (skill.isEncompassing) ...[
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              initialValue: skill.specialties.contains(specialtyKey)
+                  ? specialtyKey
+                  : skill.specialties.first,
               isDense: true,
               decoration: const InputDecoration(
+                labelText: 'Specialty',
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
               items: [
-                // Exclude Skills that are already fully used by other rows, so
-                // a switch can never collide onto an existing key.
-                for (final s in kDbuSkills)
-                  if (s == skill || freeSpecialty(s) != null)
-                    DropdownMenuItem(value: s, child: Text(s.name)),
+                // Only offer specialties not already taken by another row.
+                for (final spec in skill.specialties)
+                  if (spec == specialtyKey ||
+                      !usedKeys.contains('$skillName::$spec'))
+                    DropdownMenuItem(value: spec, child: Text(spec)),
               ],
-              onChanged: (newSkill) {
-                if (newSkill == null || newSkill == skill) return;
-                final spec = freeSpecialty(newSkill) ??
-                    (newSkill.isEncompassing
-                        ? newSkill.specialties.first
-                        : SkillProgress.normalKey);
-                onRename(skillKey, '${newSkill.name}::$spec');
+              onChanged: (newSpec) {
+                if (newSpec == null || newSpec == specialtyKey) return;
+                onRename(skillKey, '$skillName::$newSpec');
               },
             ),
-          ),
-          if (skill.isEncompassing) ...[
-            const SizedBox(width: 6),
-            Expanded(
-              flex: 2,
-              child: DropdownButtonFormField<String>(
-                initialValue: skill.specialties.contains(specialtyKey)
-                    ? specialtyKey
-                    : skill.specialties.first,
-                isDense: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                items: [
-                  // Only offer specialties not already taken by another row.
-                  for (final spec in skill.specialties)
-                    if (spec == specialtyKey ||
-                        !usedKeys.contains('$skillName::$spec'))
-                      DropdownMenuItem(value: spec, child: Text(spec)),
-                ],
-                onChanged: (newSpec) {
-                  if (newSpec == null || newSpec == specialtyKey) return;
-                  onRename(skillKey, '$skillName::$newSpec');
-                },
-              ),
-            ),
           ],
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 80,
-            child: _numberField(
-              label: 'Ranks',
-              value: ranks,
-              min: 0,
-              max: maxRank,
-              onChanged: (v) => onSet(skillKey, v),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Remove',
-            icon: const Icon(Icons.close),
-            onPressed: () => onSet(skillKey, 0),
-          ),
         ],
       ),
     );

@@ -165,7 +165,12 @@ class _CombatScreenState extends State<CombatScreen>
     });
   }
 
-  String _fmt(int n) => n >= 0 ? '+$n' : '$n';
+  // Signed formatter with a clean "+0" for zero (guards a negative-zero double
+  // that would otherwise render "+-0.0") and no spurious trailing ".0".
+  String _fmt(num n) {
+    final v = n == n.roundToDouble() ? n.toInt() : n;
+    return v == 0 ? '+0' : (v > 0 ? '+$v' : '$v');
+  }
 
   int get _baseTier => CharacterCalculator.baseTierOfPower(_c);
 
@@ -733,7 +738,7 @@ class _CombatScreenState extends State<CombatScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: _numberField(
-                  label: 'Counter Actions',
+                  label: 'Counters',
                   value: _counterActions,
                   min: 0,
                   max: 9,
@@ -860,7 +865,7 @@ class _CombatScreenState extends State<CombatScreen>
               Expanded(
                 flex: 3,
                 child: _numberField(
-                  label: 'Capacity Spent',
+                  label: 'Spent',
                   value: _c.capacitySpent,
                   min: 0,
                   max: _stats.maxCapacity,
@@ -1089,31 +1094,27 @@ class _CombatScreenState extends State<CombatScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          // Full-width stepper above its effect chip: side by side the stepper
+          // starved its number and the effect text crammed into 2-3 lines.
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 2,
-                child: _numberField(
-                  label: 'Holding Back',
-                  value: CharacterCalculator.holdingBackStacks(_c),
-                  min: 0,
-                  max: CharacterCalculator.baseTierOfPower(_c),
-                  onChanged: (v) => _update(() => _c.holdingBackStacks = v),
-                ),
+              _numberField(
+                label: 'Holding Back',
+                value: CharacterCalculator.holdingBackStacks(_c),
+                min: 0,
+                max: CharacterCalculator.baseTierOfPower(_c),
+                onChanged: (v) => _update(() => _c.holdingBackStacks = v),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 3,
-                child: DerivedStat(
-                  label: 'Effect',
-                  value: CharacterCalculator.holdingBackStacks(_c) == 0
-                      ? '—'
-                      : '−${CharacterCalculator.holdingBackStacks(_c)} Tier '
-                          'of Power, '
-                          '+${CharacterCalculator.holdingBackStacks(_c).clamp(0, 3)} '
-                          'Concealment',
-                ),
+              const SizedBox(height: 6),
+              DerivedStat(
+                label: 'Effect',
+                value: CharacterCalculator.holdingBackStacks(_c) == 0
+                    ? '—'
+                    : '−${CharacterCalculator.holdingBackStacks(_c)} Tier '
+                        'of Power, '
+                        '+${CharacterCalculator.holdingBackStacks(_c).clamp(0, 3)} '
+                        'Concealment',
               ),
             ],
           ),
@@ -1132,56 +1133,59 @@ class _CombatScreenState extends State<CombatScreen>
   /// is keyed so a middle-row delete never leaves stale text behind.
   Widget _freeformResourceRow(int index) {
     final entry = _c.resources[index];
+    // Name on its own full-width line, then the two steppers + delete: all
+    // four side by side forced a RenderFlex overflow and starved the steppers
+    // on a phone.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              // Keyed by row IDENTITY (not by the name being typed, which
-              // would remount — and drop the cursor — on every keystroke):
-              // a middle-row delete remounts the survivors correctly.
-              key: ValueKey(('combat-res-name', entry)),
-              initialValue: entry.name,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
-                isDense: true,
+          TextFormField(
+            // Keyed by row IDENTITY (not by the name being typed, which
+            // would remount — and drop the cursor — on every keystroke):
+            // a middle-row delete remounts the survivors correctly.
+            key: ValueKey(('combat-res-name', entry)),
+            initialValue: entry.name,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (v) => _update(() => entry.name = v),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: _numberField(
+                  label: 'Stacks',
+                  value: entry.stacks,
+                  min: 0,
+                  max: entry.maxStacks,
+                  onChanged: (v) => _update(() => entry.stacks = v),
+                ),
               ),
-              onChanged: (v) => _update(() => entry.name = v),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: _numberField(
-              label: 'Stacks',
-              value: entry.stacks,
-              min: 0,
-              max: entry.maxStacks,
-              onChanged: (v) => _update(() => entry.stacks = v),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: _numberField(
-              label: 'Max',
-              value: entry.maxStacks,
-              min: 1,
-              max: 999,
-              onChanged: (v) => _update(() {
-                entry.maxStacks = v;
-                if (entry.stacks > v) entry.stacks = v;
-              }),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Remove',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _update(() => _c.resources.removeAt(index)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _numberField(
+                  label: 'Max',
+                  value: entry.maxStacks,
+                  min: 1,
+                  max: 999,
+                  onChanged: (v) => _update(() {
+                    entry.maxStacks = v;
+                    if (entry.stacks > v) entry.stacks = v;
+                  }),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Remove',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _update(() => _c.resources.removeAt(index)),
+              ),
+            ],
           ),
         ],
       ),
@@ -1268,6 +1272,7 @@ class _CombatScreenState extends State<CombatScreen>
                       Expanded(
                         flex: 4,
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           // Row-identity key: without it, deleting a middle
                           // row leaves the next row's dropdown showing the
                           // DELETED row's pick (FormField state is element-
@@ -1503,17 +1508,18 @@ class _CombatScreenState extends State<CombatScreen>
             ],
           ),
           const SizedBox(height: 10),
-          Row(
+          // A Wrap, not a Row: side by side these two long-labelled buttons
+          // don't fit a phone, and the un-flexed "Count an attack" button
+          // starved the other into a one-letter-per-line vertical crush.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.sports_martial_arts),
-                  label: const Text('Make an Attacking Maneuver'),
-                  onPressed: () =>
-                      _tabController.animateTo(_attackTabIndex),
-                ),
+              FilledButton.icon(
+                icon: const Icon(Icons.sports_martial_arts),
+                label: const Text('Make an Attacking Maneuver'),
+                onPressed: () => _tabController.animateTo(_attackTabIndex),
               ),
-              const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: _recordAttack,
                 child: Text('Count an attack '
@@ -1650,6 +1656,7 @@ class _CombatScreenState extends State<CombatScreen>
             children: [
               Expanded(
                 child: DropdownButtonFormField<DamageCategory>(
+                  isExpanded: true,
                   initialValue: _dmgCategory,
                   decoration: const InputDecoration(
                     labelText: 'Damage Category',
@@ -1667,6 +1674,7 @@ class _CombatScreenState extends State<CombatScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<ParryOption>(
+                  isExpanded: true,
                   initialValue: _dmgParry,
                   decoration: const InputDecoration(
                     labelText: 'Parry',
@@ -1684,28 +1692,22 @@ class _CombatScreenState extends State<CombatScreen>
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _numberField(
-                  label: 'Damage Reduction',
-                  value: _dmgReduction,
-                  min: 0,
-                  max: 999,
-                  onChanged: (v) => setState(() => _dmgReduction = v),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _numberField(
-                  label: 'Wound Roll',
-                  value: _dmgWoundRoll,
-                  min: 0,
-                  max: 999,
-                  onChanged: (v) => setState(() => _dmgWoundRoll = v),
-                ),
-              ),
-            ],
+          // Full-width, stacked: side by side their long labels ("Damage
+          // Reduction" / "Wound Roll") truncated on a phone.
+          _numberField(
+            label: 'Damage Reduction',
+            value: _dmgReduction,
+            min: 0,
+            max: 999,
+            onChanged: (v) => setState(() => _dmgReduction = v),
+          ),
+          const SizedBox(height: 8),
+          _numberField(
+            label: 'Wound Roll',
+            value: _dmgWoundRoll,
+            min: 0,
+            max: 999,
+            onChanged: (v) => setState(() => _dmgWoundRoll = v),
           ),
           if (autoReduction > 0)
             Padding(
@@ -1776,6 +1778,7 @@ class _CombatScreenState extends State<CombatScreen>
               Expanded(
                 flex: 3,
                 child: DropdownButtonFormField<BattleWeatherDef?>(
+                  isExpanded: true,
                   initialValue: weather,
                   decoration: const InputDecoration(
                     labelText: 'Battle Weather',
@@ -1823,6 +1826,7 @@ class _CombatScreenState extends State<CombatScreen>
           ],
           const SizedBox(height: 8),
           DropdownButtonFormField<BattleEnvironmentDef?>(
+            isExpanded: true,
             initialValue: environment,
             decoration: const InputDecoration(
               labelText: 'Battle Environment',
@@ -1861,6 +1865,7 @@ class _CombatScreenState extends State<CombatScreen>
           ],
           const SizedBox(height: 8),
           DropdownButtonFormField<LightLevelDef?>(
+            isExpanded: true,
             initialValue: _light,
             decoration: const InputDecoration(
               labelText: 'Light Level',
@@ -2193,6 +2198,9 @@ class _IntStepperFieldState extends State<_IntStepperField> {
       children: [
         IconButton(
           visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          iconSize: 22,
           icon: const Icon(Icons.remove_circle_outline),
           onPressed: () => _emit(widget.value - 1),
         ),
@@ -2220,6 +2228,9 @@ class _IntStepperFieldState extends State<_IntStepperField> {
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          iconSize: 22,
           icon: const Icon(Icons.add_circle_outline),
           onPressed: () => _emit(widget.value + 1),
         ),

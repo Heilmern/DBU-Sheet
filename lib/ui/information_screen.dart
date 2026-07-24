@@ -104,8 +104,8 @@ class InformationTab extends StatelessWidget {
             runSpacing: 8,
             children: [
               DerivedStat(label: 'Race', value: _c.race),
-              if (_c.subspecies.trim().isNotEmpty)
-                DerivedStat(label: 'Sub-Race', value: _c.subspecies),
+              if (_c.subrace.trim().isNotEmpty)
+                DerivedStat(label: 'Sub-Race', value: _c.subrace),
               DerivedStat(label: 'Size', value: _c.size.displayName),
               const DerivedStat(
                   label: 'Melee Reach', value: RangeRules.meleeReachLabel),
@@ -601,6 +601,10 @@ class InformationTab extends StatelessWidget {
     String? tierLabel,
     bool swappedOut = false,
     required Widget trailingAction,
+    // Optional full-width control rendered on its own line below the status
+    // row (e.g. the Flaw's Compensation picker) — a wide control does not fit
+    // beside the status text on a phone.
+    Widget? footer,
   }) {
     final theme = Theme.of(context);
     final effect = swappedOut
@@ -711,6 +715,10 @@ class InformationTab extends StatelessWidget {
                 trailingAction,
               ],
             ),
+            if (footer != null) ...[
+              const SizedBox(height: 8),
+              footer,
+            ],
           ],
         ),
       ),
@@ -830,6 +838,7 @@ class InformationTab extends StatelessWidget {
 
     final picker = group.maxChoices <= 1
         ? DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: chosen.isEmpty ? null : chosen.first,
             decoration: InputDecoration(
               labelText: group.label,
@@ -1222,39 +1231,43 @@ class InformationTab extends StatelessWidget {
                     }
                   }),
                 ),
-                const Text('Replaces Racial Trait:'),
-                const SizedBox(width: 8),
-                if (replaces.isNotEmpty)
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue:
-                          available.contains(replaces) ? replaces : null,
-                      isDense: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: [
-                        for (final name in available)
-                          DropdownMenuItem(value: name, child: Text(name)),
-                      ],
-                      onChanged: (value) => _update(() {
-                        if (value == null) return;
-                        if (replaces.isNotEmpty) {
-                          _c.inactiveRaceTraitNames.remove(replaces);
-                        }
-                        entry.replacesTraitName = value;
-                        _c.inactiveRaceTraitNames.add(value);
-                      }),
-                    ),
-                  )
-                else
+                const Expanded(child: Text('Replaces a Racial Trait')),
+                if (replaces.isEmpty)
                   const Text(
                     '(none)',
                     style: TextStyle(fontStyle: FontStyle.italic),
                   ),
               ],
             ),
+            // The picker is on its own full-width line — squeezed beside the
+            // checkbox + label it showed only 2-3 characters of the Trait name.
+            if (replaces.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue:
+                      available.contains(replaces) ? replaces : null,
+                  isDense: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Replaces',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    for (final name in available)
+                      DropdownMenuItem(value: name, child: Text(name)),
+                  ],
+                  onChanged: (value) => _update(() {
+                    if (value == null) return;
+                    if (replaces.isNotEmpty) {
+                      _c.inactiveRaceTraitNames.remove(replaces);
+                    }
+                    entry.replacesTraitName = value;
+                    _c.inactiveRaceTraitNames.add(value);
+                  }),
+                ),
+              ),
           ],
         ),
       ),
@@ -1401,41 +1414,36 @@ class InformationTab extends StatelessWidget {
       badgeText: chosen == null
           ? 'Flaw — choose its compensation'
           : 'Flaw — ${chosen.displayName}',
-      trailingAction: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 230,
-            child: DropdownButtonFormField<FlawCompensation>(
-              initialValue: chosen,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Compensation',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                for (final option in FlawCompensation.values)
-                  DropdownMenuItem(
-                    value: option,
-                    child: Text(option.displayName),
-                  ),
-              ],
-              onChanged: (value) => _update(() {
-                if (value == null) {
-                  _c.customFlawCompensation.remove(def.name);
-                } else {
-                  _c.customFlawCompensation[def.name] = value;
-                }
-              }),
+      trailingAction: IconButton(
+        tooltip: 'Delete',
+        icon: const Icon(Icons.delete_outline),
+        onPressed: onDelete,
+      ),
+      // The Compensation picker gets its own full-width line below the status
+      // text — beside it (as a 230px trailing control) it crushed the status
+      // text to an unreadable sliver on a phone.
+      footer: DropdownButtonFormField<FlawCompensation>(
+        initialValue: chosen,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          labelText: 'Compensation',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        items: [
+          for (final option in FlawCompensation.values)
+            DropdownMenuItem(
+              value: option,
+              child: Text(option.displayName),
             ),
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: onDelete,
-          ),
         ],
+        onChanged: (value) => _update(() {
+          if (value == null) {
+            _c.customFlawCompensation.remove(def.name);
+          } else {
+            _c.customFlawCompensation[def.name] = value;
+          }
+        }),
       ),
     );
   }
@@ -1793,13 +1801,6 @@ class InformationTab extends StatelessWidget {
                     onChanged: (v) => _update(() => entry.name = v),
                   ),
                 ),
-                if (talent != null) ...[
-                  const SizedBox(width: 4),
-                  Chip(
-                    label: Text(talent.category.displayName),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
                 IconButton(
                   tooltip: 'Pick from Talents catalogue',
                   icon: const Icon(Icons.list_alt_outlined),
@@ -1815,6 +1816,16 @@ class InformationTab extends StatelessWidget {
                 ),
               ],
             ),
+            // Category chip on its own line — beside the name field it starved
+            // it to a sliver on a phone.
+            if (talent != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Chip(
+                  label: Text(talent.category.displayName),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
             _textField(
               label: 'Prerequisites',
               value: entry.prerequisites,
@@ -1979,6 +1990,7 @@ class InformationTab extends StatelessWidget {
           Expanded(
             flex: 3,
             child: DropdownButtonFormField<SkillDef>(
+              isExpanded: true,
               initialValue: skill,
               isDense: true,
               decoration: const InputDecoration(
@@ -2005,6 +2017,7 @@ class InformationTab extends StatelessWidget {
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: skill.specialties.contains(specialtyKey)
                     ? specialtyKey
                     : skill.specialties.first,

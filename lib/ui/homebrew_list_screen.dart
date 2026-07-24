@@ -395,23 +395,48 @@ class _HomebrewListScreenState extends State<HomebrewListScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Edit',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => _openEditor(entry: e),
+            // One overflow menu instead of three inline icons (which starved
+            // the title into a tall stack on a phone). Tapping the tile still
+            // opens the editor.
+            trailing: PopupMenuButton<String>(
+              tooltip: 'Actions',
+              onSelected: (value) {
+                switch (value) {
+                  case 'edit':
+                    _openEditor(entry: e);
+                  case 'export':
+                    _export(e);
+                  case 'delete':
+                    _confirmDelete(e);
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Edit'),
+                  ),
                 ),
-                IconButton(
-                  tooltip: 'Export / share',
-                  icon: const Icon(Icons.ios_share),
-                  onPressed: () => _export(e),
+                PopupMenuItem(
+                  value: 'export',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.ios_share),
+                    title: Text('Export / share'),
+                  ),
                 ),
-                IconButton(
-                  tooltip: 'Delete',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _confirmDelete(e),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.delete_outline),
+                    title: Text('Delete'),
+                  ),
                 ),
               ],
             ),

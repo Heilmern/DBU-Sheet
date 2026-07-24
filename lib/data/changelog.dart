@@ -62,6 +62,35 @@ String get currentVersion => kChangelog.first.version;
 /// Every release, NEWEST FIRST. Prepend new entries here.
 const List<ChangelogEntry> kChangelog = [
   ChangelogEntry(
+    version: '0.1.4',
+    date: '24 Jul 2026',
+    headline: 'A mobile-friendly pass — the whole sheet is readable on a phone.',
+    changes: [
+      ChangelogChange(ChangeKind.fixed,
+          'Phone layout overhaul: across the Character, Combat, Inventory, '
+          'Information, Progression, Transformations, Signatures and References '
+          'screens, number steppers, dropdowns and packed rows no longer clip '
+          'their values or crush their labels on a narrow screen — fields that '
+          'were unreadable slivers now show in full.'),
+      ChangelogChange(ChangeKind.changed,
+          'The References "On a Critical" line now shows just the Critical Dice '
+          'you add on a Crit (e.g. "+2d10"), with a copy button, instead of '
+          'repeating the whole roll.'),
+      ChangelogChange(ChangeKind.changed,
+          'The free-text "Subspecies" field is gone — the Subrace picker '
+          'replaced it, and the "Sub-Race" shown on the Information tab and in '
+          'the roster now reflects your chosen Subrace.'),
+      ChangelogChange(ChangeKind.fixed,
+          'Zero bonuses and penalties now read "+0" instead of "+-0.0".'),
+      ChangelogChange(ChangeKind.changed,
+          'On the roster and Homebrew library, each card\'s row actions '
+          '(Edit / Export / Delete) moved into a single menu, so long names no '
+          'longer get squeezed on a phone.'),
+      ChangelogChange(ChangeKind.fixed,
+          'Fixed a missing space in the Inventory tab\'s intro text.'),
+    ],
+  ),
+  ChangelogEntry(
     version: '0.1.3',
     date: '22 Jul 2026',
     headline: 'Beast Traits, Subraces, and an in-app update check.',

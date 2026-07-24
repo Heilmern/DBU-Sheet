@@ -174,21 +174,22 @@ class DamageResult {
 /// `1d10+1d4+26 (10+)`. [total] is the flat bonus, [criticalTarget] the natural
 /// result at/above which it Crits, and [expression] the full dice string of
 /// everything currently rolled (base 1d10 + every ToP Extra Dice + Greater
-/// Dice when active + per-Energy-Charge dice on the Wound). [criticalExpression]
-/// is the same roll with the Critical Dice appended — what you roll on a
-/// Critical Result.
+/// Dice when active + per-Energy-Charge dice on the Wound).
+/// [criticalDiceExpression] is ONLY the extra Critical Dice you add on a
+/// Critical Result (e.g. "1d6"), not the whole roll again — '' below the Tier
+/// that grants Critical Dice.
 class AttackRollLine {
   const AttackRollLine({
     required this.total,
     required this.criticalTarget,
     required this.expression,
-    required this.criticalExpression,
+    required this.criticalDiceExpression,
   });
 
   final int total;
   final int criticalTarget;
   final String expression;
-  final String criticalExpression;
+  final String criticalDiceExpression;
 }
 
 /// The computed read-out for the References tab's Attack Reference — everything
@@ -2777,15 +2778,15 @@ abstract final class CharacterCalculator {
         targetSizeRelative >= 2 ? top * targetSizeRelative : 0;
 
     // The Critical Dice added on a Critical Result (index = Tier of Power).
+    // The "On a Critical" line shows only this delta — the extra dice you add
+    // on a Crit — not the whole roll again. Empty ('') below the tier that
+    // grants Critical Dice.
     final critIndex = tierOfPower(c);
+    final critDiceLabel = (DicePool()..addCategory(critIndex)).label;
 
-    // Assembles "<pool>±<total> (crit+)"; with [onCrit], the Critical Dice are
-    // appended (the roll you make on a Critical Result).
-    String roll(DicePool pool, int total, int crit, {bool onCrit = false}) {
-      final p = DicePool(pool.dice);
-      if (onCrit) p.addCategory(critIndex);
-      return '${p.label}${total >= 0 ? '+' : ''}$total ($crit+)';
-    }
+    // Assembles "<pool>±<total> (crit+)" for the base roll.
+    String roll(DicePool pool, int total, int crit) =>
+        '${pool.label}${total >= 0 ? '+' : ''}$total ($crit+)';
 
     // Signature-only flat Strike/Wound and Critical-Target Custom Buffs.
     final sigStrikeFlat =
@@ -2883,26 +2884,25 @@ abstract final class CharacterCalculator {
         total: strikeTotal,
         criticalTarget: strikeCrit,
         expression: roll(strikePool, strikeTotal, strikeCrit),
-        criticalExpression: roll(strikePool, strikeTotal, strikeCrit, onCrit: true),
+        criticalDiceExpression: critDiceLabel,
       ),
       wound: AttackRollLine(
         total: woundTotal,
         criticalTarget: woundCrit,
         expression: roll(woundPool, woundTotal, woundCrit),
-        criticalExpression: roll(woundPool, woundTotal, woundCrit, onCrit: true),
+        criticalDiceExpression: critDiceLabel,
       ),
       dodge: AttackRollLine(
         total: dodgeTotal,
         criticalTarget: stats.dodge.criticalTarget,
         expression: roll(dodgePool, dodgeTotal, stats.dodge.criticalTarget),
-        criticalExpression: roll(dodgePool, dodgeTotal, stats.dodge.criticalTarget,
-            onCrit: true),
+        criticalDiceExpression: critDiceLabel,
       ),
       duel: AttackRollLine(
         total: duelTotal,
         criticalTarget: wv.criticalTarget,
         expression: roll(duelPool, duelTotal, wv.criticalTarget),
-        criticalExpression: roll(duelPool, duelTotal, wv.criticalTarget, onCrit: true),
+        criticalDiceExpression: critDiceLabel,
       ),
       maxWager: maxWager,
       energyCharges: totalCharges,

@@ -47,7 +47,12 @@ class SignaturesTab extends StatelessWidget {
 
   Character get _c => character;
 
-  String _fmt(int n) => n >= 0 ? '+$n' : '$n';
+  // Signed formatter with a clean "+0" for zero (guards a negative-zero double
+  // that would otherwise render "+-0.0") and no spurious trailing ".0".
+  String _fmt(num n) {
+    final v = n == n.roundToDouble() ? n.toInt() : n;
+    return v == 0 ? '+0' : (v > 0 ? '+$v' : '$v');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -515,28 +520,6 @@ class SignaturesTab extends StatelessWidget {
                     ? theme.colorScheme.primary
                     : theme.colorScheme.onSurfaceVariant,
               ),
-              // Rank stepper for ranked modifiers.
-              if (def != null && def.isRanked)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.remove, size: 16),
-                      onPressed: sel.rank > 1
-                          ? () => onUpdate(() => sel.rank -= 1)
-                          : null,
-                    ),
-                    Text('R${sel.rank}', style: theme.textTheme.labelMedium),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.add, size: 16),
-                      onPressed: sel.rank < def.maxRank
-                          ? () => onUpdate(() => sel.rank += 1)
-                          : null,
-                    ),
-                  ],
-                ),
               IconButton(
                 tooltip: 'Remove',
                 visualDensity: VisualDensity.compact,
@@ -545,6 +528,29 @@ class SignaturesTab extends StatelessWidget {
               ),
             ],
           ),
+          // Rank stepper on its own line — inline it crushed the name into a
+          // 2-3 line stack on a phone.
+          if (def != null && def.isRanked)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.remove, size: 16),
+                  onPressed: sel.rank > 1
+                      ? () => onUpdate(() => sel.rank -= 1)
+                      : null,
+                ),
+                Text('R${sel.rank}', style: theme.textTheme.labelMedium),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.add, size: 16),
+                  onPressed: sel.rank < def.maxRank
+                      ? () => onUpdate(() => sel.rank += 1)
+                      : null,
+                ),
+              ],
+            ),
           if (def != null) ...[
             Text(def.effect, style: theme.textTheme.bodySmall),
             if (!isDisadvantage)

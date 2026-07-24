@@ -1234,6 +1234,7 @@ class TransformationsTab extends StatelessWidget {
     final chosen = _c.raceTraitOptionChoices[key] ?? const <String>{};
     final picker = group.maxChoices <= 1
         ? DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: chosen.isEmpty ? null : chosen.first,
             decoration: InputDecoration(
               labelText: group.label,
@@ -1440,6 +1441,7 @@ class TransformationsTab extends StatelessWidget {
     // to N, e.g. Metamorphosis's "select S Evolution Traits") is a chip row.
     final picker = group.maxChoices <= 1
         ? DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: chosen.isEmpty ? null : chosen.first,
             decoration: InputDecoration(
               labelText: group.label,
@@ -1532,14 +1534,20 @@ class TransformationsTab extends StatelessWidget {
                   style: theme.textTheme.labelLarge
                       ?.copyWith(fontWeight: FontWeight.bold)),
               IconButton(
+                visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.remove_circle_outline),
                 onPressed: sel.masteryLevel > 0
                     ? () => _update(() => sel.masteryLevel--)
                     : null,
               ),
-              Text('${sel.masteryLevel} / $levels'
-                  '${sel.masteryLevel >= levels ? '  (Fully Mastered)' : ''}'),
+              // Flexible so "(Fully Mastered)" can wrap instead of overflowing
+              // the row on a phone.
+              Flexible(
+                child: Text('${sel.masteryLevel} / $levels'
+                    '${sel.masteryLevel >= levels ? '  (Fully Mastered)' : ''}'),
+              ),
               IconButton(
+                visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.add_circle_outline),
                 onPressed: sel.masteryLevel < levels
                     ? () => _update(() => sel.masteryLevel++)
@@ -1937,6 +1945,7 @@ class TransformationsTab extends StatelessWidget {
                   Expanded(
                     flex: 3,
                     child: DropdownButtonFormField<DbuAttribute>(
+                      isExpanded: true,
                       initialValue: attr,
                       isDense: true,
                       decoration: const InputDecoration(

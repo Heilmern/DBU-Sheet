@@ -417,6 +417,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
               'fields above; its automated effects from the Automated '
               'Effects section.'),
           DropdownButtonFormField<TalentCategory>(
+            isExpanded: true,
             initialValue: t.category,
             decoration: const InputDecoration(
               labelText: 'Talent Category',
@@ -517,6 +518,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<RaceTraitTier>(
+                    isExpanded: true,
                     initialValue: trait.tier,
                     decoration: const InputDecoration(
                       labelText: 'Tier',
@@ -535,6 +537,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<TraitCategory>(
+                    isExpanded: true,
                     initialValue: trait.category,
                     decoration: const InputDecoration(
                       labelText: 'Body / Mind',
@@ -625,6 +628,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
               SizedBox(
                 width: 190,
                 child: DropdownButtonFormField<TierScaling>(
+                  isExpanded: true,
                   initialValue: _condition.tierScaling,
                   decoration: const InputDecoration(labelText: 'Scaling'),
                   items: [
@@ -704,6 +708,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                 SizedBox(
                   width: 170,
                   child: DropdownButtonFormField<AwakeningType>(
+                    isExpanded: true,
                     initialValue: t.awakeningType,
                     decoration:
                         const InputDecoration(labelText: 'Awakening Type'),
@@ -720,6 +725,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                 SizedBox(
                   width: 170,
                   child: DropdownButtonFormField<FormType>(
+                    isExpanded: true,
                     initialValue: t.formType,
                     decoration: const InputDecoration(labelText: 'Form Type'),
                     items: [
@@ -993,6 +999,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                         SizedBox(
                           width: 190,
                           child: DropdownButtonFormField<TierScaling>(
+                            isExpanded: true,
                             initialValue: s.traits[i].tierScaling,
                             decoration:
                                 const InputDecoration(labelText: 'Scaling'),
@@ -1337,6 +1344,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                         Expanded(
                           child:
                               DropdownButtonFormField<ApparelEffectBasis>(
+                            isExpanded: true,
                             initialValue: a.statEffects[i].basis,
                             decoration:
                                 const InputDecoration(labelText: 'Basis'),
@@ -1475,6 +1483,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<WeaponEffectTarget>(
+                        isExpanded: true,
                         initialValue: w.statEffects[i].target,
                         decoration:
                             const InputDecoration(labelText: 'Roll'),
@@ -1501,6 +1510,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButtonFormField<WeaponEffectBasis>(
+                        isExpanded: true,
                         initialValue: w.statEffects[i].basis,
                         decoration:
                             const InputDecoration(labelText: 'Basis'),
@@ -1639,6 +1649,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                         Expanded(
                           child: DropdownButtonFormField<
                               AccessoryEffectBasis>(
+                            isExpanded: true,
                             initialValue: a.statEffects[i].basis,
                             decoration:
                                 const InputDecoration(labelText: 'Basis'),
@@ -1801,6 +1812,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<SigEffectTarget>(
+                        isExpanded: true,
                         initialValue: m.statEffects[i].target,
                         decoration:
                             const InputDecoration(labelText: 'Roll'),
@@ -1828,6 +1840,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: DropdownButtonFormField<SigEffectBasis>(
+                        isExpanded: true,
                         initialValue: m.statEffects[i].basis,
                         decoration:
                             const InputDecoration(labelText: 'Basis'),
@@ -2098,6 +2111,7 @@ class _HomebrewEditScreenState extends State<HomebrewEditScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     DropdownButtonFormField<HomebrewCategory>(
+                      isExpanded: true,
                       initialValue: _category,
                       decoration: const InputDecoration(labelText: 'Category'),
                       items: [
@@ -2301,6 +2315,7 @@ class _AutomationCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<TierScaling>(
+                    isExpanded: true,
                     initialValue: draft.tierScaling,
                     decoration: const InputDecoration(labelText: 'Scaling'),
                     items: [
@@ -2338,6 +2353,7 @@ class _AutomationCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<DbuAttribute>(
+                      isExpanded: true,
                       initialValue: draft.attribute,
                       decoration:
                           const InputDecoration(labelText: 'Attribute'),

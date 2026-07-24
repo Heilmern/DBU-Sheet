@@ -66,7 +66,18 @@ class SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                ?trailing,
+                // A wide trailing (e.g. a row of counter chips + an add button)
+                // must be allowed to shrink and wrap on a narrow phone instead
+                // of stealing the title's width and overflowing the header.
+                // Flexible caps its share; Align keeps it hugging the right on
+                // wide screens where there's room to spare.
+                if (trailing != null)
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: trailing,
+                    ),
+                  ),
               ],
             ),
             const Divider(height: 16),

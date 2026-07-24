@@ -58,7 +58,12 @@ class InventoryTab extends StatelessWidget {
   Character get _c => character;
 
   /// Signed-integer formatter ("+3" / "-1").
-  String _fmt(int n) => n >= 0 ? '+$n' : '$n';
+  // Signed formatter with a clean "+0" for zero (guards a negative-zero double
+  // that would otherwise render "+-0.0") and no spurious trailing ".0".
+  String _fmt(num n) {
+    final v = n == n.roundToDouble() ? n.toInt() : n;
+    return v == 0 ? '+0' : (v > 0 ? '+$v' : '$v');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +97,7 @@ class InventoryTab extends StatelessWidget {
       title: 'Inventory',
       icon: Icons.backpack_outlined,
       child: Text(
-        'Apparel, Weapons and Accessories'
+        'Apparel, Weapons and Accessories — their '
         'Category, Qualities, Break/Life values, per-Attack modifiers and '
         '"while equipped" effects feed your stats automatically. Basic '
         'Items are a reference catalogue, '
@@ -376,20 +381,26 @@ class InventoryTab extends StatelessWidget {
           const SizedBox(height: 8),
           // Grade / Category / Size selectors. Natural Armor derives its Grade
           // and is always Armor, so those two are read-only for it.
-          Row(
+          // A Wrap, not a 3-across Row: on a phone three dropdowns each got
+          // ~88px and truncated their values ("Stan"/"Medi"); at a fixed width
+          // they reflow 2-up and stay readable.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
+              SizedBox(
+                width: 128,
                 child: nat
                     ? _readOnlyField(
                         context,
-                        label: 'Craftsmanship',
+                        label: 'Craft',
                         value: '${info.grade} · ${info.craftDc}',
                       )
                     : DropdownButtonFormField<int>(
                         initialValue: piece.craftsmanshipGrade.clamp(1, 5),
                         isExpanded: true,
                         decoration: const InputDecoration(
-                          labelText: 'Craftsmanship',
+                          labelText: 'Craft',
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -405,8 +416,8 @@ class InventoryTab extends StatelessWidget {
                                 v ?? piece.craftsmanshipGrade),
                       ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 128,
                 child: nat
                     ? _readOnlyField(
                         context,
@@ -439,8 +450,8 @@ class InventoryTab extends StatelessWidget {
                         }),
                       ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 128,
                 child: DropdownButtonFormField<DbuSize>(
                   initialValue: piece.size,
                   isExpanded: true,
@@ -501,13 +512,13 @@ class InventoryTab extends StatelessWidget {
                 ),
               if (nat) const SizedBox(width: 8),
               SizedBox(
-                width: 110,
+                width: 92,
                 child: TextFormField(
                   key: ValueKey('bv-${identityHashCode(piece)}-$maxBv'),
                   initialValue: '${piece.breakValue}',
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Break Value',
+                    labelText: 'Break',
                     helperText: unbreakable
                         ? 'Unbreakable'
                         : (nat ? 'max $maxBv · auto-repairs' : 'max $maxBv'),
@@ -867,10 +878,14 @@ class InventoryTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // Type / Size / Craftsmanship selectors.
-          Row(
+          // Type / Size / Craftsmanship selectors. A Wrap so the three
+          // dropdowns reflow 2-up on a phone instead of truncating their values.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
+              SizedBox(
+                width: 128,
                 child: DropdownButtonFormField<WeaponType>(
                   initialValue: weapon.type,
                   isExpanded: true,
@@ -897,8 +912,8 @@ class InventoryTab extends StatelessWidget {
                   }),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 128,
                 child: DropdownButtonFormField<WeaponSize>(
                   initialValue: weapon.size,
                   isExpanded: true,
@@ -914,13 +929,13 @@ class InventoryTab extends StatelessWidget {
                   onChanged: (v) => onUpdate(() => weapon.size = v ?? weapon.size),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 128,
                 child: DropdownButtonFormField<int>(
                   initialValue: weapon.craftsmanshipGrade.clamp(1, 5),
                   isExpanded: true,
                   decoration: const InputDecoration(
-                    labelText: 'Craftsmanship',
+                    labelText: 'Craft',
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -975,13 +990,13 @@ class InventoryTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               SizedBox(
-                width: 120,
+                width: 92,
                 child: TextFormField(
                   key: ValueKey('wlp-${identityHashCode(weapon)}-$maxLife'),
                   initialValue: '$curLife',
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'Life Points',
+                    labelText: 'Life',
                     helperText: unbreakable ? 'Unbreakable' : 'max $maxLife',
                     border: const OutlineInputBorder(),
                     isDense: true,
@@ -1292,15 +1307,17 @@ class InventoryTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Name on its own full-width line; the badges + Equipped chip +
+          // delete sit on a second line — crammed onto the name row they
+          // starved a badged accessory's name to a 1-2 word vertical stack.
+          Text(
+            sel.name.isEmpty ? '(unknown Accessory)' : sel.name,
+            style: theme.textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  sel.name.isEmpty ? '(unknown Accessory)' : sel.name,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
               if (def != null && def.isTech)
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
@@ -1328,6 +1345,7 @@ class InventoryTab extends StatelessWidget {
                 selected: sel.equipped,
                 onSelected: (v) => onUpdate(() => sel.equipped = v),
               ),
+              const Spacer(),
               IconButton(
                 tooltip: 'Remove',
                 visualDensity: VisualDensity.compact,

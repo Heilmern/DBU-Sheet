@@ -1242,7 +1242,6 @@ class Character {
     this.player = '',
     this.race = 'Custom Species',
     this.subrace = '',
-    this.subspecies = '',
     this.age = '',
     this.gender = '',
     this.height = '',
@@ -1342,7 +1341,6 @@ class Character {
   /// Racial Trait (merged into `CharacterCalculator.activeRaceTraits`).
   String subrace;
 
-  String subspecies;
   String age;
   String gender;
   String height;
@@ -1674,7 +1672,6 @@ class Character {
         'player': player,
         'race': race,
         if (subrace.isNotEmpty) 'subrace': subrace,
-        'subspecies': subspecies,
         'age': age,
         'gender': gender,
         'height': height,
@@ -1785,7 +1782,6 @@ class Character {
       player: json['player'] as String? ?? '',
       race: json['race'] as String? ?? 'Custom Species',
       subrace: json['subrace'] as String? ?? '',
-      subspecies: json['subspecies'] as String? ?? '',
       age: json['age'] as String? ?? '',
       gender: json['gender'] as String? ?? '',
       height: json['height'] as String? ?? '',

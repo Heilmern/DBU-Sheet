@@ -468,40 +468,23 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             value: _c.player,
             onChanged: (v) => _update(() => _c.player = v),
           ),
+          // Race, with the Subrace picker beside it for the Races that have
+          // Subraces (Namekian, Demon, ...). Subrace replaced the old free-text
+          // "Subspecies" field, so Race spans the full width otherwise.
           Row(
             children: [
               Expanded(child: _raceDropdown()),
-              const SizedBox(width: 12),
-              Expanded(
-                child: raceHasSubraces(_c.race)
-                    ? _subraceDropdown()
-                    : _textField(
-                        label: 'Subspecies',
-                        value: _c.subspecies,
-                        onChanged: (v) => _update(() => _c.subspecies = v),
-                      ),
-              ),
+              if (raceHasSubraces(_c.race)) ...[
+                const SizedBox(width: 12),
+                Expanded(child: _subraceDropdown()),
+              ],
             ],
           ),
-          // When the Race has Subraces the Subrace picker takes the second
-          // slot above; keep the free-text Subspecies field available on its
-          // own row so both can be set.
-          if (raceHasSubraces(_c.race))
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _textField(
-                label: 'Subspecies',
-                value: _c.subspecies,
-                onChanged: (v) => _update(() => _c.subspecies = v),
-              ),
-            ),
           Row(
             children: [
               Expanded(child: _sizeDropdown()),
               const SizedBox(width: 12),
-              Expanded(child: _powerLevelField()),
-              const SizedBox(width: 12),
-              // Tier of Power is derived, shown read-only alongside PL.
+              // Tier of Power is derived, shown read-only alongside Base Size.
               DerivedStat(
                 label: 'Tier of Power',
                 value: '${_stats.tierOfPower}',
@@ -509,6 +492,11 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          // Power Level drives every derived stat, so its stepper gets its own
+          // full-width row — squeezed beside Base Size + Tier of Power its
+          // number field collapsed to an unreadable sliver on a phone.
+          _powerLevelField(),
           const SizedBox(height: 8),
           // Cosmetic / biography fields, wrapped so they flow on any width.
           Wrap(
@@ -538,6 +526,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     }
     if (!names.contains(_c.race)) names.insert(0, _c.race);
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _c.race,
       decoration: const InputDecoration(
         labelText: 'Race',
@@ -584,6 +573,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
 
   Widget _sizeDropdown() {
     return DropdownButtonFormField<DbuSize>(
+      isExpanded: true,
       initialValue: _c.size,
       decoration: const InputDecoration(
         labelText: 'Base Size',
@@ -730,6 +720,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: DropdownButtonFormField<DbuAttribute>(
+        isExpanded: true,
         initialValue: current,
         decoration: InputDecoration(
           labelText: '+${choice.amount} to…',
@@ -841,7 +832,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
                     }),
                   ),
                   Flexible(
-                    child: Text('Racial Rank',
+                    child: Text('Racial',
                         style: Theme.of(context).textTheme.labelSmall),
                   ),
                 ],
@@ -947,37 +938,37 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 3,
-                child: Text('Capacity',
-                    style: Theme.of(context).textTheme.titleSmall),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text('Capacity',
+                        style: Theme.of(context).textTheme.titleSmall),
+                  ),
+                  const SizedBox(width: 8),
+                  DerivedStat(
+                    label: 'Left / Max',
+                    value:
+                        '${_stats.currentCapacity} / ${_stats.maxCapacity}',
+                    emphasize: true,
+                  ),
+                  IconButton(
+                    tooltip: 'Reset to full',
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _update(() => _c.capacitySpent = 0),
+                  ),
+                ],
               ),
-              Expanded(
-                flex: 3,
-                child: _numberField(
-                  label: 'Spent',
-                  value: _c.capacitySpent,
-                  min: 0,
-                  max: _stats.maxCapacity,
-                  onChanged: (v) => _update(() => _c.capacitySpent = v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: DerivedStat(
-                  label: 'Left / Max',
-                  value: '${_stats.currentCapacity} / ${_stats.maxCapacity}',
-                  emphasize: true,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Reset to full',
-                icon: const Icon(Icons.refresh),
-                onPressed: () => _update(() => _c.capacitySpent = 0),
+              const SizedBox(height: 4),
+              _numberField(
+                label: 'Spent',
+                value: _c.capacitySpent,
+                min: 0,
+                max: _stats.maxCapacity,
+                onChanged: (v) => _update(() => _c.capacitySpent = v),
               ),
             ],
           ),
@@ -1154,41 +1145,43 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     required ValueChanged<int> onCurrentChanged,
     required VoidCallback onReset,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    // A header line (label + status, the intrinsic-width Max chip, and the
+    // reset button) sits above a full-width stepper. Packing all four into one
+    // Row starved the stepper's number field to an unreadable sliver — and the
+    // flex-boxed Max chip clipped 4-digit maxima — on a phone.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: Theme.of(context).textTheme.titleSmall),
-              if (statusChip != null)
-                Text(statusChip,
-                    style: Theme.of(context).textTheme.labelSmall),
-            ],
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: Theme.of(context).textTheme.titleSmall),
+                  if (statusChip != null)
+                    Text(statusChip,
+                        style: Theme.of(context).textTheme.labelSmall),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            DerivedStat(label: 'Max', value: '$max', emphasize: true),
+            IconButton(
+              tooltip: 'Reset to full',
+              icon: const Icon(Icons.refresh),
+              onPressed: onReset,
+            ),
+          ],
         ),
-        Expanded(
-          flex: 3,
-          child: _numberField(
-            label: 'Current',
-            value: current,
-            min: 0,
-            max: max,
-            onChanged: onCurrentChanged,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: DerivedStat(label: 'Max', value: '$max', emphasize: true),
-        ),
-        IconButton(
-          tooltip: 'Reset to full',
-          icon: const Icon(Icons.refresh),
-          onPressed: onReset,
+        const SizedBox(height: 4),
+        _numberField(
+          label: 'Current',
+          value: current,
+          min: 0,
+          max: max,
+          onChanged: onCurrentChanged,
         ),
       ],
     );
@@ -1348,6 +1341,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             children: [
               Expanded(
                 child: DropdownButtonFormField<DamageCategory>(
+                  isExpanded: true,
                   initialValue: _dmgCategory,
                   decoration: const InputDecoration(
                     labelText: 'Damage Category',
@@ -1365,6 +1359,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<ParryOption>(
+                  isExpanded: true,
                   initialValue: _dmgParry,
                   decoration: const InputDecoration(
                     labelText: 'Parry',
@@ -1382,28 +1377,23 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _numberField(
-                  label: 'Damage Reduction',
-                  value: _dmgReduction,
-                  min: 0,
-                  max: 999,
-                  onChanged: (v) => setState(() => _dmgReduction = v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _numberField(
-                  label: 'Wound Roll',
-                  value: _dmgWoundRoll,
-                  min: 0,
-                  max: 999,
-                  onChanged: (v) => setState(() => _dmgWoundRoll = v),
-                ),
-              ),
-            ],
+          // Full-width, stacked: side by side their long floating labels
+          // ("Damage Reduction" / "Wound Roll") truncated and the number
+          // fields collapsed on a phone.
+          _numberField(
+            label: 'Damage Reduction',
+            value: _dmgReduction,
+            min: 0,
+            max: 999,
+            onChanged: (v) => setState(() => _dmgReduction = v),
+          ),
+          const SizedBox(height: 8),
+          _numberField(
+            label: 'Wound Roll',
+            value: _dmgWoundRoll,
+            min: 0,
+            max: 999,
+            onChanged: (v) => setState(() => _dmgWoundRoll = v),
           ),
           if (autoReduction > 0)
             Padding(
@@ -1510,113 +1500,92 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        // Stepper full-width above its effect chip: side by side, the long
+        // labels ("Diminishing Offense/Defense", "Power (Power Up)") truncated
+        // and the effect text was crammed into a narrow flex slot on a phone.
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 2,
-              child: _numberField(
-                label: 'Power (Power Up)',
-                value: _c.powerStacks,
-                min: 0,
-                max: DefaultResourceRules.maxPowerStacks,
-                onChanged: (v) => _update(() => _c.powerStacks = v),
-              ),
+            _numberField(
+              label: 'Power (Power Up)',
+              value: _c.powerStacks,
+              min: 0,
+              max: DefaultResourceRules.maxPowerStacks,
+              onChanged: (v) => _update(() => _c.powerStacks = v),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: DerivedStat(
-                label: 'Effect',
-                value: '+${CharacterCalculator.powerCombatRollBonus(_c)} '
-                    'Combat Rolls, +${CharacterCalculator.powerMaxCapacityBonus(_c)} '
-                    'Max Capacity',
-              ),
+            const SizedBox(height: 6),
+            DerivedStat(
+              label: 'Effect',
+              value: '+${CharacterCalculator.powerCombatRollBonus(_c)} '
+                  'Combat Rolls, +${CharacterCalculator.powerMaxCapacityBonus(_c)} '
+                  'Max Capacity',
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 2,
-              child: _numberField(
-                label: 'Holding Back',
-                value: CharacterCalculator.holdingBackStacks(_c),
-                min: 0,
-                max: CharacterCalculator.baseTierOfPower(_c),
-                onChanged: (v) => _update(() => _c.holdingBackStacks = v),
-              ),
+            _numberField(
+              label: 'Holding Back',
+              value: CharacterCalculator.holdingBackStacks(_c),
+              min: 0,
+              max: CharacterCalculator.baseTierOfPower(_c),
+              onChanged: (v) => _update(() => _c.holdingBackStacks = v),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: DerivedStat(
-                label: 'Effect',
-                value: CharacterCalculator.holdingBackStacks(_c) == 0
-                    ? '—'
-                    : '−${CharacterCalculator.holdingBackStacks(_c)} Tier of '
-                        'Power, +${CharacterCalculator.holdingBackStacks(_c).clamp(0, 3)} '
-                        'Concealment'
-                        '${CharacterCalculator.holdingBackStacks(_c) >= CharacterCalculator.baseTierOfPower(_c) ? ', −1(bT) Combat Rolls (ToP set to 1)' : ''}',
-                tooltip: 'Holding Back Maneuver: −1 Tier of Power per Stack '
-                    '(max = base ToP). At the maximum, ToP is set to 1 and '
-                    'Combat Rolls take −1(bT). +1 Concealment per Stack '
-                    '(max 3).',
-              ),
+            const SizedBox(height: 6),
+            DerivedStat(
+              label: 'Effect',
+              value: CharacterCalculator.holdingBackStacks(_c) == 0
+                  ? '—'
+                  : '−${CharacterCalculator.holdingBackStacks(_c)} Tier of '
+                      'Power, +${CharacterCalculator.holdingBackStacks(_c).clamp(0, 3)} '
+                      'Concealment'
+                      '${CharacterCalculator.holdingBackStacks(_c) >= CharacterCalculator.baseTierOfPower(_c) ? ', −1(bT) Combat Rolls (ToP set to 1)' : ''}',
+              tooltip: 'Holding Back Maneuver: −1 Tier of Power per Stack '
+                  '(max = base ToP). At the maximum, ToP is set to 1 and '
+                  'Combat Rolls take −1(bT). +1 Concealment per Stack '
+                  '(max 3).',
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 2,
-              child: _numberField(
-                label: 'Diminishing Offense',
-                value: _c.diminishingOffenseStacks,
-                min: 0,
-                max: 99,
-                onChanged: (v) =>
-                    _update(() => _c.diminishingOffenseStacks = v),
-              ),
+            _numberField(
+              label: 'Diminishing Offense',
+              value: _c.diminishingOffenseStacks,
+              min: 0,
+              max: 99,
+              onChanged: (v) =>
+                  _update(() => _c.diminishingOffenseStacks = v),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: DerivedStat(
-                label: 'Effect',
-                value:
-                    '${_fmt(-CharacterCalculator.diminishingOffensePenalty(_c))} Strike',
-              ),
+            const SizedBox(height: 6),
+            DerivedStat(
+              label: 'Effect',
+              value:
+                  '${_fmt(-CharacterCalculator.diminishingOffensePenalty(_c))} Strike',
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 2,
-              child: _numberField(
-                label: 'Diminishing Defense',
-                value: _c.diminishingDefenseStacks,
-                min: 0,
-                max: 99,
-                onChanged: (v) =>
-                    _update(() => _c.diminishingDefenseStacks = v),
-              ),
+            _numberField(
+              label: 'Diminishing Defense',
+              value: _c.diminishingDefenseStacks,
+              min: 0,
+              max: 99,
+              onChanged: (v) =>
+                  _update(() => _c.diminishingDefenseStacks = v),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: DerivedStat(
-                label: 'Effect',
-                value:
-                    '${_fmt(-CharacterCalculator.diminishingDefensePenalty(_c))} Dodge',
-              ),
+            const SizedBox(height: 6),
+            DerivedStat(
+              label: 'Effect',
+              value:
+                  '${_fmt(-CharacterCalculator.diminishingDefensePenalty(_c))} Dodge',
             ),
           ],
         ),
@@ -1670,6 +1639,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
               Expanded(
                 child: catalog != null
                     ? DropdownButtonFormField<String>(
+                        isExpanded: true,
                         // Row-identity key: without it, deleting a middle row
                         // leaves this dropdown (whose FormField state is
                         // element-local) showing the DELETED row's pick.
@@ -1895,12 +1865,17 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             ],
           ),
           const SizedBox(height: 8),
-          // Flat + tier-scaled columns, each on the full width so the stepper's
-          // text field is wide enough to read. Total = Flat + (bT)×base Tier of
-          // Power + (T)×Tier of Power (see CharacterCalculator.customBuffTotal).
-          Row(
+          // Flat + tier-scaled fields. A fixed-width Wrap keeps each stepper's
+          // number field readable and reflows to fewer-per-row on a narrow
+          // phone; sharing one Row three ways starved every field to a sliver.
+          // Total = Flat + (bT)×base Tier of Power + (T)×Tier of Power
+          // (see CharacterCalculator.customBuffTotal).
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
+              SizedBox(
+                width: 144,
                 child: _numberField(
                   label: 'Flat',
                   value: buff.flat,
@@ -1909,8 +1884,8 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
                   onChanged: (v) => _update(() => buff.flat = v),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 144,
                 child: _numberField(
                   label: '(bT)',
                   value: buff.perBaseTier,
@@ -1919,8 +1894,8 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
                   onChanged: (v) => _update(() => buff.perBaseTier = v),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              SizedBox(
+                width: 144,
                 child: _numberField(
                   label: '(T)',
                   value: buff.perTier,
@@ -1955,6 +1930,7 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: kZSoulAlignments.contains(_c.zSoul.alignment)
                       ? _c.zSoul.alignment
                       : 'Neutral',
@@ -1999,7 +1975,13 @@ class _CharacterEditScreenState extends State<CharacterEditScreen>
   // ==========================================================================
 
   /// Formats a signed integer bonus like "+3" / "-1" / "+0".
-  String _fmt(int n) => n >= 0 ? '+$n' : '$n';
+  // Signed formatter that shows a clean "+0" for zero (guarding against a
+  // negative-zero double, which would otherwise render as "+-0.0") and never
+  // leaves a spurious ".0" on a whole number.
+  String _fmt(num n) {
+    final v = n == n.roundToDouble() ? n.toInt() : n;
+    return v == 0 ? '+0' : (v > 0 ? '+$v' : '$v');
+  }
 
   /// A standard multi-purpose text field bound to a string value.
   Widget _textField({
@@ -2125,6 +2107,9 @@ class _IntStepperFieldState extends State<_IntStepperField> {
       children: [
         IconButton(
           visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          iconSize: 22,
           icon: const Icon(Icons.remove_circle_outline),
           onPressed: () => _emit(widget.value - 1),
         ),
@@ -2158,6 +2143,9 @@ class _IntStepperFieldState extends State<_IntStepperField> {
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          iconSize: 22,
           icon: const Icon(Icons.add_circle_outline),
           onPressed: () => _emit(widget.value + 1),
         ),
